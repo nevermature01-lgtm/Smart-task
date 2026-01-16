@@ -38,10 +38,10 @@ export default function SignUpPage() {
     setError(null); // Reset any previous errors.
     setSuccessMessage(null); // Reset any previous success messages.
 
-    // 2. ON FORM SUBMIT
-    const supabase = createClient(); // Create a Supabase client instance.
-
     try {
+      // 2. ON FORM SUBMIT
+      const supabase = createClient(); // Create a Supabase client instance.
+
       // 3a. SIGN UP THE USER WITH SUPABASE AUTH
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -59,7 +59,7 @@ export default function SignUpPage() {
         throw new Error('Sign up successful, but no user object returned.');
       }
 
-      // 3b. GET THE AUTHENTICATED USER'S ID
+      // 3b. GET THE AUTHENTICated USER'S ID
       const authUserId = user.id;
 
       // 3c. INSERT A NEW ROW INTO public.users TABLE
