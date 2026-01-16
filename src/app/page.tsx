@@ -3,7 +3,7 @@ export default function WelcomeScreen() {
     <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
       {/* Header / Logo Area */}
       <div className="flex flex-col items-center justify-center pt-28 pb-12">
-        <div className="w-20 h-20 bg-white/60 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 logo-glow border border-white/80">
+        <div className="w-20 h-20 flex items-center justify-center mb-8 logo-glow">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center transform rotate-12">
             <span className="material-symbols-outlined text-white text-2xl">check_circle</span>
           </div>
