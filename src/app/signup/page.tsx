@@ -1,11 +1,93 @@
-import Link from 'next/link';
-import type { Metadata } from 'next';
+// /src/app/signup/page.tsx
+'use client'; // This directive marks the component as a Client Component.
 
-export const metadata: Metadata = {
-    title: 'Smart Task - Sign Up',
+import Link from 'next/link';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client'; // Import the Supabase client creator.
+
+// Define the shape of the form data using a TypeScript type for clarity.
+type FormData = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
 };
 
 export default function SignUpPage() {
+  // State for managing form input values.
+  const [formData, setFormData] = useState<FormData>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+  });
+
+  // State for handling and displaying errors.
+  const [error, setError] = useState<string | null>(null);
+  // State for displaying a success message.
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Generic handler to update form data state on input changes.
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // Async function to handle the entire sign-up process.
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault(); // Prevent the default form submission behavior.
+    setError(null); // Reset any previous errors.
+    setSuccessMessage(null); // Reset any previous success messages.
+
+    // 2. ON FORM SUBMIT
+    const supabase = createClient(); // Create a Supabase client instance.
+
+    try {
+      // 3a. SIGN UP THE USER WITH SUPABASE AUTH
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      // 4a. HANDLE AUTH ERRORS
+      if (authError) {
+        throw new Error(`Authentication error: ${authError.message}`);
+      }
+
+      // Check if user object exists after signup.
+      const user = authData.user;
+      if (!user) {
+        throw new Error('Sign up successful, but no user object returned.');
+      }
+
+      // 3b. GET THE AUTHENTICATED USER'S ID
+      const authUserId = user.id;
+
+      // 3c. INSERT A NEW ROW INTO public.users TABLE
+      // 6. CLEANLY SEPARATED AUTH AND DATABASE LOGIC
+      const { error: dbError } = await supabase.from('users').insert({
+        auth_user_id: authUserId,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        email: formData.email,
+        // created_at will be handled by the database default.
+        // Do NOT store the password in the database.
+      });
+
+      // 4b. HANDLE DATABASE INSERT ERRORS
+      if (dbError) {
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      // 4. SHOW USER-FRIENDLY SUCCESS MESSAGE
+      setSuccessMessage('Sign up successful! Please check your email to verify your account.');
+
+    } catch (err: any) {
+      // 4. SHOW USER-FRIENDLY ERROR MESSAGE
+      setError(err.message);
+    }
+  };
+
+  // 8. MINIMAL BUT CLEAN UI
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
@@ -18,25 +100,58 @@ export default function SignUpPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-[3rem] p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          <form className="flex flex-col gap-5">
+          {/* 5. USE ASYNC/AWAIT - Form calls the async handleSignUp function */}
+          <form onSubmit={handleSignUp} className="flex flex-col gap-5">
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col gap-2">
                 <label className="text-white/70 text-sm font-medium pl-1">First Name</label>
-                <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="John" type="text"/>
+                <input
+                  name="firstName"
+                  className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+                  placeholder="John"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                />
               </div>
               <div className="flex-1 flex flex-col gap-2">
                 <label className="text-white/70 text-sm font-medium pl-1">Last Name</label>
-                <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="Doe" type="text"/>
+                <input
+                  name="lastName"
+                  className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+                  placeholder="Doe"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                />
               </div>
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
-              <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="hello@example.com" type="email"/>
+              <input
+                name="email"
+                className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+                placeholder="hello@example.com"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
             </div>
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Password</label>
               <div className="relative">
-                <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="••••••••" type="password"/>
+                <input
+                  name="password"
+                  className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
+                  placeholder="••••••••"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
                 <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" type="button">
                   <span className="material-symbols-outlined text-[20px]">visibility</span>
                 </button>
@@ -46,6 +161,9 @@ export default function SignUpPage() {
               Sign Up
             </button>
           </form>
+          {/* Display error or success messages */}
+          {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+          {successMessage && <p className="text-green-400 text-sm mt-4 text-center">{successMessage}</p>}
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
