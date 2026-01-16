@@ -1,17 +1,8 @@
 export default function WelcomeScreen() {
   return (
     <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
-      {/* Status Bar Area (iOS Mockup) */}
-      <div className="h-12 w-full flex items-center justify-between px-8 pt-4">
-        <span className="text-xs font-bold text-foreground">9:41</span>
-        <div className="flex gap-1">
-          <span className="material-symbols-outlined text-[14px]">signal_cellular_4_bar</span>
-          <span className="material-symbols-outlined text-[14px]">wifi</span>
-          <span className="material-symbols-outlined text-[14px]">battery_full</span>
-        </div>
-      </div>
       {/* Header / Logo Area */}
-      <div className="flex flex-col items-center justify-center pt-16 pb-12">
+      <div className="flex flex-col items-center justify-center pt-28 pb-12">
         <div className="w-20 h-20 bg-white/60 backdrop-blur-md rounded-2xl flex items-center justify-center mb-8 logo-glow border border-white/80">
           <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center transform rotate-12">
             <span className="material-symbols-outlined text-white text-2xl">check_circle</span>
