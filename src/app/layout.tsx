@@ -2,8 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Smart Task - Welcome Screen',
-  description: 'Elevate your productivity with clarity and modern workflow design.',
+  title: 'Smart Decor - Welcome Screen',
+  description: 'Turning your interior design dreams into reality.',
 };
 
 export default function RootLayout({

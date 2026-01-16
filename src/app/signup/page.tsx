@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Smart Task - Sign Up',
+    title: 'Smart Decor - Sign Up',
 };
 
 export default function SignUpScreen() {
@@ -18,7 +18,7 @@ export default function SignUpScreen() {
           Create Account
         </h1>
         <p className="text-muted-foreground text-sm mt-1 opacity-80">
-          Join Smart Task and boost your productivity.
+          Join Smart Decor and turn your dreams into reality.
         </p>
       </div>
       <div className="flex-1 px-6 overflow-y-auto pb-6">
