@@ -70,17 +70,7 @@ export default function WelcomeScreen() {
         </Link>
       </div>
 
-      <div className="mt-auto pb-8 px-6">
-        <div className="flex justify-center items-center gap-4 text-white/40 text-[13px] font-medium">
-          <Link className="hover:text-white transition-colors" href="#">
-            Terms
-          </Link>
-          <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-          <Link className="hover:text-white transition-colors" href="#">
-            Privacy Policy
-          </Link>
-        </div>
-      </div>
+      <div className="mt-auto"></div>
       <div className="h-6 w-full shrink-0"></div>
     </div>
   );
