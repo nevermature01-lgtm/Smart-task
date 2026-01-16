@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function WelcomeScreen() {
   return (
     <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
@@ -18,19 +20,19 @@ export default function WelcomeScreen() {
       </div>
       <div className="flex-1 flex flex-col justify-center pb-12 px-8">
         <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
-          <button className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
+          <Link href="/signup" className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
             <span className="text-foreground text-xl font-bold leading-normal tracking-[0.015em] relative z-10 flex items-center gap-2">
               Get Started
               <span className="material-symbols-outlined text-2xl">
                 arrow_forward
               </span>
             </span>
-          </button>
-          <button className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
+          </Link>
+          <Link href="/login" className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
             <span className="text-foreground text-xl font-bold leading-normal tracking-[0.015em] relative z-10">
               Log In
             </span>
-          </button>
+          </Link>
         </div>
       </div>
       <div className="absolute -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
