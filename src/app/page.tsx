@@ -1,6 +1,6 @@
 export default function WelcomeScreen() {
   return (
-    <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
+    <div className="relative flex min-h-screen w-full flex-col mesh-gradient">
       {/* Header / Logo Area */}
       <div className="flex flex-col items-center justify-center pt-28 pb-12">
         <div className="w-20 h-20 flex items-center justify-center mb-8 logo-glow">
