@@ -89,29 +89,27 @@
 }
 
 @layer utilities {
-    .glass-button {
-        background: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.8);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), inset 0 2px 4px rgba(255, 255, 255, 0.6);
-    }
-    .mesh-gradient {
-        background-color: hsl(var(--background));
-        background-image: 
-            radial-gradient(at 0% 0%, hsl(var(--primary) / 0.15) 0px, transparent 50%),
-            radial-gradient(at 100% 0%, hsl(var(--primary) / 0.1) 0px, transparent 50%),
-            radial-gradient(at 50% 100%, hsl(var(--primary) / 0.2) 0px, transparent 50%);
-    }
-    .logo-glow {
-        box-shadow: 0 15px 35px hsl(var(--primary) / 0.1);
+    .glass-panel {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
     }
     .glass-card {
-        background: rgba(255, 255, 255, 0.4);
-        backdrop-filter: blur(24px);
-        -webkit-backdrop-filter: blur(24px);
-        border: 1px solid rgba(255, 255, 255, 0.5);
-        box-shadow: 0 25px 50px -12px rgba(86, 29, 201, 0.1);
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .mesh-background {
+        background-color: #1a0b2e;
+        background-image: 
+            radial-gradient(at 0% 0%, #2e1065 0, transparent 50%), 
+            radial-gradient(at 50% 0%, #4c1d95 0, transparent 60%), 
+            radial-gradient(at 100% 0%, #7c3aed 0, transparent 50%), 
+            radial-gradient(at 0% 100%, #5b21b6 0, transparent 50%), 
+            radial-gradient(at 100% 100%, #a78bfa 0, transparent 50%);
+        background-size: cover;
     }
     .glass-input {
         background: rgba(255, 255, 255, 0.2);

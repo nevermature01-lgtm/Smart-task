@@ -2,41 +2,86 @@ import Link from 'next/link';
 
 export default function WelcomeScreen() {
   return (
-    <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
-      <div className="flex flex-col items-center justify-center pt-24 pb-12">
-        <div className="w-24 h-24 bg-white/70 backdrop-blur-md rounded-3xl flex items-center justify-center mb-10 logo-glow border border-white/80">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center">
-            <span className="material-symbols-outlined text-white text-3xl">
-              check_circle
-            </span>
-          </div>
+    <div className="relative flex h-screen w-full flex-col mesh-background">
+      <div className="pt-12 px-6 shrink-0">
+        <div className="glass-panel w-full aspect-[2/1] rounded-3xl overflow-hidden flex items-center justify-center relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
+          <div
+            className="relative w-[90%] h-[85%] bg-center bg-no-repeat bg-cover rounded-2xl"
+            style={{
+              backgroundImage:
+                'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBnZJuvedrvwAh9rB78GRS2v-3mIFm2onAUvwRK7GdNgkZu3ddl4jPvnGSfDitjFAS3bAIUyjaxVDrqoOKwSvLpCo-2rjhA8ZE2XRYwdwEQJCq4jRolu2jyaljoElXRTx2iFVKDQDNnZnMW5Bs1dr4zsfa-DG0zWy69avKInQh6T9L8dFySspdGdwMZXbqo8MIkoXGjZ7S81IhsvhWQoqLfY-EF3lt7EVs_PQJdN2JtSJ0sOFPYO3Ax34CVXkk09hCcGqbRoRO8KHKI")',
+            }}
+          ></div>
         </div>
-        <h1 className="text-foreground tracking-tight text-[40px] font-bold leading-[1.1] px-10 text-center">
-          Welcome to <br /> <span className="text-primary">Smart Task</span>
+      </div>
+
+      <div className="flex flex-col gap-2 px-8 pt-8 text-left">
+        <h1 className="text-white text-[34px] font-bold leading-[1.1] tracking-tight">
+          Welcome to
+          <br />
+          Smart Task
         </h1>
-        <p className="text-muted-foreground text-lg font-normal mt-6 px-12 text-center opacity-70 leading-relaxed max-w-sm">
-          Elevate your productivity with clarity and modern workflow design.
+        <p className="text-lavender-muted text-lg font-medium opacity-90">
+          Evolve the way you manage productivity.
         </p>
       </div>
-      <div className="flex-1 flex flex-col justify-center pb-12 px-8">
-        <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
-          <Link href="/signup" className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
-            <span className="text-foreground text-xl font-bold leading-normal tracking-[0.015em] relative z-10 flex items-center gap-2">
-              Get Started
-              <span className="material-symbols-outlined text-2xl">
+
+      <div className="mt-6 px-6 flex flex-col gap-4">
+        <Link
+          href="/login"
+          className="glass-card flex items-center justify-between gap-4 rounded-2xl p-5 text-left active:scale-[0.98] transition-all duration-200"
+        >
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2 text-white">
+              <span className="material-symbols-outlined text-[22px]">
                 arrow_forward
               </span>
+              <span className="text-lg font-bold">Login</span>
+            </div>
+            <p className="text-white/60 text-sm font-normal">
+              Access your existing workspaces.
+            </p>
+          </div>
+          <div className="bg-white/10 h-10 w-10 flex items-center justify-center rounded-full border border-white/20">
+            <span className="material-symbols-outlined text-white text-[20px]">
+              chevron_right
             </span>
+          </div>
+        </Link>
+        <Link
+          href="/signup"
+          className="glass-card flex items-center justify-between gap-4 rounded-2xl p-5 text-left active:scale-[0.98] transition-all duration-200"
+        >
+          <div className="flex flex-col gap-0.5">
+            <div className="flex items-center gap-2 text-white">
+              <span className="material-symbols-outlined text-[22px]">add</span>
+              <span className="text-lg font-bold">Create Account</span>
+            </div>
+            <p className="text-white/60 text-sm font-normal">
+              Start organizing your life today.
+            </p>
+          </div>
+          <div className="bg-white/10 h-10 w-10 flex items-center justify-center rounded-full border border-white/20">
+            <span className="material-symbols-outlined text-white text-[20px]">
+              arrow_outward
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      <div className="mt-auto pb-8 px-6">
+        <div className="flex justify-center items-center gap-4 text-white/40 text-[13px] font-medium">
+          <Link className="hover:text-white transition-colors" href="#">
+            Terms
           </Link>
-          <Link href="/login" className="glass-button relative group active:scale-95 transition-all duration-200 flex min-w-[84px] cursor-pointer items-center justify-center overflow-hidden rounded-[24px] h-[72px] px-5 w-full">
-            <span className="text-foreground text-xl font-bold leading-normal tracking-[0.015em] relative z-10">
-              Log In
-            </span>
+          <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+          <Link className="hover:text-white transition-colors" href="#">
+            Privacy Policy
           </Link>
         </div>
       </div>
-      <div className="absolute -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-20 -left-10 w-48 h-48 bg-primary/15 rounded-full blur-[80px] pointer-events-none"></div>
+      <div className="h-6 w-full shrink-0"></div>
     </div>
   );
 }
