@@ -1,10 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
-import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
-  title: 'TaskMaster Pro',
-  description: 'Your ultimate to-do list application.',
+  title: 'My App',
+  description: 'A new app.',
 };
 
 export default function RootLayout({
@@ -21,7 +20,6 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased" suppressHydrationWarning>
         {children}
-        <Toaster />
       </body>
     </html>
   );
