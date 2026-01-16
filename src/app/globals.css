@@ -112,16 +112,9 @@
         background-size: cover;
     }
     .glass-input {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        transition: all 0.2s ease;
-    }
-    .glass-input:focus {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(86, 29, 201, 0.3);
-        outline: none;
-        box-shadow: 0 0 0 4px rgba(86, 29, 201, 0.05);
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
 }

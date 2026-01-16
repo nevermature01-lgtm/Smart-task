@@ -5,50 +5,45 @@ export const metadata: Metadata = {
     title: 'Smart Task - Log In',
 };
 
-export default function LoginScreen() {
+export default function LoginPage() {
   return (
-    <div className="relative flex h-screen w-full flex-col mesh-gradient overflow-hidden">
-      <div className="px-6 pt-12 shrink-0 z-20">
-        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md border border-white/60">
-          <span className="material-symbols-outlined text-foreground text-[20px]">arrow_back_ios_new</span>
+    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+      <header className="pt-14 px-6 flex items-center justify-between shrink-0">
+        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+          <span className="material-symbols-outlined">arrow_back_ios_new</span>
         </Link>
-      </div>
-      <div className="px-8 pt-6 pb-4 shrink-0">
-        <h1 className="text-foreground tracking-tight text-[32px] font-bold leading-tight">
-          Log In
-        </h1>
-        <p className="text-muted-foreground text-sm mt-1 opacity-80">
-          Welcome back! Let's get to work.
-        </p>
-      </div>
-      <div className="flex-1 px-6 overflow-y-auto pb-6">
-        <div className="glass-card rounded-[2.5rem] p-8 w-full max-w-[420px] mx-auto">
+        <h1 className="text-white text-xl font-bold">Log In</h1>
+        <div className="w-10"></div>
+      </header>
+      <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
+        <div className="glass-panel w-full rounded-[3rem] p-8 flex flex-col gap-6 relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
           <form className="flex flex-col gap-5">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-foreground text-[10px] font-bold uppercase tracking-widest ml-1">Gmail</label>
-              <input className="glass-input h-14 rounded-2xl px-5 text-foreground placeholder:text-foreground/30 border-none ring-0" placeholder="john.doe@gmail.com" type="email"/>
+            <div className="flex flex-col gap-2">
+              <label className="text-white/70 text-sm font-medium pl-1">Email</label>
+              <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="hello@example.com" type="email"/>
             </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-foreground text-[10px] font-bold uppercase tracking-widest ml-1">Password</label>
+            <div className="flex flex-col gap-2">
+              <label className="text-white/70 text-sm font-medium pl-1">Password</label>
               <div className="relative">
-                <input className="glass-input h-14 w-full rounded-2xl px-5 text-foreground placeholder:text-foreground/30 border-none ring-0" placeholder="••••••••" type="password"/>
-                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/40" type="button">
-                  <span className="material-symbols-outlined">visibility</span>
+                <input className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" placeholder="••••••••" type="password"/>
+                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" type="button">
+                  <span className="material-symbols-outlined text-[20px]">visibility</span>
                 </button>
               </div>
             </div>
-            <button className="mt-4 bg-foreground text-background h-16 rounded-2xl font-bold text-lg active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xl shadow-black/10" type="submit">
+            <button className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted" type="submit">
               Log In
-              <span className="material-symbols-outlined text-xl">login</span>
             </button>
           </form>
-          <p className="text-center mt-6 text-sm text-muted-foreground">
-            Don't have an account? <Link className="text-primary font-bold" href="/signup">Sign Up</Link>
-          </p>
         </div>
       </div>
-      <div className="absolute -top-10 -right-10 w-64 h-64 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-20 -left-10 w-48 h-48 bg-primary/15 rounded-full blur-[80px] pointer-events-none"></div>
+      <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
+        <Link className="text-lavender-muted text-sm font-medium hover:text-white transition-colors" href="/signup">
+          Don't have an account? <span className="font-bold underline underline-offset-4">Sign Up</span>
+        </Link>
+      </div>
+      <div className="h-4 w-full shrink-0"></div>
     </div>
   );
 }
