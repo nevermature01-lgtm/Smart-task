@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Smart Decor - Log In',
+    title: 'Smart Task - Log In',
 };
 
 export default function LoginScreen() {
