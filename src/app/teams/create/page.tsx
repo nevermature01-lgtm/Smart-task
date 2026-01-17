@@ -71,6 +71,8 @@ export default function CreateTeamPage() {
           team_name: teamName.trim(),
           team_code: teamCode,
           owner_id: user.id,
+          owner_name: user.user_metadata?.full_name || user.email,
+          owner_email: user.email
         })
         .select()
         .single();

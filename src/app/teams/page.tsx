@@ -14,7 +14,8 @@ type Team = {
   created_at: string;
   team_code: string;
   role: string;
-  owner_name?: string;
+  owner_name: string | null;
+  owner_email: string | null;
 };
 
 export default function TeamsPage() {
@@ -24,12 +25,12 @@ export default function TeamsPage() {
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
     const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
 
-     useEffect(() => {
-        const fetchTeamsAndOwners = async () => {
+    useEffect(() => {
+        const fetchTeams = async () => {
             if (user) {
                 setIsLoadingTeams(true);
                 
-                // Step 1: Fetch team memberships and team data
+                // Fetch team memberships and the associated team data.
                 const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
                     .select('role, teams(*)')
@@ -42,39 +43,13 @@ export default function TeamsPage() {
                     return;
                 }
 
-                if (memberships && memberships.length > 0) {
-                    const validMemberships = memberships.filter(m => m.teams);
-                    const ownerIds = [...new Set(validMemberships.map(m => m.teams!.owner_id))];
-
-                    // Step 2: Fetch owner emails from the public_users view
-                    const { data: owners, error: ownersError } = await supabase
-                        .from('public_users')
-                        .select('id, email')
-                        .in('id', ownerIds);
-                    
-                    if (ownersError && ownersError.message) {
-                        console.error('Error fetching owner data:', ownersError.message);
-                    }
-
-                    const ownersById = owners?.reduce((acc, o) => {
-                        acc[o.id] = o;
-                        return acc;
-                    }, {} as Record<string, { id: string; email: string | null }>) || {};
-
-                     const userTeamsData = validMemberships
+                if (memberships) {
+                     const userTeamsData = memberships
                         .map(m => {
-                            const teamData = m.teams!;
-                            const ownerInfo = ownersById[teamData.owner_id];
-                            
-                            // If current user is owner, use their metadata. Otherwise use fetched email.
-                            const ownerName = teamData.owner_id === user.id
-                                ? (user.user_metadata?.full_name || user.email)
-                                : (ownerInfo?.email || 'Team Owner'); // Fallback
-
+                            if (!m.teams) return null;
                             return {
-                                ...teamData,
+                                ...m.teams,
                                 role: m.role,
-                                owner_name: ownerName
                             };
                         })
                         .filter((t): t is Team => t !== null && t.id !== null);
@@ -89,7 +64,7 @@ export default function TeamsPage() {
         };
 
         if (user) {
-            fetchTeamsAndOwners();
+            fetchTeams();
         } else {
             setIsLoadingTeams(false);
         }
@@ -171,7 +146,7 @@ export default function TeamsPage() {
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
                                                 <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Code: {team.team_code}</p>
-                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created by {team.owner_name}</p>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created by {team.owner_name || team.owner_email || 'Team Owner'}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {activeTeam === team.id && (
