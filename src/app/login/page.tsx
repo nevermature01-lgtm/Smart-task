@@ -33,15 +33,15 @@ export default function LoginPage() {
         return;
       }
       
+      // Redirect using full page reload for maximum reliability
       if (data.session) {
-        // Redirect using full page reload for maximum reliability
         window.location.href = '/home';
       } else {
-         // Fallback for cases where session is null but no error (e.g., MFA)
+         // This case handles scenarios like MFA or other login flows
+         // where a session isn't immediately returned.
         toast({
-          variant: 'destructive',
-          title: 'Login incomplete',
-          description: 'Could not establish a session. Please try again.',
+          title: 'Login Pending',
+          description: 'Please complete the next step to log in.',
         });
         setIsLoading(false);
       }
