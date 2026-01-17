@@ -132,16 +132,16 @@ export default function ManageTeamsPage() {
                                         <span className="material-symbols-outlined text-xl">delete</span>
                                     </button>
                                 </AlertDialogTrigger>
-                                <AlertDialogContent className="text-white border-white/20 bg-[#1a0b2e]/80 backdrop-blur-md">
+                                <AlertDialogContent className="max-w-sm mx-4 text-white border-white/20 bg-black/60 backdrop-blur-xl rounded-2xl p-5">
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                                         <AlertDialogDescription className="text-lavender-muted/80">
                                             This action cannot be undone. This will permanently delete the "{team.team_name}" team and all of its data.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
-                                    <AlertDialogFooter className="border-t-0 pt-4">
-                                        <AlertDialogCancel className="bg-transparent border border-white/20 text-white hover:bg-white/10 hover:text-white mt-0">Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTeam(team.id)} className="bg-red-600 hover:bg-red-600/80 text-white">Delete</AlertDialogAction>
+                                    <AlertDialogFooter className="border-t-0 pt-4 flex-row gap-3">
+                                        <AlertDialogCancel className="bg-transparent border border-white/20 text-white hover:bg-white/10 hover:text-white mt-0 w-full rounded-lg">Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteTeam(team.id)} className="bg-red-600 hover:bg-red-700 text-white w-full rounded-lg">Delete</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>
