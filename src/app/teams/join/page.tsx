@@ -76,16 +76,20 @@ export default function JoinTeamPage() {
     setIsLoading(true);
 
     try {
-      // 1. Find team by code using a secure RPC call.
+      // 1. Find team by code using a direct query.
       const { data: team, error: findTeamError } = await supabase
-        .rpc('get_team_id_by_code', { p_team_code: teamCode })
+        .from('teams')
+        .select('id')
+        .eq('team_code', teamCode)
         .maybeSingle();
 
       if (findTeamError) {
-        throw new Error(findTeamError.message);
+        // If there's an error fetching (e.g., RLS issue), throw it.
+        throw findTeamError;
       }
       
-      if (!team || !team.id) {
+      if (!team) {
+        // If team is null, it means no team with that code was found.
         toast({
             variant: 'destructive',
             title: 'Invalid Team Code',
@@ -95,41 +99,43 @@ export default function JoinTeamPage() {
         return;
       }
 
-
-      // 2. Add user to team_members. RLS policy will ensure user_id matches auth.uid().
+      // 2. Add user to team_members.
       const { error: joinError } = await supabase
           .from('team_members')
           .insert({
               team_id: team.id,
               user_id: user.id,
-              role: 'member',
+              role: 'member', // Default role for joining
           });
 
       if (joinError) {
-          // Check for unique constraint violation (PostgreSQL error code '23505')
-          if (joinError.code === '23505') {
-               toast({
-                  variant: 'destructive',
-                  title: 'Already a Member',
-                  description: "You are already a member of this team.",
-              });
-          } else {
-              throw new Error(joinError.message);
-          }
-      } else {
-          toast({
-              title: 'Joined Team!',
-              description: `You have successfully joined the team.`,
-          });
-          router.push('/teams'); // Redirect to see the new team
-          router.refresh();
+          // If the insert fails, throw the error.
+          // RLS or unique constraint (already a member) could cause this.
+          throw joinError;
       }
+
+      // 3. Success
+      toast({
+          title: 'Joined Team!',
+          description: `You have successfully joined the team.`,
+      });
+      router.push('/teams');
+      router.refresh();
+
     } catch (error: any) {
-        console.error('Failed to join team:', error.message);
+        let errorMessage = 'An unexpected error occurred.';
+        // Handle specific Supabase errors for better user feedback
+        if (error.code === '23505') { // Unique constraint violation
+            errorMessage = "You are already a member of this team.";
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+
+        console.error('Failed to join team:', errorMessage);
         toast({
             variant: 'destructive',
             title: 'Failed to Join Team',
-            description: error.message || 'An unexpected error occurred.',
+            description: errorMessage,
         });
     } finally {
         setIsLoading(false);
