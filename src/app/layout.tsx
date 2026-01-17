@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import SupabaseAuthProvider from '@/context/SupabaseAuthProvider';
+import TeamProvider from '@/context/TeamProvider';
 
 export const metadata: Metadata = {
   title: 'Smart Task - Welcome Screen',
@@ -23,7 +24,9 @@ export default function RootLayout({
       </head>
       <body className="font-display antialiased m-0 p-0 mesh-background text-white" suppressHydrationWarning>
         <SupabaseAuthProvider>
-          {children}
+          <TeamProvider>
+            {children}
+          </TeamProvider>
         </SupabaseAuthProvider>
         <Toaster />
       </body>

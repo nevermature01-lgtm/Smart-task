@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useTeam } from '@/context/TeamProvider';
 
 type Team = {
   id: string;
@@ -18,6 +19,7 @@ export default function TeamsPage() {
     const router = useRouter();
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+    const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
 
      useEffect(() => {
         const fetchTeams = async () => {
@@ -45,9 +47,15 @@ export default function TeamsPage() {
         }
     }, [user]);
 
+    const handleSwitchTeam = (teamId: string | null) => {
+        setActiveTeam(teamId);
+    }
+
     const ownerName = user?.user_metadata?.full_name || 'Owner';
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
     const userPhoto = user?.user_metadata?.avatar_url;
+    
+    const isLoading = isLoadingTeams || isTeamLoading;
 
     return (
         <div className="relative flex flex-col pb-28 min-h-screen">
@@ -78,13 +86,13 @@ export default function TeamsPage() {
                         <button onClick={() => router.push('/teams/manage')} className="text-sm text-lavender-muted font-medium">Manage</button>
                     </div>
                     <div className="space-y-3">
-                         {isLoadingTeams ? (
+                         {isLoading ? (
                             <div className="flex justify-center items-center p-8">
                                 <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                             </div>
                         ) : (
                             <>
-                                <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:bg-white/10 transition-colors">
+                                <button onClick={() => handleSwitchTeam('personal')} className="w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:bg-white/10 transition-colors">
                                     <div className="w-12 h-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/40 to-transparent shrink-0 p-1">
                                          {userPhoto ? (
                                             <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={48} height={48} />
@@ -99,15 +107,17 @@ export default function TeamsPage() {
                                         <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Personal Account</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <div className="px-2.5 py-1 rounded-full glass-panel bg-green-500/20 border-green-500/20">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-green-300">Active</span>
-                                        </div>
+                                        {activeTeam === 'personal' && (
+                                            <div className="px-2.5 py-1 rounded-full glass-panel bg-green-500/20 border-green-500/20">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-green-300">Active</span>
+                                            </div>
+                                        )}
                                         <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
                                     </div>
-                                </div>
+                                </button>
                                 {teams.length > 0 ? (
                                     teams.map((team) => (
-                                        <div key={team.id} className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:bg-white/10 transition-colors">
+                                        <button key={team.id} onClick={() => handleSwitchTeam(team.id)} className="w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:bg-white/10 transition-colors">
                                             <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center bg-white/5 shrink-0">
                                                 <span className="material-symbols-outlined">auto_awesome</span>
                                             </div>
@@ -116,9 +126,14 @@ export default function TeamsPage() {
                                                 <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created By {ownerName}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
+                                                {activeTeam === team.id && (
+                                                    <div className="px-2.5 py-1 rounded-full glass-panel bg-green-500/20 border-green-500/20">
+                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-green-300">Active</span>
+                                                    </div>
+                                                )}
                                                 <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
                                             </div>
-                                        </div>
+                                        </button>
                                     ))
                                 ) : (
                                     <div className="glass-panel p-4 rounded-2xl text-center">
