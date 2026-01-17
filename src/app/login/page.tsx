@@ -30,11 +30,6 @@ export default function LoginPage() {
         throw error;
       }
       
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-
       // Force a full page reload to ensure the server recognizes the new session
       // and the middleware can redirect correctly.
       window.location.href = '/home';
