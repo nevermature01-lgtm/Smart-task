@@ -13,6 +13,7 @@ type Team = {
   owner_id: string;
   created_at: string;
   team_code: string;
+  role: string;
 };
 
 export default function TeamsPage() {
@@ -29,7 +30,7 @@ export default function TeamsPage() {
                 // Fetch all team memberships for the user, and get the team data along with it.
                 const { data: memberships, error } = await supabase
                     .from('team_members')
-                    .select('teams(*)') // Supabase syntax to join and get all columns from teams
+                    .select('role, teams(*)') // Supabase syntax to join and get all columns from teams
                     .eq('user_id', user.id);
 
                 if (error) {
@@ -39,7 +40,7 @@ export default function TeamsPage() {
                     // The result is an array of memberships, where each object has a 'teams' property.
                     // We filter out any null teams and map to the team object.
                      const userTeams = memberships
-                        .map(m => m.teams)
+                        .map(m => m.teams ? { ...m.teams, role: m.role } : null)
                         .filter((t): t is Team => t !== null && t.id !== null)
                         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -132,7 +133,7 @@ export default function TeamsPage() {
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
                                                 <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Code: {team.team_code}</p>
-                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created by: {displayName}</p>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 capitalize">Your Role: {team.role}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {activeTeam === team.id && (
