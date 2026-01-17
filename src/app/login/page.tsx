@@ -30,9 +30,9 @@ export default function LoginPage() {
         throw error;
       }
       
-      // Force a full page reload to ensure the server recognizes the new session
-      // and the middleware can redirect correctly.
-      window.location.href = '/home';
+      // Refresh the page. The middleware will now see the user is logged in
+      // and on an "auth" path, so it will redirect to the home page.
+      router.refresh();
 
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
