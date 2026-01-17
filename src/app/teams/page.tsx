@@ -28,10 +28,10 @@ export default function TeamsPage() {
         const fetchTeamsAndOwners = async () => {
             if (user) {
                 setIsLoadingTeams(true);
-                // Fetch all team memberships for the user, and get the team data along with it.
+                // Fetch team memberships and join with teams and profiles in one go
                 const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
-                    .select('role, teams(*)') // Supabase syntax to join and get all columns from teams
+                    .select('role, teams(*, profiles(id, full_name, first_name, last_name))')
                     .eq('user_id', user.id);
 
                 if (membershipError) {
@@ -43,40 +43,29 @@ export default function TeamsPage() {
 
                 if (memberships) {
                     const userTeamsData = memberships
-                        .map(m => m.teams ? { ...m.teams, role: m.role } : null)
-                        .filter((t): t is Omit<Team, 'owner_name'> => t !== null && t.id !== null);
+                        .map(m => {
+                            if (!m.teams) return null;
 
-                    if (userTeamsData.length > 0) {
-                        const ownerIds = [...new Set(userTeamsData.map(t => t.owner_id))];
+                            // The 'teams' property will contain the team data including the nested 'profiles' object
+                            const teamData = m.teams as any;
+                            const ownerProfile = teamData.profiles;
 
-                        const { data: owners } = await supabase
-                            .from('profiles')
-                            .select('id, full_name, first_name, last_name')
-                            .in('id', ownerIds);
-                        
-                        const ownerNameMap = new Map<string, string>();
-                        if (owners) {
-                            owners.forEach(o => {
-                                const name = o.full_name || (`${o.first_name || ''} ${o.last_name || ''}`).trim();
-                                if (name) {
-                                    ownerNameMap.set(o.id, name);
-                                }
-                            });
-                        }
+                            const ownerName = ownerProfile?.full_name ||
+                                              (`${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`).trim() ||
+                                              'Unknown Owner';
 
-                        const teamsWithOwners = userTeamsData.map(team => ({
-                            ...team,
-                            owner_name: ownerNameMap.get(team.owner_id) || 'Unknown Owner'
-                        }));
+                            return {
+                                ...teamData,
+                                role: m.role,
+                                owner_name: ownerName
+                            };
+                        })
+                        .filter((t): t is Team => t !== null && t.id !== null);
 
-                        const sortedTeams = teamsWithOwners
-                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-                        
-                        setTeams(sortedTeams);
-
-                    } else {
-                        setTeams([]);
-                    }
+                    const sortedTeams = userTeamsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                    setTeams(sortedTeams);
+                } else {
+                    setTeams([]);
                 }
                 setIsLoadingTeams(false);
             }
