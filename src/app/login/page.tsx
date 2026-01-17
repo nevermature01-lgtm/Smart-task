@@ -1,39 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
+  const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Listen for authentication state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // This event fires on sign-in, sign-out, etc.
+      // We are only interested in the SIGNED_IN event.
+      if (event === 'SIGNED_IN' && session) {
+        // This is the most reliable way to redirect after login.
+        // It ensures the session is established before attempting to navigate.
+        window.location.href = '/home';
+      }
+    });
+
+    // Cleanup subscription on component unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Empty dependency array ensures this runs only once on mount
 
   const handleLogin = async () => {
+    // 1. Set loading state
     setIsLoading(true);
-
+    
+    // 2. Perform sign-in
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    // 3. Handle errors
     if (error) {
-      setIsLoading(false);
       toast({
         variant: 'destructive',
         title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       });
-    } else {
-      // On success, force a full page reload to the home page.
-      // This is the most reliable way to ensure the server recognizes the new session.
-      window.location.href = '/home';
-    }
+      setIsLoading(false); // Stop loading on error
+    } 
+    // On success, do nothing here. The onAuthStateChange listener will handle the redirect.
+    // The isLoading state will remain true until the page redirects.
   };
 
   return (
