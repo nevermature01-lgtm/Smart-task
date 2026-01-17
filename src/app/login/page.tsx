@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from "@/hooks/use-toast";
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +33,6 @@ export default function LoginPage() {
         description: "Welcome back!",
       });
 
-      // Redirect to home page on successful login
       router.push('/home');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
@@ -82,7 +82,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{isPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                  {isPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>

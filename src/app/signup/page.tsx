@@ -1,4 +1,3 @@
-// /src/app/signup/page.tsx
 'use client';
 
 import Link from 'next/link';
@@ -6,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Eye, EyeOff } from 'lucide-react';
 
 type FormData = {
   firstName: string;
@@ -157,9 +157,7 @@ export default function SignUpPage() {
                   type="button"
                   onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {isPasswordVisible ? 'visibility_off' : 'visibility'}
-                  </span>
+                  {isPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
