@@ -14,7 +14,7 @@ export default function TeamsPage() {
                 <section className="grid grid-cols-2 gap-4">
                     <Link href="/teams/create" className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
                         <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-white/10">
-                            <span className="material-symbols-outlined text-primary text-3xl">group_add</span>
+                            <span className="material-symbols-outlined text-white text-3xl">group_add</span>
                         </div>
                         <span className="font-bold text-sm text-white">Create Team</span>
                     </Link>
