@@ -58,6 +58,10 @@ export default function HomePage() {
                             <span className="material-symbols-outlined text-white">grid_view</span>
                             <span className="font-bold text-[15px] text-white">Dashboard</span>
                         </Link>
+                         <Link href="/switch-account" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
+                            <span className="material-symbols-outlined text-white/70">cached</span>
+                            <span className="font-medium text-white/70 text-[15px]">Switch Account</span>
+                        </Link>
                         <Link href="/teams" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
                             <span className="material-symbols-outlined text-white/70">hub</span>
                             <span className="font-medium text-white/70 text-[15px]">Team Workspace</span>
