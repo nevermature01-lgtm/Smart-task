@@ -51,7 +51,6 @@ export default function HomePage() {
                             )}
                         </div>
                         <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-sm">{displayName}</h2>
-                        <p className="text-sm text-lavender-muted font-medium opacity-90">Pro Member</p>
                     </div>
                     <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/10 border border-white/10 shadow-sm" href="#">
@@ -87,7 +86,7 @@ export default function HomePage() {
         )}
 
         <div className={cn(
-          "relative flex flex-col pb-28 transition-all duration-300",
+          "relative flex h-full flex-col transition-all duration-300",
           { "opacity-30 grayscale-[0.5] scale-[0.98] pointer-events-none blur-sm": isMenuOpen }
         )}>
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
@@ -99,7 +98,7 @@ export default function HomePage() {
                     <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
             </header>
-            <main className="px-6 pt-8 space-y-8">
+            <main className="px-6 pt-8 space-y-8 flex-1">
                 <section className="glass-panel p-6 rounded-3xl relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 blur-2xl rounded-full"></div>
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
@@ -164,20 +163,6 @@ export default function HomePage() {
                     </div>
                 </section>
             </main>
-            <nav className="fixed bottom-8 left-6 right-6 h-20 glass-panel rounded-3xl flex items-center justify-around px-4 z-40">
-                <button className="flex flex-col items-center gap-1 nav-active">
-                    <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">check_circle</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">group</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">settings</span>
-                </button>
-            </nav>
         </div>
     </>
   );
