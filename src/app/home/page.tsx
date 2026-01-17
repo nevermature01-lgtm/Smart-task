@@ -33,16 +33,15 @@ export default function HomePage() {
   const firstName = displayName.split(' ')[0];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-        
+    <>
         {isMenuOpen && (
             <div className="fixed inset-0 z-[60] flex animate-in fade-in-0 duration-300">
-                <aside className="w-[85%] max-w-[320px] h-full deep-glass flex flex-col relative overflow-hidden shadow-2xl animate-in slide-in-from-left-full duration-500">
+                <aside className="w-[85%] max-w-[320px] h-full deep-glass flex flex-col relative overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
                     <button onClick={toggleMenu} className="absolute top-14 right-6 w-10 h-10 flex items-center justify-center rounded-full glass-panel active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined text-xl">close</span>
+                        <span className="material-symbols-outlined text-xl text-white">close</span>
                     </button>
                     <div className="pt-20 px-8 pb-10">
-                        <div className="w-16 h-16 rounded-full border-2 border-primary/40 p-1 mb-4">
+                        <div className="w-16 h-16 rounded-full border-2 border-primary/60 p-1 mb-4 shadow-lg shadow-black/20">
                             {userPhoto ? (
                                 <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={64} height={64} />
                             ) : (
@@ -51,45 +50,45 @@ export default function HomePage() {
                                 </div>
                             )}
                         </div>
-                        <h2 className="text-xl font-bold text-white tracking-tight">{displayName}</h2>
-                        <p className="text-sm text-lavender-muted/80 font-medium">Pro Member</p>
+                        <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-sm">{displayName}</h2>
+                        <p className="text-sm text-lavender-muted font-medium opacity-90">Pro Member</p>
                     </div>
                     <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/5 border border-white/5" href="#">
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/10 border border-white/10 shadow-sm" href="#">
                             <span className="material-symbols-outlined text-white">grid_view</span>
-                            <span className="font-semibold text-[15px]">Dashboard</span>
+                            <span className="font-bold text-[15px] text-white">Dashboard</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white/70">history</span>
-                            <span className="font-medium text-white/70 text-[15px]">Task History</span>
+                            <span className="material-symbols-outlined text-white">history</span>
+                            <span className="font-semibold text-white text-[15px]">Task History</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white/70">hub</span>
-                            <span className="font-medium text-white/70 text-[15px]">Team Workspace</span>
+                            <span className="material-symbols-outlined text-white">hub</span>
+                            <span className="font-semibold text-white text-[15px]">Team Workspace</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white/70">query_stats</span>
-                            <span className="font-medium text-white/70 text-[15px]">Project Analytics</span>
+                            <span className="material-symbols-outlined text-white">query_stats</span>
+                            <span className="font-semibold text-white text-[15px]">Project Analytics</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white/70">contact_support</span>
-                            <span className="font-medium text-white/70 text-[15px]">Support</span>
+                            <span className="material-symbols-outlined text-white">contact_support</span>
+                            <span className="font-semibold text-white text-[15px]">Support</span>
                         </a>
                     </nav>
                     <div className="p-8">
-                        <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 backdrop-blur-md active:scale-95 transition-transform">
-                            <span className="material-symbols-outlined text-red-400">logout</span>
+                        <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl logout-glass active:scale-95 transition-transform shadow-lg">
+                            <span className="material-symbols-outlined text-red-400 font-bold">logout</span>
                             <span className="font-bold text-red-400">Logout</span>
                         </button>
                     </div>
                 </aside>
-                <div onClick={toggleMenu} className="flex-1 bg-black/20 backdrop-blur-sm"></div>
+                <div onClick={toggleMenu} className="flex-1 bg-black/40 backdrop-blur-md"></div>
             </div>
         )}
 
         <div className={cn(
-          "relative flex flex-col transition-transform duration-500 pb-28",
-          { "scale-[0.9] -translate-x-[15%] rounded-3xl overflow-hidden": isMenuOpen }
+          "relative flex flex-col pb-28 transition-all duration-300",
+          { "opacity-30 grayscale-[0.5] scale-[0.98] pointer-events-none blur-sm": isMenuOpen }
         )}>
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
                 <button onClick={toggleMenu} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
@@ -111,7 +110,7 @@ export default function HomePage() {
                         <h3 className="font-bold text-lg">Tasks Analytics</h3>
                         <div className="flex items-center gap-1 text-sm text-lavender-muted">
                             <span>This Week</span>
-                            <span className="material-symbols-outlined text-sm leading-none">expand_more</span>
+                            <span className="material-symbols-outlined text-sm">expand_more</span>
                         </div>
                     </div>
                     <div className="glass-panel p-6 rounded-3xl h-48 flex items-end justify-between gap-2">
@@ -128,7 +127,7 @@ export default function HomePage() {
                             <span className="text-[10px] text-lavender-muted uppercase font-bold">Wed</span>
                         </div>
                         <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar-active rounded-t-lg h-32 shadow-[0_0_15px_rgba(86,29,201,0.3)]"></div>
+                            <div className="w-full chart-bar-active rounded-t-lg h-32"></div>
                             <span className="text-[10px] text-white uppercase font-bold">Thu</span>
                         </div>
                         <div className="flex flex-col items-center gap-3 flex-1">
@@ -139,9 +138,9 @@ export default function HomePage() {
                             <div className="w-full chart-bar rounded-t-lg h-14"></div>
                             <span className="text-[10px] text-lavender-muted uppercase font-bold">Sat</span>
                         </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-10"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Sun</span>
+                        <div className="flex flex-col items-center gap-3 flex-1 opacity-40">
+                          <div className="w-full chart-bar rounded-t-lg h-14"></div>
+                          <span className="text-[10px] text-lavender-muted uppercase font-bold">Sun</span>
                         </div>
                     </div>
                 </section>
@@ -157,31 +156,29 @@ export default function HomePage() {
                             </div>
                             <div className="flex-1">
                                 <h4 className="font-bold text-sm">Design System Update</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">High Priority</p>
                             </div>
                             <div className="px-3 py-1.5 rounded-full glass-panel bg-primary/30 border-primary/20">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">In Progress</span>
-                            </div>
-                        </div>
-                        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-white/10">
-                                <span className="material-symbols-outlined text-orange-400 leading-none">api</span>
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold text-sm">Revenue Analytics API</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Priority</p>
-                            </div>
-                            <div className="px-3 py-1.5 rounded-full glass-panel bg-orange-500/20 border-orange-500/20">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-200">Pending</span>
+                                <span className="text-[10px] font-bold uppercase text-white">In Progress</span>
                             </div>
                         </div>
                     </div>
                 </section>
             </main>
-            <button className="fixed bottom-8 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
-                <span className="material-symbols-outlined text-3xl">add</span>
-            </button>
+            <nav className="fixed bottom-8 left-6 right-6 h-20 glass-panel rounded-3xl flex items-center justify-around px-4 z-40">
+                <button className="flex flex-col items-center gap-1 nav-active">
+                    <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
+                </button>
+                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
+                    <span className="material-symbols-outlined text-2xl">check_circle</span>
+                </button>
+                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
+                    <span className="material-symbols-outlined text-2xl">group</span>
+                </button>
+                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
+                    <span className="material-symbols-outlined text-2xl">settings</span>
+                </button>
+            </nav>
         </div>
-    </div>
+    </>
   );
 }

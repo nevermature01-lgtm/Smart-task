@@ -133,12 +133,17 @@
         filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
     }
     .deep-glass {
-        background: rgba(26, 11, 46, 0.6);
-        backdrop-filter: blur(40px);
-        -webkit-backdrop-filter: blur(40px);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(18, 8, 33, 0.92);
+        backdrop-filter: blur(120px) saturate(180%);
+        -webkit-backdrop-filter: blur(120px) saturate(180%);
+        border-right: 1px solid rgba(255, 255, 255, 0.15);
     }
     .sidebar-item:active {
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .logout-glass {
+        background: rgba(239, 68, 68, 0.15);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(239, 68, 68, 0.3);
     }
 }
