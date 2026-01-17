@@ -35,8 +35,8 @@ export default function TeamsPage() {
                     .select('role, teams(*)')
                     .eq('user_id', user.id);
 
-                if (membershipError && Object.keys(membershipError).length > 0) {
-                    console.error('Error fetching teams:', membershipError);
+                if (membershipError && membershipError.message) {
+                    console.error('Error fetching teams:', membershipError.message);
                     setTeams([]);
                     setIsLoadingTeams(false);
                     return;
@@ -44,30 +44,32 @@ export default function TeamsPage() {
 
                 if (memberships && memberships.length > 0) {
                     const validMemberships = memberships.filter(m => m.teams);
-                    const ownerIds = validMemberships.map(m => m.teams!.owner_id);
+                    const ownerIds = [...new Set(validMemberships.map(m => m.teams!.owner_id))];
 
-                    // Step 2: Fetch profiles for all owners in a single query
-                    const { data: profiles, error: profilesError } = await supabase
-                        .from('profiles')
-                        .select('id, full_name, first_name, last_name')
+                    // Step 2: Fetch owner emails from the public_users view
+                    const { data: owners, error: ownersError } = await supabase
+                        .from('public_users')
+                        .select('id, email')
                         .in('id', ownerIds);
                     
-                    if (profilesError && Object.keys(profilesError).length > 0) {
-                        console.error('Error fetching owner profiles:', profilesError);
+                    if (ownersError && ownersError.message) {
+                        console.error('Error fetching owner data:', ownersError.message);
                     }
 
-                    const profilesById = profiles?.reduce((acc, p) => {
-                        acc[p.id] = p;
+                    const ownersById = owners?.reduce((acc, o) => {
+                        acc[o.id] = o;
                         return acc;
-                    }, {} as Record<string, any>) || {};
+                    }, {} as Record<string, { id: string; email: string | null }>) || {};
 
                      const userTeamsData = validMemberships
                         .map(m => {
                             const teamData = m.teams!;
-                            const ownerProfile = profilesById[teamData.owner_id];
-                            const ownerName = ownerProfile?.full_name ||
-                                              (`${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`).trim() ||
-                                              'Unknown Owner';
+                            const ownerInfo = ownersById[teamData.owner_id];
+                            
+                            // If current user is owner, use their metadata. Otherwise use fetched email.
+                            const ownerName = teamData.owner_id === user.id
+                                ? (user.user_metadata?.full_name || user.email)
+                                : (ownerInfo?.email || 'Team Owner'); // Fallback
 
                             return {
                                 ...teamData,

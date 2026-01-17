@@ -44,16 +44,32 @@ export default function SwitchAccountPage() {
 
                 if (memberships && memberships.length > 0) {
                     const validMemberships = memberships.filter(m => m.teams);
+                    const ownerIds = [...new Set(validMemberships.map(m => m.teams!.owner_id))];
+
+                    // Step 2: Fetch owner emails from the public_users view
+                    const { data: owners, error: ownersError } = await supabase
+                        .from('public_users')
+                        .select('id, email')
+                        .in('id', ownerIds);
                     
-                    const userTeamsData = validMemberships
+                    if (ownersError && ownersError.message) {
+                        console.error('Error fetching owner data:', ownersError.message);
+                    }
+
+                    const ownersById = owners?.reduce((acc, o) => {
+                        acc[o.id] = o;
+                        return acc;
+                    }, {} as Record<string, { id: string; email: string | null }>) || {};
+
+                     const userTeamsData = validMemberships
                         .map(m => {
                             const teamData = m.teams!;
+                            const ownerInfo = ownersById[teamData.owner_id];
                             
-                            // If the current user is the owner, show their name.
-                            // Otherwise, show a generic label to avoid failed lookups.
+                            // If current user is owner, use their metadata. Otherwise use fetched email.
                             const ownerName = teamData.owner_id === user.id
                                 ? (user.user_metadata?.full_name || user.email)
-                                : 'Team Owner';
+                                : (ownerInfo?.email || 'Team Owner'); // Fallback to 'Team Owner'
 
                             return {
                                 ...teamData,
