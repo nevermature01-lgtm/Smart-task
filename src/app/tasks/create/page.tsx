@@ -42,34 +42,44 @@ export default function CreateTaskPage() {
                     }];
                 }
             } else {
-                // In a team, fetch all members *except* the owner.
+                // In a team, fetch all members *except* the owner, filtering at the DB level.
                 
-                // 1. Get the team owner's ID
+                // 1. First, get the owner's ID for the current team.
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
                     .eq('id', activeTeam)
                     .single();
 
-                if (teamError) {
-                    console.error("Error fetching team owner:", teamError);
-                    finalProfiles = [];
+                if (teamError && teamError.message) {
+                    console.error("Error fetching team owner:", teamError.message);
                 } else {
                     const ownerId = teamData?.owner_id;
     
-                    // 2. Get all team members
-                    const { data, error } = await supabase
+                    // 2. Build the query to fetch members, excluding the owner.
+                    let membersQuery = supabase
                         .from('team_members')
                         .select('profiles(id, full_name, avatar_url)')
-                        .eq('team_id', activeTeam);
+                        .eq('team_id', activeTeam)
+                        .neq('role', 'owner'); // Exclude anyone with the 'owner' role.
 
-                    if (error) {
-                        console.error("Error fetching team members:", error);
-                        finalProfiles = [];
-                    } else if (data) {
-                        const allProfiles = data.map(item => item.profiles).filter((p): p is Profile => p !== null);
-                        // 3. Filter out the owner
-                        finalProfiles = allProfiles.filter(p => p.id !== ownerId);
+                    // Also explicitly exclude the owner ID from the `teams` table for extra safety.
+                    if (ownerId) {
+                        membersQuery = membersQuery.neq('user_id', ownerId);
+                    }
+                    
+                    const { data: membersData, error: membersError } = await membersQuery;
+
+                    if (membersError) {
+                        // Avoid logging schema errors if 'profiles' doesn't exist.
+                        if (membersError && membersError.message && !membersError.message.includes("schema cache")) {
+                             console.error("Error fetching team members:", membersError.message);
+                        }
+                    } else if (membersData) {
+                        // Map the successfully fetched and filtered member profiles.
+                        finalProfiles = membersData
+                            .map(item => item.profiles)
+                            .filter((p): p is Profile => p !== null);
                     }
                 }
             }
