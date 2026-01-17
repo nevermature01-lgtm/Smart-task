@@ -33,8 +33,8 @@ export default function HomePage() {
                     <span className="material-symbols-outlined text-xl">menu</span>
                 </button>
                 <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>
-                <button onClick={handleLogout} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-xl">logout</span>
+                <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
+                    <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
             </header>
             <main className="px-6 pt-8 space-y-8">
