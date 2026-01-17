@@ -1,17 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@/firebase';
+import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
 export default function CreateTeamPage() {
   const router = useRouter();
-  const { user, isLoading: isUserLoading } = useUser();
+  const auth = useAuth();
   const { toast } = useToast();
   
   const [teamName, setTeamName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, [auth]);
+
 
   const handleCreateTeam = async () => {
     if (!teamName.trim()) {
@@ -27,9 +39,8 @@ export default function CreateTeamPage() {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: 'You must be logged in to create a team. Redirecting to login.',
+        description: 'You must be logged in to create a team. Please wait or log in again.',
       });
-      router.push('/login');
       return;
     }
 
@@ -43,9 +54,11 @@ export default function CreateTeamPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ teamName: teamName.trim() }),
+        body: JSON.stringify({ 
+          teamName: teamName.trim(),
+          token: token 
+        }),
       });
 
       const data = await response.json();
@@ -75,7 +88,7 @@ export default function CreateTeamPage() {
     }
   };
   
-  const isLoading = isUserLoading || isCreating;
+  const isLoading = !isAuthReady || isCreating;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
@@ -114,7 +127,7 @@ export default function CreateTeamPage() {
               className="w-full h-14 bg-white text-primary rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-xl shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
-              {isCreating ? 'Creating...' : (isUserLoading ? 'Authenticating...' : 'Create')}
+              {isCreating ? 'Creating...' : (!isAuthReady ? 'Authenticating...' : 'Create')}
             </button>
             <button 
               onClick={() => router.back()}

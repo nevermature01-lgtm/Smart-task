@@ -1,94 +1,143 @@
-import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
-import admin from '@/lib/firebase/admin';
-import { supabaseAdmin } from '@/lib/supabase/admin';
+'use client';
 
-// Force Node.js runtime to ensure Firebase Admin SDK compatibility.
-export const runtime = 'nodejs';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
-// Function to generate a random 6-digit code
-const generateTeamCode = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-};
+export default function CreateTeamPage() {
+  const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
+  
+  const [teamName, setTeamName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
 
-export async function POST(request: Request) {
-  let decodedToken;
-  try {
-    const headersList = headers();
-    const authorization = headersList.get('authorization');
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsAuthReady(true);
+    });
+    return () => unsubscribe();
+  }, [auth]);
 
-    if (!authorization || !authorization.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: No token provided.' }, { status: 401 });
+
+  const handleCreateTeam = async () => {
+    if (!teamName.trim()) {
+      toast({
+        variant: 'destructive',
+        title: 'Team Name Required',
+        description: 'Please enter a name for your team.',
+      });
+      return;
     }
 
-    const token = authorization.split('Bearer ')[1];
-    
-    // Verify the token using Firebase Admin SDK
-    decodedToken = await admin.auth().verifyIdToken(token);
-
-  } catch (error) {
-    console.error('Token verification error:', error);
-    return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
-  }
-
-  // Token is valid, proceed with the rest of the logic
-  try {
-    const { uid, email } = decodedToken;
-
-    if (!uid || !email) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid token payload.' }, { status: 401 });
-    }
-    
-    const { teamName } = await request.json();
-    if (!teamName || typeof teamName !== 'string' || teamName.trim().length === 0) {
-      return NextResponse.json({ error: 'Team name is required.' }, { status: 400 });
+    if (!user) {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Error',
+        description: 'You must be logged in to create a team. Please wait or log in again.',
+      });
+      return;
     }
 
-    let teamCode;
-    let isCodeUnique = false;
-    let attempts = 0;
-    const maxAttempts = 10;
+    setIsCreating(true);
 
-    while (!isCodeUnique && attempts < maxAttempts) {
-      teamCode = generateTeamCode();
-      const { data: existingTeam, error } = await supabaseAdmin
-        .from('teams')
-        .select('team_code')
-        .eq('team_code', teamCode)
-        .single();
+    try {
+      // Force refresh the token to ensure it's not expired
+      const token = await user.getIdToken(true);
       
-      if (error && error.code !== 'PGRST116') { 
-        throw error;
-      }
-
-      if (!existingTeam) {
-        isCodeUnique = true;
-      }
-      attempts++;
-    }
-
-    if (!isCodeUnique || !teamCode) {
-      return NextResponse.json({ error: 'Failed to generate a unique team code. Please try again later.' }, { status: 500 });
-    }
-
-    const { error: insertError } = await supabaseAdmin
-      .from('teams')
-      .insert({
-        team_name: teamName.trim(),
-        team_code: teamCode,
-        created_by_uid: uid,
-        created_by_email: email,
+      const response = await fetch('/api/create-team', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          teamName: teamName.trim(),
+          token: token 
+        }),
       });
 
-    if (insertError) {
-      console.error('Supabase insert error:', insertError);
-      return NextResponse.json({ error: 'Database error: Could not create the team.' }, { status: 500 });
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Use the error message from the API, or a fallback
+        throw new Error(data.error || 'Something went wrong. Please try again.');
+      }
+
+      toast({
+        title: 'Team Created Successfully!',
+        description: `Your new team code is: ${data.teamCode}`,
+      });
+
+      // Redirect to home page on success
+      router.push('/home');
+
+    } catch (error: any) {
+      console.error('Team creation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Failed to Create Team',
+        description: error.message,
+      });
+    } finally {
+      setIsCreating(false);
     }
+  };
+  
+  const isLoading = !isAuthReady || isCreating;
 
-    return NextResponse.json({ teamCode: teamCode }, { status: 201 });
-
-  } catch (error: any) {
-    console.error('Create team main logic error:', error);
-    return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
-  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
+      <button 
+        onClick={() => router.back()}
+        className="absolute top-14 left-6 w-12 h-12 flex items-center justify-center rounded-full glass-panel text-white active:scale-90 transition-all z-[60] shadow-lg border-white/20 disabled:opacity-50"
+        disabled={isLoading}>
+        <span className="material-symbols-outlined text-2xl">chevron_left</span>
+      </button>
+      <div className="w-full max-w-sm glass-panel rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden ring-1 ring-white/20">
+        <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 blur-3xl rounded-full"></div>
+        <div className="relative z-10 space-y-8">
+          <div className="flex flex-col items-center text-center gap-2">
+            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-white/20 mb-2">
+              <span className="material-symbols-outlined text-white text-3xl">add_circle</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white tracking-tight">Create New Team</h2>
+          </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-lavender-muted ml-1" htmlFor="team-name">Team Name</label>
+              <input 
+                className="w-full h-14 px-5 rounded-2xl input-glass text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all font-bold disabled:opacity-50" 
+                id="team-name" 
+                placeholder="e.g. Design Lab" 
+                type="text"
+                value={teamName}
+                onChange={(e) => setTeamName(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+          <div className="pt-2 flex flex-col gap-4">
+            <button 
+              onClick={handleCreateTeam}
+              className="w-full h-14 bg-white text-primary rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-xl shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
+              disabled={isLoading}
+            >
+              {isCreating ? 'Creating...' : (!isAuthReady ? 'Authenticating...' : 'Create')}
+            </button>
+            <button 
+              onClick={() => router.back()}
+              className="w-full py-2 text-white/60 font-bold text-sm active:opacity-70 transition-opacity disabled:opacity-50"
+              disabled={isLoading}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
