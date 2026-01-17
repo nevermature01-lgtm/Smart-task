@@ -1,16 +1,58 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTeam } from '@/context/TeamProvider';
+
+type TeamMember = {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  role: string;
+};
+
 
 export default function HomePage() {
   const { user, isLoading } = useSupabaseAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { activeTeam, isLoading: isTeamLoading } = useTeam();
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+
+  useEffect(() => {
+    const fetchMembers = async () => {
+      if (!activeTeam || activeTeam === 'personal' || !user) {
+        setMembers([]);
+        return;
+      }
+
+      setIsLoadingMembers(true);
+      const { data: teamMembers, error } = await supabase
+        .from('team_members')
+        .select('role, profiles(id, full_name, avatar_url)')
+        .eq('team_id', activeTeam);
+
+      if (error) {
+        console.error('Error fetching team members:', error.message);
+        setMembers([]);
+      } else if (teamMembers) {
+        const memberProfiles = teamMembers
+          .map((m: any) => (m.profiles ? { ...m.profiles, role: m.role } : null))
+          .filter((p): p is TeamMember => p !== null && p.id);
+        setMembers(memberProfiles);
+      }
+      setIsLoadingMembers(false);
+    };
+
+    if (!isTeamLoading && !isLoading) {
+      fetchMembers();
+    }
+  }, [activeTeam, user, isTeamLoading, isLoading]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -19,7 +61,7 @@ export default function HomePage() {
   
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  if (isLoading) {
+  if (isLoading || isTeamLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -103,6 +145,45 @@ export default function HomePage() {
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
                     <p className="text-lavender-muted mt-1 opacity-90">You have 5 tasks to complete today.</p>
                 </section>
+
+                {activeTeam && activeTeam !== 'personal' && (
+                  <section>
+                      <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-bold text-lg">Team Members</h3>
+                      </div>
+                      {isLoadingMembers ? (
+                          <div className="glass-panel p-6 rounded-3xl flex justify-center items-center">
+                              <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                          </div>
+                      ) : members.length > 0 ? (
+                          <div className="space-y-3">
+                              {members.map(member => (
+                                  <div key={member.id} className="glass-panel p-4 rounded-2xl flex items-center justify-between gap-4">
+                                      <div className='flex items-center gap-4 min-w-0'>
+                                        <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-white/20">
+                                            <Image alt={member.full_name || 'avatar'} className="w-full h-full object-cover" src={member.avatar_url || `https://i.pravatar.cc/150?u=${member.id}`} width={48} height={48}/>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-sm truncate">{member.full_name || 'Unnamed User'}</h4>
+                                            <p className="text-xs text-lavender-muted opacity-80 mt-0.5 capitalize">{member.role}</p>
+                                        </div>
+                                      </div>
+                                      {member.role === 'owner' && (
+                                        <div className="px-3 py-1.5 rounded-full glass-panel bg-primary/30 border-primary/20 shrink-0">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-white">Owner</span>
+                                        </div>
+                                      )}
+                                  </div>
+                              ))}
+                          </div>
+                      ) : (
+                          <div className="glass-panel p-6 rounded-3xl text-center">
+                              <p className="text-lavender-muted">No members found for this team.</p>
+                          </div>
+                      )}
+                  </section>
+                )}
+
                 <section>
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-bold text-lg">Tasks Analytics</h3>
