@@ -47,7 +47,7 @@ export default function SwitchAccountPage() {
     const ownerName = user?.user_metadata?.full_name || 'Owner';
 
     return (
-        <div className="relative flex flex-col min-h-screen">
+        <div className="relative flex flex-col min-h-screen pb-28">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
                 <div className="flex items-center gap-4">
                     <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
@@ -59,7 +59,7 @@ export default function SwitchAccountPage() {
                     <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
             </header>
-            <main className="px-6 pt-8 space-y-8 pb-28">
+            <main className="px-6 pt-8 space-y-8">
                 <section className="grid grid-cols-2 gap-4">
                     <Link href="/teams/create" className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
                         <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-white/10">
@@ -112,7 +112,7 @@ export default function SwitchAccountPage() {
                 </section>
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-30">
-                <Link href="/teams" className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-lg shadow-primary/30 flex items-center justify-center">
+                <Link href="/teams/manage" className="w-full h-14 bg-primary text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-lg shadow-primary/30 flex items-center justify-center">
                     Manage Teams
                 </Link>
             </div>

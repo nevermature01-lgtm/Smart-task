@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 type Team = {
   id: string;
@@ -13,6 +14,7 @@ type Team = {
 
 export default function TeamsPage() {
     const { user } = useSupabaseAuth();
+    const router = useRouter();
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
 
@@ -70,6 +72,7 @@ export default function TeamsPage() {
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold text-lg">Your Teams</h3>
+                        <button onClick={() => router.push('/teams/manage')} className="text-sm text-lavender-muted font-medium">Manage</button>
                     </div>
                     <div className="space-y-3">
                          {isLoadingTeams ? (
