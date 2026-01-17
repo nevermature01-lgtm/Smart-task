@@ -14,6 +14,7 @@ type Team = {
   created_at: string;
   team_code: string;
   role: string;
+  owner_name?: string;
 };
 
 export default function TeamsPage() {
@@ -24,34 +25,64 @@ export default function TeamsPage() {
     const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
 
      useEffect(() => {
-        const fetchTeams = async () => {
+        const fetchTeamsAndOwners = async () => {
             if (user) {
                 setIsLoadingTeams(true);
                 // Fetch all team memberships for the user, and get the team data along with it.
-                const { data: memberships, error } = await supabase
+                const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
                     .select('role, teams(*)') // Supabase syntax to join and get all columns from teams
                     .eq('user_id', user.id);
 
-                if (error) {
-                    console.error('Error fetching teams:', error);
+                if (membershipError) {
+                    console.error('Error fetching teams:', membershipError);
                     setTeams([]);
-                } else if (memberships) {
-                    // The result is an array of memberships, where each object has a 'teams' property.
-                    // We filter out any null teams and map to the team object.
-                     const userTeams = memberships
-                        .map(m => m.teams ? { ...m.teams, role: m.role } : null)
-                        .filter((t): t is Team => t !== null && t.id !== null)
-                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                    setIsLoadingTeams(false);
+                    return;
+                }
 
-                    setTeams(userTeams as Team[]);
+                if (memberships) {
+                    const userTeamsData = memberships
+                        .map(m => m.teams ? { ...m.teams, role: m.role } : null)
+                        .filter((t): t is Omit<Team, 'owner_name'> => t !== null && t.id !== null);
+
+                    if (userTeamsData.length > 0) {
+                        const ownerIds = [...new Set(userTeamsData.map(t => t.owner_id))];
+
+                        const { data: owners } = await supabase
+                            .from('profiles')
+                            .select('id, full_name')
+                            .in('id', ownerIds);
+                        
+                        const ownerNameMap = new Map<string, string>();
+                        if (owners) {
+                            owners.forEach(o => {
+                                if (o.full_name) {
+                                    ownerNameMap.set(o.id, o.full_name);
+                                }
+                            });
+                        }
+
+                        const teamsWithOwners = userTeamsData.map(team => ({
+                            ...team,
+                            owner_name: ownerNameMap.get(team.owner_id) || 'Unknown Owner'
+                        }));
+
+                        const sortedTeams = teamsWithOwners
+                            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+                        
+                        setTeams(sortedTeams);
+
+                    } else {
+                        setTeams([]);
+                    }
                 }
                 setIsLoadingTeams(false);
             }
         };
 
         if (user) {
-            fetchTeams();
+            fetchTeamsAndOwners();
         } else {
             setIsLoadingTeams(false);
         }
@@ -133,7 +164,7 @@ export default function TeamsPage() {
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
                                                 <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Code: {team.team_code}</p>
-                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 capitalize">Your Role: {team.role}</p>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created by {team.owner_name}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {activeTeam === team.id && (
