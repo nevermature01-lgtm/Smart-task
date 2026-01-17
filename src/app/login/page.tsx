@@ -16,12 +16,11 @@ export default function LoginPage() {
   useEffect(() => {
     const supabase = createClient();
 
-    // Listen for authentication state changes
+    // The listener is registered once when the component mounts.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // This event fires on sign-in, sign-out, etc.
-      // We are only interested in the SIGNED_IN event.
+      // The redirect happens ONLY when the SIGNED_IN event is detected.
       if (event === 'SIGNED_IN' && session) {
         // This is the most reliable way to redirect after login.
         // It ensures the session is established before attempting to navigate.
@@ -29,34 +28,34 @@ export default function LoginPage() {
       }
     });
 
-    // Cleanup subscription on component unmount
+    // The cleanup function unsubscribes from the listener when the component unmounts.
     return () => {
       subscription.unsubscribe();
     };
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, []); // The empty dependency array ensures this effect runs only once on mount.
 
   const handleLogin = async () => {
-    // 1. Set loading state
+    // 1. Set loading state.
     setIsLoading(true);
     
-    // 2. Perform sign-in
+    // 2. Perform sign-in. This function only calls signInWithPassword.
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    // 3. Handle errors
+    // 3. Handle only errors. Success is handled by the onAuthStateChange listener.
     if (error) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       });
-      setIsLoading(false); // Stop loading on error
+      setIsLoading(false); // Stop loading only on error.
     } 
-    // On success, do nothing here. The onAuthStateChange listener will handle the redirect.
-    // The isLoading state will remain true until the page redirects.
+    // On success, do nothing. The page remains on /login with the button in a loading state
+    // until the onAuthStateChange listener triggers the redirect.
   };
 
   return (
@@ -71,6 +70,7 @@ export default function LoginPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
+          {/* This is NOT a <form> to prevent page reloads */}
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
@@ -112,7 +112,7 @@ export default function LoginPage() {
             <button 
               onClick={handleLogin}
               className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed" 
-              type="button"
+              type="button" // MUST be type="button" to prevent form submission
               disabled={isLoading}
             >
               {isLoading ? 'Logging in...' : 'Login'}
