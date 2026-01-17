@@ -13,9 +13,8 @@ export async function middleware(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error(
-        'Supabase URL and/or Anon Key are not defined in .env file.'
-      );
+      // If Supabase isn't configured, we can't do anything.
+      return response;
     }
 
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -24,6 +23,9 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
+          // The `set` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
           request.cookies.set({ name, value, ...options });
           response = NextResponse.next({
             request: {
@@ -33,6 +35,9 @@ export async function middleware(request: NextRequest) {
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
+          // The `delete` method was called from a Server Component.
+          // This can be ignored if you have middleware refreshing
+          // user sessions.
           request.cookies.set({ name, value: '', ...options });
           response = NextResponse.next({
             request: {
@@ -44,32 +49,44 @@ export async function middleware(request: NextRequest) {
       },
     });
 
-    // Refresh user's session
-    await supabase.auth.getSession();
-
+    // this will refresh the session if it's expired
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
+      data: { session },
+    } = await supabase.auth.getSession();
+    
     const { pathname } = request.nextUrl;
 
-    const protectedPaths = ['/home'];
-    const authPaths = ['/login', '/signup', '/'];
+    const loggedIn = !!session;
 
-    if (!user && protectedPaths.some((p) => pathname.startsWith(p))) {
+    // Redirect logged-in users from auth pages to home
+    const authPages = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/'];
+    if (loggedIn && authPages.includes(pathname)) {
+      return NextResponse.redirect(new URL('/home', request.url));
+    }
+
+    // Redirect non-logged-in users from protected pages to login
+    const protectedPages = ['/home'];
+    if (!loggedIn && protectedPages.some(p => pathname.startsWith(p))) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (user && authPaths.includes(pathname)) {
-      return NextResponse.redirect(new URL('/home', request.url));
-    }
   } catch (e) {
-    // Return the original response if Supabase is not configured
+    // Failsafe: if any error occurs, just continue without auth logic
     return response;
   }
-
+  
   return response;
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+  ],
 };
