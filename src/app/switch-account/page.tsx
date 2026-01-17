@@ -52,7 +52,7 @@ export default function SwitchAccountPage() {
                         .select('id, full_name, first_name, last_name')
                         .in('id', ownerIds);
                     
-                    if (profilesError) {
+                    if (profilesError && Object.keys(profilesError).length > 0) {
                         console.error('Error fetching owner profiles:', profilesError);
                     }
 
