@@ -3,6 +3,9 @@ import { headers } from 'next/headers';
 import admin from '@/lib/firebase/admin';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
+// Force Node.js runtime to ensure Firebase Admin SDK compatibility.
+export const runtime = 'nodejs';
+
 // Function to generate a random 6-digit code
 const generateTeamCode = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
