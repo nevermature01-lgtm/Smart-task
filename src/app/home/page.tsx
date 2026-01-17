@@ -8,11 +8,17 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTeam } from '@/context/TeamProvider';
 
+type TeamDetails = {
+  team_name: string;
+  team_code: string;
+};
+
 export default function HomePage() {
   const { user, isLoading } = useSupabaseAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { isTeamLoading } = useTeam();
+  const { activeTeam, isTeamLoading } = useTeam();
+  const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -20,6 +26,31 @@ export default function HomePage() {
   };
   
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
+  useEffect(() => {
+    const fetchTeamDetails = async () => {
+      if (activeTeam && activeTeam !== 'personal') {
+        const { data, error } = await supabase
+          .from('teams')
+          .select('team_name, team_code')
+          .eq('id', activeTeam)
+          .single();
+
+        if (error) {
+          console.error('Error fetching team details:', error);
+          setTeamDetails(null);
+        } else {
+          setTeamDetails(data);
+        }
+      } else {
+        setTeamDetails(null);
+      }
+    };
+
+    if (!isTeamLoading) {
+        fetchTeamDetails();
+    }
+  }, [activeTeam, isTeamLoading]);
 
   if (isLoading || isTeamLoading) {
     return (
@@ -94,7 +125,16 @@ export default function HomePage() {
                 <button onClick={toggleMenu} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">menu</span>
                 </button>
-                <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>
+                <div className="text-center">
+                  {teamDetails ? (
+                    <>
+                      <h1 className="text-lg font-bold tracking-tight">{teamDetails.team_name}</h1>
+                      <p className="text-xs text-lavender-muted">Code: {teamDetails.team_code}</p>
+                    </>
+                  ) : (
+                    <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>
+                  )}
+                </div>
                 <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
