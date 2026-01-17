@@ -1,143 +1,87 @@
-'use client';
+// Enforce Node.js runtime
+export const runtime = 'nodejs';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
-import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { NextResponse } from 'next/server';
+import admin from '@/lib/firebase/admin';
+import { supabaseAdmin } from '@/lib/supabase/admin';
 
-export default function CreateTeamPage() {
-  const router = useRouter();
-  const auth = useAuth();
-  const { toast } = useToast();
-  
-  const [teamName, setTeamName] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+// Function to generate a unique 6-digit numeric code
+async function generateUniqueTeamCode(): Promise<string> {
+  let teamCode: string;
+  let isUnique = false;
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthReady(true);
-    });
-    return () => unsubscribe();
-  }, [auth]);
+  while (!isUnique) {
+    // Generate a 6-digit random number
+    teamCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Check if it already exists in the database
+    const { data, error } = await supabaseAdmin
+      .from('teams')
+      .select('team_code')
+      .eq('team_code', teamCode)
+      .single();
 
-
-  const handleCreateTeam = async () => {
-    if (!teamName.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Team Name Required',
-        description: 'Please enter a name for your team.',
-      });
-      return;
+    if (error && error.code !== 'PGRST116') { // 'PGRST116' means no rows found, which is good
+      throw error; // Rethrow other errors
     }
 
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Error',
-        description: 'You must be logged in to create a team. Please wait or log in again.',
-      });
-      return;
+    if (!data) {
+      isUnique = true; // The code is unique
+    }
+  }
+  return teamCode!;
+}
+
+
+export async function POST(request: Request) {
+  try {
+    const { teamName, token } = await request.json();
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized: No token provided.' }, { status: 401 });
+    }
+    if (!teamName || typeof teamName !== 'string' || teamName.trim().length === 0) {
+      return NextResponse.json({ error: 'Team name is required.' }, { status: 400 });
     }
 
-    setIsCreating(true);
+    // Verify the Firebase ID token
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { uid, email } = decodedToken;
 
-    try {
-      // Force refresh the token to ensure it's not expired
-      const token = await user.getIdToken(true);
-      
-      const response = await fetch('/api/create-team', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          teamName: teamName.trim(),
-          token: token 
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Use the error message from the API, or a fallback
-        throw new Error(data.error || 'Something went wrong. Please try again.');
-      }
-
-      toast({
-        title: 'Team Created Successfully!',
-        description: `Your new team code is: ${data.teamCode}`,
-      });
-
-      // Redirect to home page on success
-      router.push('/home');
-
-    } catch (error: any) {
-      console.error('Team creation failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Failed to Create Team',
-        description: error.message,
-      });
-    } finally {
-      setIsCreating(false);
+    if (!uid || !email) {
+      // This should theoretically not happen if verifyIdToken succeeds
+      return NextResponse.json({ error: 'Invalid token payload.' }, { status: 401 });
     }
-  };
-  
-  const isLoading = !isAuthReady || isCreating;
+    
+    // Generate a unique team code
+    const teamCode = await generateUniqueTeamCode();
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
-      <button 
-        onClick={() => router.back()}
-        className="absolute top-14 left-6 w-12 h-12 flex items-center justify-center rounded-full glass-panel text-white active:scale-90 transition-all z-[60] shadow-lg border-white/20 disabled:opacity-50"
-        disabled={isLoading}>
-        <span className="material-symbols-outlined text-2xl">chevron_left</span>
-      </button>
-      <div className="w-full max-w-sm glass-panel rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden ring-1 ring-white/20">
-        <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 blur-3xl rounded-full"></div>
-        <div className="relative z-10 space-y-8">
-          <div className="flex flex-col items-center text-center gap-2">
-            <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center border border-white/20 mb-2">
-              <span className="material-symbols-outlined text-white text-3xl">add_circle</span>
-            </div>
-            <h2 className="text-2xl font-bold text-white tracking-tight">Create New Team</h2>
-          </div>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-widest text-lavender-muted ml-1" htmlFor="team-name">Team Name</label>
-              <input 
-                className="w-full h-14 px-5 rounded-2xl input-glass text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all font-bold disabled:opacity-50" 
-                id="team-name" 
-                placeholder="e.g. Design Lab" 
-                type="text"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-          <div className="pt-2 flex flex-col gap-4">
-            <button 
-              onClick={handleCreateTeam}
-              className="w-full h-14 bg-white text-primary rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-xl shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
-              disabled={isLoading}
-            >
-              {isCreating ? 'Creating...' : (!isAuthReady ? 'Authenticating...' : 'Create')}
-            </button>
-            <button 
-              onClick={() => router.back()}
-              className="w-full py-2 text-white/60 font-bold text-sm active:opacity-70 transition-opacity disabled:opacity-50"
-              disabled={isLoading}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    // Insert new team into Supabase
+    const { data: newTeam, error: insertError } = await supabaseAdmin
+      .from('teams')
+      .insert({
+        team_name: teamName.trim(),
+        team_code: teamCode,
+        created_by_uid: uid,
+        created_by_email: email,
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('Supabase insert error:', insertError);
+      return NextResponse.json({ error: `Database error: ${insertError.message}` }, { status: 500 });
+    }
+
+    // Return the new team code
+    return NextResponse.json({ teamCode: newTeam.team_code }, { status: 201 });
+
+  } catch (error: any) {
+    console.error('API Error:', error);
+     // Catch token verification errors
+    if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error' || error.code?.startsWith('auth/')) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
+  }
 }
