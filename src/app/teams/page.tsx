@@ -42,6 +42,8 @@ export default function TeamsPage() {
         }
     }, [user]);
 
+    const ownerName = user?.user_metadata?.full_name || 'Owner';
+
     return (
         <div className="relative flex flex-col pb-28 min-h-screen">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
@@ -86,7 +88,7 @@ export default function TeamsPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
-                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5 font-bold">Admin</p>
+                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">{ownerName}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {index === 0 && (
