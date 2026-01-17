@@ -27,9 +27,9 @@ export default function HomePage() {
 
   return (
     <div className="font-display antialiased text-white mesh-background min-h-screen">
-        <div className="relative flex flex-col pb-28">
+        <div className="relative flex flex-col pb-8">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={handleLogout} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">menu</span>
                 </button>
                 <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>
@@ -115,27 +115,9 @@ export default function HomePage() {
                     </div>
                 </section>
             </main>
-            <button className="fixed bottom-32 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
+            <button className="fixed bottom-8 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
                 <span className="material-symbols-outlined text-3xl">add</span>
             </button>
-            <nav className="fixed bottom-8 left-6 right-6 h-20 glass-panel rounded-3xl flex items-center justify-around px-4 z-40">
-                <button className="flex flex-col items-center gap-1 nav-active">
-                    <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>home</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Home</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">check_circle</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Tasks</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">group</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Teams</span>
-                </button>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">settings</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Settings</span>
-                </button>
-            </nav>
         </div>
     </div>
   );
