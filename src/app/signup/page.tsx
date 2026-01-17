@@ -1,12 +1,11 @@
 // /src/app/signup/page.tsx
-'use client'; // This directive marks the component as a Client Component.
+'use client'; 
 
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client'; // Import the Supabase client creator.
+import { createClient } from '@/lib/supabase/client'; 
 
-// Define the shape of the form data using a TypeScript type for clarity.
 type FormData = {
   firstName: string;
   lastName: string;
@@ -16,7 +15,6 @@ type FormData = {
 
 export default function SignUpPage() {
   const router = useRouter();
-  // State for managing form input values.
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -24,69 +22,54 @@ export default function SignUpPage() {
     password: '',
   });
 
-  // State for handling and displaying errors.
   const [error, setError] = useState<string | null>(null);
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
-  // Generic handler to update form data state on input changes.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Async function to handle the entire sign-up process.
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); // Prevent the default form submission behavior.
-    setError(null); // Reset any previous errors.
+    e.preventDefault(); 
+    setError(null); 
 
     try {
-      // 2. ON FORM SUBMIT
-      const supabase = createClient(); // Create a Supabase client instance.
+      const supabase = createClient(); 
 
-      // 3a. SIGN UP THE USER WITH SUPABASE AUTH
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
       });
 
-      // 4a. HANDLE AUTH ERRORS
       if (authError) {
         throw new Error(`Authentication error: ${authError.message}`);
       }
 
-      // Check if user object exists after signup.
       const user = authData.user;
       if (!user) {
         throw new Error('Sign up successful, but no user object returned.');
       }
 
-      // 3b. GET THE AUTHENTICated USER'S ID
       const authUserId = user.id;
 
-      // 3c. INSERT A NEW ROW INTO public.users TABLE
-      // 6. CLEANLY SEPARATED AUTH AND DATABASE LOGIC
       const { error: dbError } = await supabase.from('users').insert({
         auth_user_id: authUserId,
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
-        // created_at will be handled by the database default.
-        // Do NOT store the password in the database.
       });
 
-      // 4b. HANDLE DATABASE INSERT ERRORS
       if (dbError) {
         throw new Error(`Database error: ${dbError.message}`);
       }
-
-      // 4. REDIRECT TO VERIFY EMAIL PAGE
+      
       router.push('/verify-email');
 
     } catch (err: any) {
-      // 4. SHOW USER-FRIENDLY ERROR MESSAGE
       setError(err.message);
     }
   };
 
-  // 8. MINIMAL BUT CLEAN UI
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
@@ -99,7 +82,6 @@ export default function SignUpPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-[3rem] p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          {/* 5. USE ASYNC/AWAIT - Form calls the async handleSignUp function */}
           <form onSubmit={handleSignUp} className="flex flex-col gap-5">
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col gap-2">
@@ -146,13 +128,17 @@ export default function SignUpPage() {
                   name="password"
                   className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
                   placeholder="••••••••"
-                  type="password"
+                  type={isPasswordVisible ? "text" : "password"}
                   value={formData.password}
                   onChange={handleChange}
                   required
                 />
-                <button className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" type="button">
-                  <span className="material-symbols-outlined text-[20px]">visibility</span>
+                <button 
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" 
+                  type="button"
+                  onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                >
+                  <span className="material-symbols-outlined text-[20px]">{isPasswordVisible ? 'visibility_off' : 'visibility'}</span>
                 </button>
               </div>
             </div>
@@ -160,7 +146,6 @@ export default function SignUpPage() {
               Sign Up
             </button>
           </form>
-          {/* Display error message */}
           {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
         </div>
       </div>

@@ -67,6 +67,11 @@ export default {
           ring: 'hsl(var(--sidebar-ring))',
         },
         'lavender-muted': '#dcd1ff',
+        orange: {
+          '200': '#fed7aa',
+          '400': '#fb923c',
+          '500': '#f97316',
+        }
       },
       borderRadius: {
         DEFAULT: '0.5rem',
