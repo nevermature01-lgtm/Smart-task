@@ -1,18 +1,20 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function VerifyEmailPage() {
-  const { user } = useUser();
+  const { session, isLoading } = useSupabaseAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // If user is somehow verified while on this page, the central AuthManager
-    // will redirect them to /home. If they log out, it will redirect to /login.
-    // This page is now passive.
-  }, [user, router]);
+    // The main auth provider will redirect the user to /home once the session is active.
+    // This page just provides information to the user.
+    if (!isLoading && session) {
+      router.replace('/home');
+    }
+  }, [session, isLoading, router]);
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
@@ -33,10 +35,7 @@ export default function VerifyEmailPage() {
             </h2>
             <p className="text-lavender-muted/80 leading-relaxed text-sm">
               We've sent a verification link to your email address. Please check
-              your inbox (and spam folder) and click the link.
-            </p>
-             <p className="text-lavender-muted/80 leading-relaxed text-sm mt-2">
-              Return to the app after you have verified your email.
+              your inbox (and spam folder) and click the link to continue.
             </p>
           </div>
         </div>

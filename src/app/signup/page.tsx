@@ -3,10 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 type FormData = {
   firstName: string;
@@ -18,7 +17,6 @@ type FormData = {
 export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const auth = useAuth();
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -48,50 +46,34 @@ export default function SignUpPage() {
       return;
     }
 
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-
-      // Set the user's display name
-      await updateProfile(user, {
-        displayName: `${formData.firstName} ${formData.lastName}`.trim(),
-      });
-
-      // Send the verification email
-      await sendEmailVerification(user);
-
-      toast({
-        title: "Verification Link Sent",
-        description: "Please check your email to verify your account.",
-      });
-
-      // Redirect to the verify-email page. The AuthManager will handle logic from there.
-      router.push('/verify-email');
-    } catch (err: any) {
-       let errorMessage = 'An unexpected error occurred.';
-        if (err.code) {
-            switch (err.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = 'This email address is already in use.';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'Please enter a valid email address.';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = 'The password is too weak.';
-                    break;
-                default:
-                    errorMessage = err.message;
-            }
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        // This data is stored in the user's `user_metadata` field
+        data: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          full_name: `${formData.firstName} ${formData.lastName}`.trim(),
         }
+      }
+    });
+
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'Sign Up Failed',
-        description: errorMessage,
+        description: error.message,
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+        toast({
+            title: 'Verification Link Sent',
+            description: 'Please check your email to verify your account.',
+        });
+        router.push('/verify-email');
     }
+    
+    setIsLoading(false);
   };
 
   return (

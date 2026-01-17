@@ -4,48 +4,38 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { supabase } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const { toast } = useToast();
-  const auth = useAuth();
+  const router = useRouter();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
     
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // The central AuthManager in FirebaseClientProvider will handle redirection upon successful login.
-    } catch (error: any) {
-      let errorMessage = 'An unexpected error occurred.';
-      if (error.code) {
-        switch (error.code) {
-          case 'auth/user-not-found':
-          case 'auth/wrong-password':
-          case 'auth/invalid-credential':
-            errorMessage = 'Invalid email or password.';
-            break;
-          case 'auth/invalid-email':
-            errorMessage = 'Please enter a valid email address.';
-            break;
-          default:
-            errorMessage = error.message;
-        }
-      }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: errorMessage,
+        description: error.message,
       });
-    } finally {
-      setIsLoading(false);
+    } else {
+      // The auth provider will handle the redirect upon successful login
+      router.refresh();
     }
+    setIsLoading(false);
   };
 
   return (
@@ -60,7 +50,7 @@ export default function LoginPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          <div className="flex flex-col gap-5">
+          <form onSubmit={handleLogin} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
               <input 
@@ -99,14 +89,13 @@ export default function LoginPage() {
               </div>
             </div>
             <button 
-              onClick={handleLogin}
+              type="submit"
               className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed" 
-              type="button"
               disabled={isLoading}
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
-          </div>
+          </form>
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">

@@ -2,14 +2,19 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "Represents a user's profile information.",
+      "description": "Represents a user's profile information stored in Supabase.",
       "type": "object",
       "properties": {
-        "firstName": {
+        "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The user's unique identifier from Supabase Auth."
+        },
+        "first_name": {
           "type": "string",
           "description": "The user's first name."
         },
-        "lastName": {
+        "last_name": {
           "type": "string",
           "description": "The user's last name."
         },
@@ -19,7 +24,7 @@
           "description": "The user's email address."
         }
       },
-      "required": ["firstName", "lastName", "email"]
+      "required": ["id", "email"]
     },
     "Team": {
       "title": "Team",
@@ -34,36 +39,18 @@
           "type": "string",
           "description": "A unique 6-digit code to join the team."
         },
-        "createdBy": {
+        "owner_id": {
           "type": "string",
+          "format": "uuid",
           "description": "The UID of the user who created the team."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the team was created."
         }
       },
-      "required": ["name", "code", "createdBy"]
+      "required": ["name", "code", "owner_id"]
     }
   },
   "auth": {
     "providers": [
       "password"
     ]
-  },
-  "firestore": {
-    "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/UserProfile"
-      },
-      "description": "Stores user profile information, keyed by their auth UID."
-    },
-    "/teams/{teamId}": {
-      "schema": {
-        "$ref": "#/entities/Team"
-      },
-      "description": "Stores team information."
-    }
   }
 }

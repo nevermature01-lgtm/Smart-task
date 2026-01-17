@@ -1,47 +1,44 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { useAuth, useUser } from '@/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const auth = useAuth();
-  const { user, isLoading: isUserLoading } = useUser();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/home');
-    }
-  }, [user, isUserLoading, router]);
+  const { user, isLoading: isUserLoading } = useSupabaseAuth();
 
   const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     
-    try {
-      await sendPasswordResetEmail(auth, email);
-      toast({
-        title: 'Reset Link Sent',
-        description: 'Check your email for a link to reset your password.',
-      });
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error sending reset link',
-        description: err.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    // Get the full redirect URL
+    const redirectURL = `${window.location.origin}/reset-password`;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectURL,
+    });
 
+    if (error) {
+        toast({
+            variant: 'destructive',
+            title: 'Error sending reset link',
+            description: error.message,
+        });
+    } else {
+        toast({
+            title: 'Reset Link Sent',
+            description: 'Check your email for a link to reset your password.',
+        });
+    }
+    
+    setIsLoading(false);
+  };
+  
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center">

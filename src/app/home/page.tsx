@@ -1,22 +1,20 @@
 'use client';
 import { useState } from 'react';
-import { useUser } from '@/firebase';
-import { getAuth, signOut } from 'firebase/auth';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function HomePage() {
-  const { user, isLoading } = useUser();
-  const auth = getAuth();
+  const { user, isLoading } = useSupabaseAuth();
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    await supabase.auth.signOut();
+    router.push('/login');
   };
   
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
@@ -29,9 +27,9 @@ export default function HomePage() {
     );
   }
   
-  const displayName = user?.displayName || 'User';
-  const userPhoto = user?.photoURL;
-  const firstName = displayName.split(' ')[0];
+  const displayName = user?.user_metadata?.full_name || 'User';
+  const userPhoto = user?.user_metadata?.avatar_url;
+  const firstName = user?.user_metadata?.first_name || 'User';
 
   return (
     <>
@@ -47,7 +45,7 @@ export default function HomePage() {
                                 <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={64} height={64} />
                             ) : (
                                 <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
-                                    <span className="text-2xl font-bold">{displayName.charAt(0)}</span>
+                                    <span className="text-2xl font-bold text-white">{displayName.charAt(0)}</span>
                                 </div>
                             )}
                         </div>

@@ -1,33 +1,45 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import { supabase } from '@/lib/supabase/client';
 
 export default function CreateTeamPage() {
   const router = useRouter();
-  const auth = useAuth();
   const { toast } = useToast();
+  const { user, isLoading: isAuthLoading } = useSupabaseAuth();
   
   const [teamName, setTeamName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setIsAuthReady(true);
-      if (!isAuthReady && !currentUser) {
-        // Initial load and no user, redirect.
-        router.push('/login');
+  // Function to generate a unique 6-digit numeric code for the team
+  async function generateUniqueTeamCode(): Promise<string> {
+    let teamCode: string;
+    let isUnique = false;
+
+    while (!isUnique) {
+      teamCode = Math.floor(100000 + Math.random() * 900000).toString();
+      // Check if the code already exists in the database
+      const { data, error } = await supabase
+        .from('teams')
+        .select('code')
+        .eq('code', teamCode)
+        .single();
+      
+      // If there's an error and it's not the "No rows found" error, throw it
+      if (error && error.code !== 'PGRST116') {
+        throw new Error(error.message);
       }
-    });
-    return () => unsubscribe();
-  }, [auth, router, isAuthReady]);
-
+      
+      // If no data is returned, the code is unique
+      if (!data) {
+        isUnique = true;
+      }
+    }
+    return teamCode!;
+  }
 
   const handleCreateTeam = async () => {
     if (!teamName.trim()) {
@@ -43,7 +55,7 @@ export default function CreateTeamPage() {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: 'You must be logged in to create a team. Please wait or log in again.',
+        description: 'You must be logged in to create a team.',
       });
       return;
     }
@@ -51,33 +63,23 @@ export default function CreateTeamPage() {
     setIsCreating(true);
 
     try {
-      // Force refresh the token to ensure it's not expired
-      const token = await user.getIdToken(true);
+      const teamCode = await generateUniqueTeamCode();
       
-      const response = await fetch('/api/create-team', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          teamName: teamName.trim(),
-          token: token 
-        }),
+      const { error } = await supabase.from('teams').insert({
+        name: teamName.trim(),
+        code: teamCode,
+        owner_id: user.id, // The authenticated user is the owner
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Use the error message from the API, or a fallback
-        throw new Error(data.error || 'Something went wrong. Please try again.');
+      if (error) {
+        throw error;
       }
 
       toast({
         title: 'Team Created Successfully!',
-        description: `Your new team code is: ${data.teamCode}`,
+        description: `Your new team code is: ${teamCode}`,
       });
 
-      // Redirect to home page on success
       router.push('/home');
 
     } catch (error: any) {
@@ -85,15 +87,15 @@ export default function CreateTeamPage() {
       toast({
         variant: 'destructive',
         title: 'Failed to Create Team',
-        description: error.message,
+        description: error.message || 'An unexpected error occurred.',
       });
     } finally {
       setIsCreating(false);
     }
   };
   
-  const isLoading = !isAuthReady || isCreating;
-  const buttonText = !isAuthReady ? 'Authenticating...' : (isCreating ? 'Creating...' : 'Create');
+  const isLoading = isAuthLoading || isCreating;
+  const buttonText = isAuthLoading ? 'Authenticating...' : (isCreating ? 'Creating...' : 'Create');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">

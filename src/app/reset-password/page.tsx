@@ -1,18 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, Suspense } from 'react';
-import { useAuth } from '@/firebase';
-import { confirmPasswordReset } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 function ResetPasswordComponent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const auth = useAuth();
-  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,19 +16,8 @@ function ResetPasswordComponent() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const { toast } = useToast();
 
-  const oobCode = searchParams.get('oobCode');
-
   const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    if (!oobCode) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid Link',
-        description: 'The password reset link is invalid or has expired.',
-      });
-      return;
-    }
 
     if (password !== confirmPassword) {
       toast({
@@ -54,23 +39,25 @@ function ResetPasswordComponent() {
 
     setIsLoading(true);
 
-    try {
-      await confirmPasswordReset(auth, oobCode, password);
+    const { error } = await supabase.auth.updateUser({ password });
+
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error updating password',
+        description: error.message,
+      });
+    } else {
       toast({
         title: 'Password Updated',
         description: 'Your password has been successfully reset. Please log in.',
       });
+      // Sign out to ensure the old session is cleared
+      await supabase.auth.signOut();
       router.push('/login');
-
-    } catch (err: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error updating password',
-        description: err.message || 'An unexpected error occurred.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    } 
+    
+    setIsLoading(false);
   };
 
   return (
@@ -85,7 +72,7 @@ function ResetPasswordComponent() {
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
           <form onSubmit={handlePasswordReset} className="flex flex-col gap-6">
             <p className="text-white/80 text-sm leading-relaxed text-center px-2">
-              Please enter and confirm your new password below.
+              You are now authenticated. Please enter and confirm your new password.
             </p>
             <div className="flex flex-col gap-2">
                 <label className="text-white/70 text-sm font-medium pl-1">New Password</label>
@@ -130,7 +117,7 @@ function ResetPasswordComponent() {
             <button
               className="w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed"
               type="submit"
-              disabled={isLoading || !oobCode}
+              disabled={isLoading}
             >
               {isLoading ? 'Resetting...' : 'Reset Password'}
             </button>
