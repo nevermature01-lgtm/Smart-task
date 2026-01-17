@@ -20,7 +20,7 @@ export default function HomePage() {
   
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
-  if (isLoading || !user) {
+  if (isLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
@@ -58,20 +58,20 @@ export default function HomePage() {
                             <span className="font-bold text-[15px] text-white">Dashboard</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white">history</span>
-                            <span className="font-semibold text-white text-[15px]">Task History</span>
+                            <span className="material-symbols-outlined text-white/70">cached</span>
+                            <span className="font-medium text-white/70 text-[15px]">Switch Account</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white">hub</span>
-                            <span className="font-semibold text-white text-[15px]">Team Workspace</span>
+                            <span className="material-symbols-outlined text-white/70">hub</span>
+                            <span className="font-medium text-white/70 text-[15px]">Team Workspace</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white">query_stats</span>
-                            <span className="font-semibold text-white text-[15px]">Project Analytics</span>
+                            <span className="material-symbols-outlined text-white/70">query_stats</span>
+                            <span className="font-medium text-white/70 text-[15px]">Project Analytics</span>
                         </a>
                         <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
-                            <span className="material-symbols-outlined text-white">contact_support</span>
-                            <span className="font-semibold text-white text-[15px]">Support</span>
+                            <span className="material-symbols-outlined text-white/70">contact_support</span>
+                            <span className="font-medium text-white/70 text-[15px]">Support</span>
                         </a>
                     </nav>
                     <div className="p-8">
@@ -86,7 +86,7 @@ export default function HomePage() {
         )}
 
         <div className={cn(
-          "relative flex h-full flex-col transition-all duration-300",
+          "relative flex h-full min-h-screen flex-col transition-all duration-300",
           { "opacity-30 grayscale-[0.5] scale-[0.98] pointer-events-none blur-sm": isMenuOpen }
         )}>
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
@@ -98,7 +98,7 @@ export default function HomePage() {
                     <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
             </header>
-            <main className="px-6 pt-8 space-y-8 flex-1">
+            <main className="px-6 pt-8 space-y-8 flex-1 pb-28">
                 <section className="glass-panel p-6 rounded-3xl relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 blur-2xl rounded-full"></div>
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
@@ -109,7 +109,7 @@ export default function HomePage() {
                         <h3 className="font-bold text-lg">Tasks Analytics</h3>
                         <div className="flex items-center gap-1 text-sm text-lavender-muted">
                             <span>This Week</span>
-                            <span className="material-symbols-outlined text-sm">expand_more</span>
+                            <span className="material-symbols-outlined text-sm leading-none">expand_more</span>
                         </div>
                     </div>
                     <div className="glass-panel p-6 rounded-3xl h-48 flex items-end justify-between gap-2">
@@ -126,7 +126,7 @@ export default function HomePage() {
                             <span className="text-[10px] text-lavender-muted uppercase font-bold">Wed</span>
                         </div>
                         <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar-active rounded-t-lg h-32"></div>
+                            <div className="w-full chart-bar-active rounded-t-lg h-32 shadow-[0_0_15px_rgba(86,29,201,0.3)]"></div>
                             <span className="text-[10px] text-white uppercase font-bold">Thu</span>
                         </div>
                         <div className="flex flex-col items-center gap-3 flex-1">
@@ -138,7 +138,7 @@ export default function HomePage() {
                             <span className="text-[10px] text-lavender-muted uppercase font-bold">Sat</span>
                         </div>
                         <div className="flex flex-col items-center gap-3 flex-1 opacity-40">
-                          <div className="w-full chart-bar rounded-t-lg h-14"></div>
+                          <div className="w-full chart-bar rounded-t-lg h-10"></div>
                           <span className="text-[10px] text-lavender-muted uppercase font-bold">Sun</span>
                         </div>
                     </div>
@@ -155,14 +155,30 @@ export default function HomePage() {
                             </div>
                             <div className="flex-1">
                                 <h4 className="font-bold text-sm">Design System Update</h4>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">High Priority</p>
                             </div>
                             <div className="px-3 py-1.5 rounded-full glass-panel bg-primary/30 border-primary/20">
-                                <span className="text-[10px] font-bold uppercase text-white">In Progress</span>
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">In Progress</span>
+                            </div>
+                        </div>
+                         <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-white/10">
+                                <span className="material-symbols-outlined text-orange-400 leading-none">api</span>
+                            </div>
+                            <div className="flex-1">
+                                <h4 className="font-bold text-sm">Revenue Analytics API</h4>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Priority</p>
+                            </div>
+                            <div className="px-3 py-1.5 rounded-full glass-panel bg-orange-500/20 border-orange-500/20">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-200">Pending</span>
                             </div>
                         </div>
                     </div>
                 </section>
             </main>
+            <button className="fixed bottom-10 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
+                <span className="material-symbols-outlined text-3xl">add</span>
+            </button>
         </div>
     </>
   );
