@@ -27,7 +27,7 @@ export default function CreateTeamPage() {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
-        description: 'You must be logged in to create a team.',
+        description: 'You must be logged in to create a team. Redirecting to login.',
       });
       router.push('/login');
       return;
@@ -36,7 +36,9 @@ export default function CreateTeamPage() {
     setIsCreating(true);
 
     try {
-      const token = await user.getIdToken();
+      // Force refresh the token to ensure it's not expired
+      const token = await user.getIdToken(true);
+      
       const response = await fetch('/api/create-team', {
         method: 'POST',
         headers: {
@@ -49,6 +51,7 @@ export default function CreateTeamPage() {
       const data = await response.json();
 
       if (!response.ok) {
+        // Use the error message from the API, or a fallback
         throw new Error(data.error || 'Something went wrong. Please try again.');
       }
 
@@ -57,6 +60,7 @@ export default function CreateTeamPage() {
         description: `Your new team code is: ${data.teamCode}`,
       });
 
+      // Redirect to home page on success
       router.push('/home');
 
     } catch (error: any) {
