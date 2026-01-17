@@ -46,7 +46,7 @@ export default function SupabaseAuthProvider({ children }: { children: ReactNode
   useEffect(() => {
     if (isLoading) return; // Don't perform redirects until the auth state is confirmed
 
-    const publicPaths = ['/login', '/signup', '/forgot-password', '/'];
+    const publicPaths = ['/login', '/signup', '/forgot-password', '/', '/verify-email'];
     // Allow access to reset-password page even if not logged in (e.g., from an email link)
     const isPublicPath = publicPaths.includes(pathname) || pathname.startsWith('/reset-password');
 
