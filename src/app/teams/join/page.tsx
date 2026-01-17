@@ -96,7 +96,7 @@ export default function JoinTeamPage() {
       }
 
 
-      // 2. Add user to team_members
+      // 2. Add user to team_members. RLS policy will ensure user_id matches auth.uid().
       const { error: joinError } = await supabase
           .from('team_members')
           .insert({
@@ -122,9 +122,10 @@ export default function JoinTeamPage() {
               description: `You have successfully joined the team.`,
           });
           router.push('/teams'); // Redirect to see the new team
+          router.refresh();
       }
     } catch (error: any) {
-        console.error('Failed to join team:', error);
+        console.error('Failed to join team:', error.message);
         toast({
             variant: 'destructive',
             title: 'Failed to Join Team',
