@@ -10,5 +10,5 @@ export const supabaseConfig = {
     
     // This is the secret service role key. It should only be used on the server
     // and must be kept confidential.
-    serviceKey: process.env.SUPABASE_SERVICE_KEY!
+    serviceKey: process.env.SUPABASE_SERVICE_ROLE_KEY!
 };
