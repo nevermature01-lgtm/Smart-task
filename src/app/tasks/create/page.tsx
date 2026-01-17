@@ -30,35 +30,64 @@ export default function CreateTaskPage() {
             if (isTeamLoading || !user) return;
             
             setIsLoading(true);
-            let profiles: Profile[] = [];
+            let finalProfiles: Profile[] = [];
 
             if (activeTeam === 'personal') {
                 // In personal workspace, only the user themselves can be assigned.
                  if (user) {
-                    profiles = [{
+                    finalProfiles = [{
                         id: user.id,
                         full_name: user.user_metadata?.full_name || 'Personal Account',
                         avatar_url: user.user_metadata?.avatar_url || null,
                     }];
                 }
             } else {
-                // In a team, fetch all members of that team.
-                const { data, error } = await supabase
-                    .from('team_members')
-                    .select('profiles(id, full_name, avatar_url)')
-                    .eq('team_id', activeTeam);
+                // In a team, fetch all members *except* the owner.
+                
+                // 1. Get the team owner's ID
+                const { data: teamData, error: teamError } = await supabase
+                    .from('teams')
+                    .select('owner_id')
+                    .eq('id', activeTeam)
+                    .single();
 
-                if (error) {
-                    console.error("Error fetching team members:", error);
-                } else if (data) {
-                    profiles = data.map(item => item.profiles).filter((p): p is Profile => p !== null);
+                if (teamError) {
+                    console.error("Error fetching team owner:", teamError);
+                    finalProfiles = [];
+                } else {
+                    const ownerId = teamData?.owner_id;
+    
+                    // 2. Get all team members
+                    const { data, error } = await supabase
+                        .from('team_members')
+                        .select('profiles(id, full_name, avatar_url)')
+                        .eq('team_id', activeTeam);
+
+                    if (error) {
+                        console.error("Error fetching team members:", error);
+                        finalProfiles = [];
+                    } else if (data) {
+                        const allProfiles = data.map(item => item.profiles).filter((p): p is Profile => p !== null);
+                        // 3. Filter out the owner
+                        finalProfiles = allProfiles.filter(p => p.id !== ownerId);
+                    }
                 }
             }
-            setMembers(profiles);
-            // If there's only one member (personal workspace), auto-select them.
-            if(profiles.length === 1) {
-                setSelectedAssigneeId(profiles[0].id);
-            }
+            
+            setMembers(finalProfiles);
+
+            // Update selection based on the new list of members
+            setSelectedAssigneeId(prevId => {
+                const isSelectionStillValid = prevId && finalProfiles.some(p => p.id === prevId);
+                if (isSelectionStillValid) {
+                    return prevId;
+                }
+                if (finalProfiles.length === 1) {
+                    return finalProfiles[0].id;
+                }
+                return null;
+            });
+
             setIsLoading(false);
         };
 
@@ -151,7 +180,7 @@ export default function CreateTaskPage() {
                     ))
                 ) : (
                     <div className="text-center text-lavender-muted pt-16">
-                        <p>No members found.</p>
+                        <p>No other members found.</p>
                         {searchTerm && <p className="text-sm mt-2">Try adjusting your search.</p>}
                     </div>
                 )}
