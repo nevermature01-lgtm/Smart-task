@@ -1,5 +1,4 @@
-'use client';
-
+// No 'use client' here. This is a server-only file.
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
@@ -11,29 +10,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Firebase UID and email are required.' }, { status: 400 });
     }
 
-    // 1. Check if user already exists
+    // Step 1: Check if user already exists to prevent duplicates.
     const { data: existingUser, error: selectError } = await supabaseAdmin
       .from('users')
       .select('firebase_uid')
       .eq('firebase_uid', firebase_uid)
       .single();
 
-    // If selectError exists AND it's not the "no rows found" error (PGRST116), something went wrong
+    // A selectError can occur for two main reasons:
+    // 1. Connection issue (e.g., wrong URL/keys) -> `fetch failed`.
+    // 2. The row doesn't exist (`code: 'PGRST116'`), which is expected for new users.
     if (selectError && selectError.code !== 'PGRST116') {
-      console.error('Error checking for user in Supabase:', selectError);
+      console.error('[SYNC_USER_ERROR] - Could not check for user:', selectError);
+      
+      // Provide a more helpful error if the database connection failed.
       if (selectError.message.includes('fetch failed')) {
-        const detailedError = 'The server could not connect to Supabase. This is likely because the `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_KEY` environment variables are not set correctly.';
-        return NextResponse.json({ error: detailedError }, { status: 500 });
+        return NextResponse.json({ 
+          error: 'The server could not connect to the database. Please ensure the Supabase URL and Service Role Key environment variables are set correctly.' 
+        }, { status: 500 });
       }
-      return NextResponse.json({ error: `Could not verify user existence: ${selectError.message}` }, { status: 500 });
+
+      // For other database errors.
+      return NextResponse.json({ error: `Database error: ${selectError.message}` }, { status: 500 });
     }
 
-    // 2. If user exists, do nothing and return success
+    // If existingUser is not null, the user is already in our DB.
     if (existingUser) {
-      return NextResponse.json({ message: 'User already exists.' }, { status: 200 });
+      return NextResponse.json({ message: 'User already exists in Supabase.' }, { status: 200 });
     }
 
-    // 3. If user does not exist, insert them
+    // Step 2: If the user does not exist, insert them into the database.
     const { error: insertError } = await supabaseAdmin.from('users').insert({
       firebase_uid: firebase_uid,
       email: email,
@@ -41,18 +47,21 @@ export async function POST(request: Request) {
       last_name: last_name,
     });
 
+    // Handle potential errors during insertion.
     if (insertError) {
-      console.error('Error inserting new user into Supabase:', insertError);
-      return NextResponse.json({ error: `Could not create user profile in database: ${insertError.message}` }, { status: 500 });
+      console.error('[SYNC_USER_ERROR] - Could not insert user:', insertError);
+      return NextResponse.json({ error: `Could not create user in database: ${insertError.message}` }, { status: 500 });
     }
 
+    // If successful, return a 201 Created status.
     return NextResponse.json({ message: 'User profile created successfully.' }, { status: 201 });
 
   } catch (error) {
-    console.error('Unexpected error in sync-user:', error);
+    // This catches unexpected errors, like a malformed request body.
+    console.error('[SYNC_USER_ERROR] - Unexpected failure:', error);
     if (error instanceof Error) {
-        return NextResponse.json({ error: `An unexpected error occurred: ${error.message}` }, { status: 500 });
+        return NextResponse.json({ error: `An unexpected server error occurred: ${error.message}` }, { status: 500 });
     }
-    return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
+    return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
   }
 }
