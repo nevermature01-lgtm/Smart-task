@@ -12,6 +12,7 @@ type Team = {
   team_name: string;
   owner_id: string;
   created_at: string;
+  team_code: string;
 };
 
 export default function TeamsPage() {
@@ -51,7 +52,6 @@ export default function TeamsPage() {
         setActiveTeam(teamId);
     }
 
-    const ownerName = user?.user_metadata?.full_name || 'Owner';
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
     const userPhoto = user?.user_metadata?.avatar_url;
     
@@ -123,7 +123,7 @@ export default function TeamsPage() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
-                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created By {ownerName}</p>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Code: {team.team_code}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {activeTeam === team.id && (
