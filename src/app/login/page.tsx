@@ -5,8 +5,10 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -39,13 +41,12 @@ export default function LoginPage() {
           description: 'Redirecting to home...',
         });
         
-        // Thoda wait karein taaki cookies set ho jayein
-        await new Promise(resolve => setTimeout(resolve, 500));
+        router.refresh();
         
-        window.location.href = '/home';
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        router.push('/home');
       } else {
-         // This case handles scenarios like MFA or other login flows
-         // where a session isn't immediately returned.
         toast({
           title: 'Login Pending',
           description: 'Please complete the next step to log in.',
