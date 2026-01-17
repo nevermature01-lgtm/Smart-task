@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -13,49 +13,46 @@ export default function LoginPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const supabase = createClient();
-
-    // The listener is registered once when the component mounts.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      // The redirect happens ONLY when the SIGNED_IN event is detected.
-      if (event === 'SIGNED_IN' && session) {
-        // This is the most reliable way to redirect after login.
-        // It ensures the session is established before attempting to navigate.
-        window.location.replace('/home');
-      }
-    });
-
-    // The cleanup function unsubscribes from the listener when the component unmounts.
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []); // The empty dependency array ensures this effect runs only once on mount.
-
   const handleLogin = async () => {
-    // 1. Set loading state.
     setIsLoading(true);
-    
-    // 2. Perform sign-in. This function only calls signInWithPassword.
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
 
-    // 3. Handle only errors. Success is handled by the onAuthStateChange listener.
-    if (error) {
+      if (error) {
+        toast({
+          variant: 'destructive',
+          title: 'Login Failed',
+          description: error.message,
+        });
+        setIsLoading(false);
+        return;
+      }
+      
+      if (data.session) {
+        // Redirect using full page reload for maximum reliability
+        window.location.href = '/home';
+      } else {
+         // Fallback for cases where session is null but no error (e.g., MFA)
+        toast({
+          variant: 'destructive',
+          title: 'Login incomplete',
+          description: 'Could not establish a session. Please try again.',
+        });
+        setIsLoading(false);
+      }
+    } catch (err: any) {
       toast({
         variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
+        title: 'An unexpected error occurred',
+        description: err.message || 'An error occurred during login.',
       });
-      setIsLoading(false); // Stop loading only on error.
-    } 
-    // On success, do nothing. The page remains on /login with the button in a loading state
-    // until the onAuthStateChange listener triggers the redirect.
+      setIsLoading(false);
+    }
   };
 
   return (
