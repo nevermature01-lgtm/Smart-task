@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type Team = {
   id: string;
@@ -30,6 +31,7 @@ const teamDetailsMock = [
 export default function ManageTeamsPage() {
     const router = useRouter();
     const { user } = useSupabaseAuth();
+    const { toast } = useToast();
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
@@ -46,6 +48,11 @@ export default function ManageTeamsPage() {
 
                 if (error) {
                     console.error('Error fetching teams:', error);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Error fetching teams',
+                        description: error.message,
+                    });
                 } else if (data) {
                     setTeams(data);
                 }
@@ -58,7 +65,7 @@ export default function ManageTeamsPage() {
         } else if (!user) {
             setIsLoading(false);
         }
-    }, [user]);
+    }, [user, toast]);
 
     const handleDeleteTeam = async () => {
         if (!teamToDelete) return;
@@ -70,10 +77,17 @@ export default function ManageTeamsPage() {
 
         if (error) {
             console.error('Error deleting team:', error);
-            // Optionally, show a toast notification for the error
+            toast({
+                variant: 'destructive',
+                title: 'Error Deleting Team',
+                description: error.message,
+            });
         } else {
             setTeams(teams.filter(team => team.id !== teamToDelete.id));
-            // Optionally, show a success toast
+            toast({
+                title: 'Team Deleted',
+                description: `The team "${teamToDelete.team_name}" has been deleted.`,
+            });
         }
         setTeamToDelete(null);
     };
