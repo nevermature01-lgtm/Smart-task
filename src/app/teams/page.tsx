@@ -124,6 +124,7 @@ export default function TeamsPage() {
                                             <div className="flex-1 min-w-0">
                                                 <h4 className="font-bold text-sm truncate">{team.team_name}</h4>
                                                 <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Code: {team.team_code}</p>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created by: {displayName}</p>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 {activeTeam === team.id && (
