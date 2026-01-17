@@ -76,18 +76,17 @@ export default function JoinTeamPage() {
     setIsLoading(true);
 
     try {
-      // 1. Find team by code using maybeSingle for better null handling
-      const { data: team, error: findTeamError } = await supabase
-          .from('teams')
-          .select('id')
-          .eq('team_code', teamCode)
-          .maybeSingle();
+      // 1. Find team by code using a secure RPC call, bypassing RLS for lookup only.
+      const { data: teams, error: findTeamError } = await supabase
+        .rpc('get_team_id_by_code', { p_team_code: teamCode });
 
       if (findTeamError) {
         // If there's an error, it's a server/network problem, not just 'not found'
         throw findTeamError;
       }
       
+      const team = teams && teams.length > 0 ? teams[0] : null;
+
       if (!team) {
         // If team is null, it means no team was found with that code.
         toast({
