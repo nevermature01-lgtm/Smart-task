@@ -72,6 +72,7 @@ export default function TeamsPage() {
 
     const handleSwitchTeam = (teamId: string | null) => {
         setActiveTeam(teamId);
+        router.push('/home');
     }
 
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
@@ -82,7 +83,12 @@ export default function TeamsPage() {
     return (
         <div className="relative flex flex-col pb-28 min-h-screen">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
+                <div className="flex items-center gap-4">
+                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                        <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                    </button>
+                    <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
+                </div>
                 <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">notifications</span>
                 </button>
