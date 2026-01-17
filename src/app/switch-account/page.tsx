@@ -44,30 +44,19 @@ export default function SwitchAccountPage() {
 
                 if (memberships && memberships.length > 0) {
                     const validMemberships = memberships.filter(m => m.teams);
-                    const ownerIds = validMemberships.map(m => m.teams!.owner_id);
-
-                    // Step 2: Fetch profiles for all owners in a single query
-                    const { data: profiles, error: profilesError } = await supabase
-                        .from('profiles')
-                        .select('id, full_name, first_name, last_name')
-                        .in('id', ownerIds);
                     
-                    if (profilesError && profilesError.message) {
-                        console.error('Error fetching owner profiles:', profilesError.message);
-                    }
-
-                    const profilesById = profiles?.reduce((acc, p) => {
-                        acc[p.id] = p;
-                        return acc;
-                    }, {} as Record<string, any>) || {};
-
+                    // The 'profiles' table does not exist, so we cannot query it.
+                    // This was causing the application to crash.
+                    // We will display a placeholder for the owner's name for now.
                     const userTeamsData = validMemberships
                         .map(m => {
                             const teamData = m.teams!;
-                            const ownerProfile = profilesById[teamData.owner_id];
-                            const ownerName = ownerProfile?.full_name ||
-                                              (`${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`).trim() ||
-                                              'Unknown Owner';
+                            let ownerName = 'Unknown Owner'; // Default placeholder
+
+                            // If the current user is the owner, we can display their name.
+                            if (user && teamData.owner_id === user.id) {
+                                ownerName = user.user_metadata?.full_name || 'Owner';
+                            }
 
                             return {
                                 ...teamData,
