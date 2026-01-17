@@ -4,6 +4,7 @@ import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function HomePage() {
   const { user, isLoading } = useUser();
@@ -53,26 +54,26 @@ export default function HomePage() {
                         <h2 className="text-xl font-bold text-white tracking-tight drop-shadow-sm">{displayName}</h2>
                     </div>
                     <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/10 border border-white/10 shadow-sm" href="#">
+                        <Link href="/home" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/10 border border-white/10 shadow-sm">
                             <span className="material-symbols-outlined text-white">grid_view</span>
                             <span className="font-bold text-[15px] text-white">Dashboard</span>
-                        </a>
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                        </Link>
+                        <Link href="/switch-account" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
                             <span className="material-symbols-outlined text-white/70">cached</span>
                             <span className="font-medium text-white/70 text-[15px]">Switch Account</span>
-                        </a>
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                        </Link>
+                        <Link href="/teams" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
                             <span className="material-symbols-outlined text-white/70">hub</span>
                             <span className="font-medium text-white/70 text-[15px]">Team Workspace</span>
-                        </a>
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                        </Link>
+                        <Link href="#" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
                             <span className="material-symbols-outlined text-white/70">query_stats</span>
                             <span className="font-medium text-white/70 text-[15px]">Project Analytics</span>
-                        </a>
-                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                        </Link>
+                        <Link href="#" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
                             <span className="material-symbols-outlined text-white/70">contact_support</span>
                             <span className="font-medium text-white/70 text-[15px]">Support</span>
-                        </a>
+                        </Link>
                     </nav>
                     <div className="p-8">
                         <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl logout-glass active:scale-95 transition-transform shadow-lg">
