@@ -1,3 +1,5 @@
+'use client';
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 
@@ -19,6 +21,10 @@ export async function POST(request: Request) {
     // If selectError exists AND it's not the "no rows found" error (PGRST116), something went wrong
     if (selectError && selectError.code !== 'PGRST116') {
       console.error('Error checking for user in Supabase:', selectError);
+      if (selectError.message.includes('fetch failed')) {
+        const detailedError = 'The server could not connect to Supabase. This is likely because the `NEXT_PUBLIC_SUPABASE_URL` or `SUPABASE_SERVICE_KEY` environment variables are not set correctly.';
+        return NextResponse.json({ error: detailedError }, { status: 500 });
+      }
       return NextResponse.json({ error: `Could not verify user existence: ${selectError.message}` }, { status: 500 });
     }
 
