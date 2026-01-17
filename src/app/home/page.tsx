@@ -22,7 +22,7 @@ export default function HomePage() {
 
   if (isLoading || !user) {
     return (
-      <div className="flex h-screen w-full items-center justify-center mesh-background">
+      <div className="flex h-screen w-full items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -33,7 +33,7 @@ export default function HomePage() {
   const firstName = displayName.split(' ')[0];
 
   return (
-    <div className="font-display antialiased text-white mesh-background min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden">
         
         {isMenuOpen && (
             <div className="fixed inset-0 z-[60] flex animate-in fade-in-0 duration-300">
@@ -88,7 +88,7 @@ export default function HomePage() {
         )}
 
         <div className={cn(
-          "relative flex flex-col transition-transform duration-500",
+          "relative flex flex-col transition-transform duration-500 pb-28",
           { "scale-[0.9] -translate-x-[15%] rounded-3xl overflow-hidden": isMenuOpen }
         )}>
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
