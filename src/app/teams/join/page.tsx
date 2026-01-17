@@ -76,22 +76,29 @@ export default function JoinTeamPage() {
     setIsLoading(true);
 
     try {
-      // 1. Find team by code
+      // 1. Find team by code using maybeSingle for better null handling
       const { data: team, error: findTeamError } = await supabase
           .from('teams')
           .select('id')
           .eq('team_code', teamCode)
-          .single();
+          .maybeSingle();
 
-      if (findTeamError || !team) {
-          toast({
-              variant: 'destructive',
-              title: 'Invalid Team Code',
-              description: 'No team found with that code. Please check and try again.',
-          });
-          setIsLoading(false);
-          return;
+      if (findTeamError) {
+        // If there's an error, it's a server/network problem, not just 'not found'
+        throw findTeamError;
       }
+      
+      if (!team) {
+        // If team is null, it means no team was found with that code.
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Team Code',
+            description: 'No team found with that code. Please check and try again.',
+        });
+        setIsLoading(false);
+        return;
+      }
+
 
       // 2. Add user to team_members
       const { error: joinError } = await supabase
