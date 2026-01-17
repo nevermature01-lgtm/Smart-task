@@ -1,4 +1,3 @@
-
 'use client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -36,8 +35,8 @@ export default function SwitchAccountPage() {
                     .select('role, teams(*)')
                     .eq('user_id', user.id);
 
-                if (membershipError && Object.keys(membershipError).length > 0) {
-                    console.error('Error fetching teams:', membershipError);
+                if (membershipError && membershipError.message) {
+                    console.error('Error fetching teams:', membershipError.message);
                     setTeams([]);
                     setIsLoadingTeams(false);
                     return;
@@ -53,8 +52,8 @@ export default function SwitchAccountPage() {
                         .select('id, full_name, first_name, last_name')
                         .in('id', ownerIds);
                     
-                    if (profilesError && Object.keys(profilesError).length > 0) {
-                        console.error('Error fetching owner profiles:', profilesError);
+                    if (profilesError && profilesError.message) {
+                        console.error('Error fetching owner profiles:', profilesError.message);
                     }
 
                     const profilesById = profiles?.reduce((acc, p) => {
@@ -206,5 +205,3 @@ export default function SwitchAccountPage() {
         </div>
     );
 }
-
-    
