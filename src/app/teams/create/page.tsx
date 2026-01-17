@@ -114,7 +114,7 @@ export default function CreateTeamPage() {
               className="w-full h-14 bg-white text-primary rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-xl shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
-              {isCreating ? 'Creating...' : 'Create'}
+              {isCreating ? 'Creating...' : (isUserLoading ? 'Authenticating...' : 'Create')}
             </button>
             <button 
               onClick={() => router.back()}
