@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
@@ -14,21 +14,6 @@ export default function LoginPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        router.replace('/home');
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router]);
 
   const handleLogin = async () => {
     setIsLoading(true);
@@ -46,8 +31,11 @@ export default function LoginPage() {
         title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       });
+    } else {
+      // On success, force a full page reload to the home page.
+      // This is the most reliable way to ensure the server recognizes the new session.
+      window.location.href = '/home';
     }
-    // On success, the onAuthStateChange listener will handle the redirect.
   };
 
   return (
