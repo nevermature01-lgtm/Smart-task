@@ -84,24 +84,6 @@ export default function SwitchAccountPage() {
                     </div>
                 </section>
             </main>
-            <nav className="fixed bottom-8 left-6 right-6 h-20 glass-panel rounded-3xl flex items-center justify-around px-4 z-40">
-                <Link href="/home" className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">home</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Home</span>
-                </Link>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">check_circle</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Tasks</span>
-                </button>
-                <Link href="/teams" className="flex flex-col items-center gap-1 nav-active">
-                    <span className="material-symbols-outlined text-2xl" style={{fontVariationSettings: "'FILL' 1"}}>group</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Teams</span>
-                </Link>
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
-                    <span className="material-symbols-outlined text-2xl">settings</span>
-                    <span className="text-[10px] font-bold uppercase tracking-tighter">Settings</span>
-                </button>
-            </nav>
         </div>
     );
 }
