@@ -44,19 +44,28 @@ export default function SwitchAccountPage() {
 
                 if (memberships && memberships.length > 0) {
                     const validMemberships = memberships.filter(m => m.teams);
+                    const ownerIds = [...new Set(validMemberships.map(m => m.teams!.owner_id))];
+
+                    // Step 2: Fetch public user data for all owners in a single query
+                    const { data: owners, error: ownersError } = await supabase
+                        .from('public_users')
+                        .select('id, email')
+                        .in('id', ownerIds);
+
+                    if (ownersError && ownersError.message) {
+                        console.error('Error fetching owner emails:', ownersError.message);
+                    }
+
+                    const ownersById = owners?.reduce((acc, p) => {
+                        acc[p.id] = p;
+                        return acc;
+                    }, {} as Record<string, {id: string, email: string | null}>) || {};
                     
-                    // The 'profiles' table does not exist, so we cannot query it.
-                    // This was causing the application to crash.
-                    // We will display a placeholder for the owner's name for now.
                     const userTeamsData = validMemberships
                         .map(m => {
                             const teamData = m.teams!;
-                            let ownerName = 'Unknown Owner'; // Default placeholder
-
-                            // If the current user is the owner, we can display their name.
-                            if (user && teamData.owner_id === user.id) {
-                                ownerName = user.user_metadata?.full_name || 'Owner';
-                            }
+                            const ownerInfo = ownersById[teamData.owner_id];
+                            const ownerName = ownerInfo?.email || 'Unknown Owner';
 
                             return {
                                 ...teamData,
