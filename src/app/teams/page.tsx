@@ -5,9 +5,6 @@ export default function TeamsPage() {
     return (
         <div className="relative flex flex-col pb-28 min-h-screen">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                 <Link href="/home" className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-xl">arrow_back_ios_new</span>
-                </Link>
                 <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
                 <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">notifications</span>
@@ -88,10 +85,10 @@ export default function TeamsPage() {
                 </section>
             </main>
             <nav className="fixed bottom-8 left-6 right-6 h-20 glass-panel rounded-3xl flex items-center justify-around px-4 z-40">
-                <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
+                <Link href="/home" className="flex flex-col items-center gap-1 text-lavender-muted/60">
                     <span className="material-symbols-outlined text-2xl">home</span>
                     <span className="text-[10px] font-bold uppercase tracking-tighter">Home</span>
-                </button>
+                </Link>
                 <button className="flex flex-col items-center gap-1 text-lavender-muted/60">
                     <span className="material-symbols-outlined text-2xl">check_circle</span>
                     <span className="text-[10px] font-bold uppercase tracking-tighter">Tasks</span>
