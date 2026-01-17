@@ -85,10 +85,9 @@ export default function JoinTeamPage() {
         throw findTeamError;
       }
       
-      const team = teams && teams.length > 0 ? teams[0] : null;
+      const team = Array.isArray(teams) && teams.length > 0 ? teams[0] : null;
 
-      if (!team) {
-        // If team is null, it means no team was found with that code.
+      if (!team || !team.id) {
         toast({
             variant: 'destructive',
             title: 'Invalid Team Code',
