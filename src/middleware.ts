@@ -47,8 +47,17 @@ export async function middleware(request: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession();
     
-    // If no session, redirect to login
-    if (!session) {
+    const { pathname } = request.nextUrl;
+
+    const publicOnlyRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
+
+    // If the user is logged in and trying to access a public-only route, redirect to home.
+    if (session && publicOnlyRoutes.includes(pathname)) {
+        return NextResponse.redirect(new URL('/home', request.url));
+    }
+
+    // If the user is not logged in and is trying to access a protected route, redirect to login.
+    if (!session && pathname.startsWith('/home')) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -61,6 +70,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // This middleware only protects the /home route and its sub-pages.
-  matcher: ['/home/:path*'],
+  // This matcher ensures the middleware runs on all relevant pages for authentication checks.
+  matcher: [
+    '/',
+    '/login',
+    '/signup',
+    '/forgot-password',
+    '/reset-password',
+    '/verify-email',
+    '/home/:path*'
+  ],
 };
