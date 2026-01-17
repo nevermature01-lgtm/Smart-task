@@ -33,8 +33,8 @@ export default function LoginPage() {
         description: "Welcome back!",
       });
 
-      router.refresh();
-    } catch (err: any) {
+      router.push('/home');
+    } catch (err: any) => {
       setError(err.message || 'An unexpected error occurred.');
     }
   };
