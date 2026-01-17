@@ -24,8 +24,8 @@ export default function LoginPage() {
       if (error) {
         throw error;
       }
-      // Refresh the page to trigger middleware and redirect to /home
-      router.refresh();
+      // Redirect to home page on successful login
+      router.push('/home');
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     }
