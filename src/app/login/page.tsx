@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -19,20 +21,16 @@ export default function LoginPage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // This full-page redirect is the most reliable way to ensure
-        // the server recognizes the new auth state in the middleware.
-        window.location.href = '/home';
+        router.replace('/home');
       }
     });
 
-    // Cleanup the subscription on component unmount
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleLogin = async () => {
     setIsLoading(true);
 
     const supabase = createClient();
@@ -40,17 +38,16 @@ export default function LoginPage() {
       email,
       password,
     });
-    
-    // The loading state will be naturally handled by the page redirect.
-    // If there's an error, we stop loading and show a toast.
+
     if (error) {
       setIsLoading(false);
       toast({
-        variant: "destructive",
-        title: "Login Failed",
+        variant: 'destructive',
+        title: 'Login Failed',
         description: error.message || 'An unexpected error occurred.',
       });
     }
+    // On success, the onAuthStateChange listener will handle the redirect.
   };
 
   return (
@@ -65,7 +62,7 @@ export default function LoginPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          <form onSubmit={handleLogin} className="flex flex-col gap-5">
+          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
               <input 
