@@ -51,14 +51,15 @@ export default function TeamsPage() {
 
                         const { data: owners } = await supabase
                             .from('profiles')
-                            .select('id, full_name')
+                            .select('id, full_name, first_name, last_name')
                             .in('id', ownerIds);
                         
                         const ownerNameMap = new Map<string, string>();
                         if (owners) {
                             owners.forEach(o => {
-                                if (o.full_name) {
-                                    ownerNameMap.set(o.id, o.full_name);
+                                const name = o.full_name || (`${o.first_name || ''} ${o.last_name || ''}`).trim();
+                                if (name) {
+                                    ownerNameMap.set(o.id, name);
                                 }
                             });
                         }
