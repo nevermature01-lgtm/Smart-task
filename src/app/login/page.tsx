@@ -33,8 +33,15 @@ export default function LoginPage() {
         return;
       }
       
-      // Redirect using full page reload for maximum reliability
       if (data.session) {
+        toast({
+          title: 'Success!',
+          description: 'Redirecting to home...',
+        });
+        
+        // Thoda wait karein taaki cookies set ho jayein
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         window.location.href = '/home';
       } else {
          // This case handles scenarios like MFA or other login flows
