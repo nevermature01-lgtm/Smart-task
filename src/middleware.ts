@@ -13,7 +13,6 @@ export async function middleware(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      // If Supabase isn't configured, we can't do anything.
       return response;
     }
 
@@ -23,9 +22,6 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // The `set` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
           request.cookies.set({ name, value, ...options });
           response = NextResponse.next({
             request: {
@@ -35,9 +31,6 @@ export async function middleware(request: NextRequest) {
           response.cookies.set({ name, value, ...options });
         },
         remove(name: string, options: CookieOptions) {
-          // The `delete` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
           request.cookies.set({ name, value: '', ...options });
           response = NextResponse.next({
             request: {
@@ -54,24 +47,13 @@ export async function middleware(request: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession();
     
-    const { pathname } = request.nextUrl;
-
-    const loggedIn = !!session;
-
-    // Redirect logged-in users from auth pages to home
-    const authPages = ['/login', '/signup', '/forgot-password', '/reset-password', '/verify-email', '/'];
-    if (loggedIn && authPages.includes(pathname)) {
-      return NextResponse.redirect(new URL('/home', request.url));
-    }
-
-    // Redirect non-logged-in users from protected pages to login
-    const protectedPages = ['/home'];
-    if (!loggedIn && protectedPages.some(p => pathname.startsWith(p))) {
+    // If no session, redirect to login
+    if (!session) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
   } catch (e) {
-    // Failsafe: if any error occurs, just continue without auth logic
+    // If an error occurs, continue without authentication logic.
     return response;
   }
   
@@ -79,14 +61,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
-  ],
+  // This middleware only protects the /home route and its sub-pages.
+  matcher: ['/home/:path*'],
 };

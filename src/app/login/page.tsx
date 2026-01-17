@@ -1,13 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -18,25 +16,44 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setIsLoading(true);
-    try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
 
-      if (error) {
-        throw error;
-      }
-      
-      // Refresh the page. The middleware will now see the user is logged in
-      // and on an "auth" path, so it will redirect to the home page.
-      router.refresh();
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred.');
+    if (error) {
+      setError(error.message || 'An unexpected error occurred.');
       setIsLoading(false);
+      return;
     }
+
+    // After successful sign-in, poll for the session to ensure the
+    // auth cookie is set before redirecting. This is a robust way to
+    // handle the race condition between setting the cookie and the server
+    // recognizing the session.
+    const checkSession = async (retries = 5) => {
+      if (retries <= 0) {
+        setError('Could not verify session. Please try logging in again.');
+        setIsLoading(false);
+        return;
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session) {
+        // Use window.location.href for a full page reload to ensure
+        // server-side components and middleware re-evaluate auth state.
+        window.location.href = '/home';
+      } else {
+        // Wait and retry if the session is not yet available.
+        setTimeout(() => checkSession(retries - 1), 300);
+      }
+    };
+    
+    // Start the polling process.
+    await checkSession();
   };
 
   return (
