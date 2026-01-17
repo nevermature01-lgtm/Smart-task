@@ -79,12 +79,12 @@ export default function SwitchAccountPage() {
                         </div>
                         <span className="font-bold text-sm">Create Team</span>
                     </Link>
-                    <button className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
+                    <Link href="/teams/join" className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                         <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-white text-3xl">login</span>
                         </div>
                         <span className="font-bold text-sm">Join Team</span>
-                    </button>
+                    </Link>
                 </section>
                 <section className="space-y-4">
                     <div className="flex items-center justify-between px-2">
