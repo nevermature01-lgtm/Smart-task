@@ -1,14 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, Suspense } from 'react';
+import { useAuth } from '@/firebase';
+import { confirmPasswordReset } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function ResetPasswordPage() {
+function ResetPasswordComponent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const auth = useAuth();
+  
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,27 +20,19 @@ export default function ResetPasswordPage() {
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const supabase = createClient();
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        toast({
-          title: 'Ready to Reset',
-          description: 'Please enter your new password.',
-        });
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [toast]);
-
+  const oobCode = searchParams.get('oobCode');
 
   const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (!oobCode) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid Link',
+        description: 'The password reset link is invalid or has expired.',
+      });
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast({
@@ -59,13 +55,7 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      const supabase = createClient();
-      const { error } = await supabase.auth.updateUser({ password });
-
-      if (error) {
-        throw error;
-      }
-
+      await confirmPasswordReset(auth, oobCode, password);
       toast({
         title: 'Password Updated',
         description: 'Your password has been successfully reset. Please log in.',
@@ -140,7 +130,7 @@ export default function ResetPasswordPage() {
             <button
               className="w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !oobCode}
             >
               {isLoading ? 'Resetting...' : 'Reset Password'}
             </button>
@@ -157,5 +147,13 @@ export default function ResetPasswordPage() {
       </div>
       <div className="h-4 w-full shrink-0"></div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordComponent />
+    </Suspense>
   );
 }

@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth, useFirestore, useUser } from '@/firebase';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -17,6 +19,10 @@ type FormData = {
 export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const { user, isLoading: isUserLoading } = useUser();
+
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -24,9 +30,14 @@ export default function SignUpPage() {
     password: '',
   });
 
-  const [error, setError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/home');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -34,36 +45,29 @@ export default function SignUpPage() {
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
 
+    if (formData.password.length < 6) {
+      toast({
+          variant: 'destructive',
+          title: 'Password too short',
+          description: 'Password must be at least 6 characters long.',
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const supabase = createClient();
+      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+      const user = userCredential.user;
 
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (authError) {
-        throw authError;
-      }
-
-      const user = authData.user;
-      if (!user) {
-        throw new Error('Sign up successful, but no user object returned.');
-      }
-
-      const { error: dbError } = await supabase.from('users').insert({
-        auth_user_id: user.id,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
+      await setDoc(doc(firestore, 'users', user.uid), {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
         email: formData.email,
       });
 
-      if (dbError) {
-        throw dbError;
-      }
+      await sendEmailVerification(user);
 
       toast({
         title: "Verification Link Sent",
@@ -72,11 +76,23 @@ export default function SignUpPage() {
 
       router.push('/verify-email');
     } catch (err: any) {
-      setError(err.message);
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: err.message || 'An unexpected error occurred.',
+      });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
@@ -169,9 +185,6 @@ export default function SignUpPage() {
               {isLoading ? 'Signing Up...' : 'Sign Up'}
             </button>
           </form>
-          {error && (
-            <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
-          )}
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">

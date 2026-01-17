@@ -1,35 +1,70 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { login } from '@/app/actions/auth'; // YEH IMPORT KARO
+import { useAuth, useUser } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const { toast } = useToast();
+  const router = useRouter();
+  const auth = useAuth();
+  const { user, isLoading: isUserLoading } = useUser();
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.push('/home');
+    }
+  }, [user, isUserLoading, router]);
+
   const handleLogin = async () => {
     setIsLoading(true);
     
-    // Server action call karo - yeh automatically redirect karega
-    const result = await login(email, password);
-    
-    if (result?.error) {
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      if (!userCredential.user.emailVerified) {
+        toast({
+          variant: 'destructive',
+          title: 'Verification Required',
+          description: 'Please verify your email before logging in. We have redirected you to the verification page.',
+        });
+        router.push('/verify-email');
+        return;
+      }
+      
+      toast({
+        title: 'Login Successful',
+        description: 'Redirecting to your dashboard...',
+      });
+      router.push('/home');
+
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: result.error,
+        description: error.message || 'An unexpected error occurred.',
       });
+    } finally {
+      setIsLoading(false);
     }
-    // Agar error nahi hai toh redirect ho jayega automatically,
-    // lekin agar kuch aur issue hua to loading state reset karna zaroori hai.
-    setIsLoading(false);
   };
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">

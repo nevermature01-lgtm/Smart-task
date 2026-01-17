@@ -3,84 +3,60 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useAuth, useUser } from '@/firebase';
 import { useToast } from "@/hooks/use-toast";
+import { sendEmailVerification } from 'firebase/auth';
 
 export default function VerifyEmailPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const { user, isLoading: isUserLoading } = useUser();
   const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    // Listen for changes to the user's authentication state.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      // This event listener fires on sign-in, sign-out, and token refresh.
-      // When the user clicks the verification link, Supabase redirects them
-      // back to the app, the session is updated, and this event fires.
-
-      // We check if a session exists and if the user's email has been confirmed.
-      if (session?.user?.email_confirmed_at) {
-        toast({
-          title: "Email Verified",
-          description: "You can now access all features.",
-        });
-        // If the email is confirmed, the user is fully authenticated.
-        // We can now redirect them to the main part of the app.
-        router.push('/home');
-      }
-    });
-
-    // When the component unmounts, we clean up the subscription.
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [router, toast]); // The effect depends on the router and toast.
+    if (user?.emailVerified) {
+      toast({
+        title: "Email Verified",
+        description: "Redirecting to your dashboard...",
+      });
+      router.push('/home');
+    }
+  }, [user, router, toast]);
 
   const handleResendVerification = async () => {
     setIsResending(true);
-    try {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user?.email) {
-        const { error } = await supabase.auth.resend({
-          type: 'signup',
-          email: user.email,
-        });
-
-        if (error) throw error;
-
+    if (auth.currentUser) {
+      try {
+        await sendEmailVerification(auth.currentUser);
         toast({
           title: 'Verification Link Sent',
           description: 'A new verification link has been sent to your email.',
         });
-      } else {
-        throw new Error("Could not find user's email to resend verification.");
+      } catch (error: any) {
+        toast({
+          variant: 'destructive',
+          title: 'Error Resending Link',
+          description: error.message || 'An unexpected error occurred.',
+        });
+      } finally {
+        setIsResending(false);
       }
-    } catch (error: any) {
-      toast({
+    } else {
+       toast({
         variant: 'destructive',
-        title: 'Error Resending Link',
-        description: error.message || 'An unexpected error occurred.',
+        title: 'Not Logged In',
+        description: 'You must be logged in to resend a verification email.',
       });
-    } finally {
       setIsResending(false);
+      router.push('/login');
     }
   };
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
-        <Link
-          href="/signup"
-          className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform"
-        >
-          <span className="material-symbols-outlined">arrow_back_ios_new</span>
-        </Link>
+        <div className="w-10"></div>
         <div className="w-10"></div>
       </header>
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
@@ -101,22 +77,24 @@ export default function VerifyEmailPage() {
             </h2>
             <p className="text-lavender-muted/80 leading-relaxed text-sm">
               We've sent a verification link to your email address. Please check
-              your inbox and click the link to continue.
+              your inbox (and spam folder) and click the link to continue.
+            </p>
+             <p className="text-lavender-muted/80 leading-relaxed text-sm mt-2">
+              After verifying, please log in.
             </p>
           </div>
           <Link
-            href="https://mail.google.com"
-            target="_blank"
+            href="/login"
             className="w-full text-center bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted"
           >
-            Open Gmail
+            Go to Login
           </Link>
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
         <button 
           onClick={handleResendVerification}
-          disabled={isResending}
+          disabled={isResending || isUserLoading}
           className="text-lavender-muted text-sm font-medium hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isResending ? (
