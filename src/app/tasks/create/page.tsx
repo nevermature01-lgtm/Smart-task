@@ -42,7 +42,7 @@ export default function CreateTaskPage() {
                     }];
                 }
             } else {
-                // In a team, fetch all members *except* the owner, filtering at the DB level.
+                // In a team, fetch all members *except* the owner and self, filtering at the DB level.
                 
                 // 1. First, get the owner's ID for the current team.
                 const { data: teamData, error: teamError } = await supabase
@@ -56,12 +56,13 @@ export default function CreateTaskPage() {
                 } else {
                     const ownerId = teamData?.owner_id;
     
-                    // 2. Build the query to fetch members, excluding the owner.
+                    // 2. Build the query to fetch members, excluding the owner and the current user.
                     let membersQuery = supabase
                         .from('team_members')
                         .select('profiles(id, full_name, avatar_url)')
                         .eq('team_id', activeTeam)
-                        .neq('role', 'owner'); // Exclude anyone with the 'owner' role.
+                        .neq('role', 'owner') // Exclude anyone with the 'owner' role.
+                        .neq('user_id', user.id); // Exclude the current user.
 
                     // Also explicitly exclude the owner ID from the `teams` table for extra safety.
                     if (ownerId) {
