@@ -32,20 +32,39 @@ export default function HomePage() {
       }
 
       setIsLoadingMembers(true);
-      const { data: teamMembers, error } = await supabase
+      
+      // Fetch team members and team data separately to avoid join issues
+      const teamPromise = supabase
+        .from('teams')
+        .select('owner_id, owner_name')
+        .eq('id', activeTeam)
+        .single();
+        
+      const membersPromise = supabase
         .from('team_members')
-        .select('role, profiles(id, full_name, avatar_url)')
+        .select('user_id, role')
         .eq('team_id', activeTeam);
 
-      if (error) {
-        console.error('Error fetching team members:', error.message);
+      const [teamResult, membersResult] = await Promise.all([teamPromise, membersPromise]);
+
+      const { data: teamData, error: teamError } = teamResult;
+      const { data: teamMembers, error: membersError } = membersResult;
+
+      if (teamError || membersError) {
+        console.error('Error fetching team members:', teamError?.message || membersError?.message);
         setMembers([]);
-      } else if (teamMembers) {
-        const memberProfiles = teamMembers
-          .map((m: any) => (m.profiles ? { ...m.profiles, role: m.role } : null))
-          .filter((p): p is TeamMember => p !== null && p.id);
+      } else if (teamMembers && teamData) {
+        const memberProfiles = teamMembers.map((member) => ({
+          id: member.user_id,
+          full_name: member.user_id === teamData.owner_id ? teamData.owner_name : null,
+          avatar_url: null,
+          role: member.role,
+        }));
         setMembers(memberProfiles);
+      } else {
+        setMembers([]);
       }
+      
       setIsLoadingMembers(false);
     };
 
