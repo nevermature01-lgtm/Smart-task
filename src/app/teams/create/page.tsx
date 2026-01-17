@@ -65,14 +65,34 @@ export default function CreateTeamPage() {
     try {
       const teamCode = await generateUniqueTeamCode();
       
-      const { error } = await supabase.from('teams').insert({
-        team_name: teamName.trim(),
-        team_code: teamCode,
-        owner_id: user.id, // The authenticated user is the owner
-      });
+      const { data: newTeam, error: createTeamError } = await supabase
+        .from('teams')
+        .insert({
+          team_name: teamName.trim(),
+          team_code: teamCode,
+          owner_id: user.id,
+        })
+        .select()
+        .single();
 
-      if (error) {
-        throw error;
+      if (createTeamError) {
+        throw createTeamError;
+      }
+
+      if (newTeam) {
+        const { error: addMemberError } = await supabase
+          .from('team_members')
+          .insert({
+            team_id: newTeam.id,
+            user_id: user.id,
+            role: 'owner',
+          });
+        
+        if (addMemberError) {
+            // If adding the owner as a member fails, we should let them know.
+            // For this implementation, we'll throw the error, which will be caught below.
+            throw addMemberError;
+        }
       }
 
       toast({
@@ -80,7 +100,7 @@ export default function CreateTeamPage() {
         description: `Your new team code is: ${teamCode}`,
       });
 
-      router.push('/home');
+      router.push('/teams');
 
     } catch (error: any) {
       console.error('Team creation failed:', error);

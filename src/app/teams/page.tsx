@@ -26,16 +26,24 @@ export default function TeamsPage() {
         const fetchTeams = async () => {
             if (user) {
                 setIsLoadingTeams(true);
-                const { data, error } = await supabase
-                    .from('teams')
-                    .select('*')
-                    .eq('owner_id', user.id)
-                    .order('created_at', { ascending: false });
+                // Fetch all team memberships for the user, and get the team data along with it.
+                const { data: memberships, error } = await supabase
+                    .from('team_members')
+                    .select('teams(*)') // Supabase syntax to join and get all columns from teams
+                    .eq('user_id', user.id);
 
                 if (error) {
                     console.error('Error fetching teams:', error);
-                } else if (data) {
-                    setTeams(data);
+                    setTeams([]);
+                } else if (memberships) {
+                    // The result is an array of memberships, where each object has a 'teams' property.
+                    // We filter out any null teams and map to the team object.
+                     const userTeams = memberships
+                        .map(m => m.teams)
+                        .filter((t): t is Team => t !== null && t.id !== null)
+                        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+                    setTeams(userTeams as Team[]);
                 }
                 setIsLoadingTeams(false);
             }
@@ -137,8 +145,8 @@ export default function TeamsPage() {
                                         </button>
                                     ))
                                 ) : (
-                                    <div className="glass-panel p-4 rounded-2xl text-center">
-                                        <p className="text-lavender-muted">You haven't created any teams yet.</p>
+                                     <div className="glass-panel p-5 rounded-[2rem] text-center">
+                                        <p className="text-lavender-muted">You haven't joined or created any teams yet.</p>
                                     </div>
                                 )}
                             </>

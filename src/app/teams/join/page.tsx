@@ -4,10 +4,12 @@ import { useState, useRef, ChangeEvent, KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 
 export default function JoinTeamPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useSupabaseAuth();
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
@@ -61,25 +63,73 @@ export default function JoinTeamPage() {
       });
       return;
     }
+
+    if (!user) {
+        toast({
+            variant: 'destructive',
+            title: 'Not Logged In',
+            description: 'You must be logged in to join a team.',
+        });
+        return;
+    }
     
     setIsLoading(true);
 
-    // Placeholder logic
-    // In a real app, you would:
-    // 1. Check if a team with this code exists.
-    // 2. If it exists, add the current user to a `team_members` table.
-    // 3. Handle cases where the user is already in the team.
-    
-    // For now, we'll just simulate a successful join.
-    setTimeout(() => {
-      toast({
-        title: 'Joined Team!',
-        description: `You have successfully joined the team. (Simulation)`,
-      });
-      router.push('/home');
-      setIsLoading(false);
-    }, 1500);
+    try {
+      // 1. Find team by code
+      const { data: team, error: findTeamError } = await supabase
+          .from('teams')
+          .select('id')
+          .eq('team_code', teamCode)
+          .single();
 
+      if (findTeamError || !team) {
+          toast({
+              variant: 'destructive',
+              title: 'Invalid Team Code',
+              description: 'No team found with that code. Please check and try again.',
+          });
+          setIsLoading(false);
+          return;
+      }
+
+      // 2. Add user to team_members
+      const { error: joinError } = await supabase
+          .from('team_members')
+          .insert({
+              team_id: team.id,
+              user_id: user.id,
+              role: 'member',
+          });
+
+      if (joinError) {
+          // Check for unique constraint violation (PostgreSQL error code '23505')
+          if (joinError.code === '23505') {
+               toast({
+                  variant: 'destructive',
+                  title: 'Already a Member',
+                  description: "You are already a member of this team.",
+              });
+          } else {
+              throw joinError;
+          }
+      } else {
+          toast({
+              title: 'Joined Team!',
+              description: `You have successfully joined the team.`,
+          });
+          router.push('/teams'); // Redirect to see the new team
+      }
+    } catch (error: any) {
+        console.error('Failed to join team:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Failed to Join Team',
+            description: error.message || 'An unexpected error occurred.',
+        });
+    } finally {
+        setIsLoading(false);
+    }
   };
 
   return (
