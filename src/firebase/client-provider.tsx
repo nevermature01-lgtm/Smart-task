@@ -45,7 +45,7 @@ const AuthManager = ({ children }: { children: ReactNode }) => {
 
                             if (!response.ok) {
                                 const errorBody = await response.text();
-                                console.error('Failed to sync user to Supabase. Status:', response.status, 'Body:', errorBody);
+                                console.error('Failed to sync user to Firestore. Status:', response.status, 'Body:', errorBody);
                             }
                         } catch (error) {
                             console.error('Error calling sync-user API:', error);
