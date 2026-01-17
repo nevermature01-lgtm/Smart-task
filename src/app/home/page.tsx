@@ -175,9 +175,9 @@ export default function HomePage() {
                     </div>
                 </section>
             </main>
-            <button className="fixed bottom-10 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
+            <Link href="/tasks/create" className="fixed bottom-10 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
                 <span className="material-symbols-outlined text-3xl">add</span>
-            </button>
+            </Link>
         </div>
     </>
   );
