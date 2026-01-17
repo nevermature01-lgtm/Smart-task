@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function SwitchAccountPage() {
     const router = useRouter();
@@ -19,12 +20,12 @@ export default function SwitchAccountPage() {
             </header>
             <main className="px-6 pt-8 space-y-8">
                 <section className="grid grid-cols-2 gap-4">
-                    <button className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
+                    <Link href="/teams/create" className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
                         <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-primary text-3xl">group_add</span>
                         </div>
                         <span className="font-bold text-sm">Create Team</span>
-                    </button>
+                    </Link>
                     <button className="glass-panel p-6 rounded-[2.5rem] flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                         <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-white text-3xl">login</span>
