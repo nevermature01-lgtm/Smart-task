@@ -34,7 +34,7 @@ export default function LoginPage() {
       });
 
       router.push('/home');
-    } catch (err: any) => {
+    } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     }
   };
