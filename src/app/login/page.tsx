@@ -13,11 +13,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
+    setIsLoading(true);
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signInWithPassword({
@@ -33,9 +35,10 @@ export default function LoginPage() {
         description: "Welcome back!",
       });
 
-      router.push('/home');
+      router.refresh();
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
+      setIsLoading(false);
     }
   };
 
@@ -55,12 +58,13 @@ export default function LoginPage() {
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
               <input 
-                className="glass-input w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" 
+                className="glass-input w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40 disabled:opacity-50" 
                 placeholder="hello@example.com" 
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={isLoading}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -70,24 +74,30 @@ export default function LoginPage() {
               </div>
               <div className="relative">
                 <input 
-                  className="glass-input w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40" 
+                  className="glass-input w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40 disabled:opacity-50" 
                   placeholder="••••••••" 
                   type={isPasswordVisible ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={isLoading}
                 />
                 <button 
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" 
                   type="button"
                   onClick={() => setIsPasswordVisible(!isPasswordVisible)}
+                  disabled={isLoading}
                 >
                   {isPasswordVisible ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
-            <button className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted" type="submit">
-              Login
+            <button 
+              className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed" 
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Logging in...' : 'Login'}
             </button>
           </form>
           {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
