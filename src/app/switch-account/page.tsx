@@ -95,7 +95,7 @@ export default function SwitchAccountPage() {
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-base truncate">{team.team_name}</h4>
-                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">{ownerName}</p>
+                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created By {ownerName}</p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {index === 0 && (
