@@ -22,6 +22,7 @@ export default function SupabaseAuthProvider({ children }: { children: ReactNode
 
   useEffect(() => {
     // This handles session changes, including sign-in, sign-out, and token refreshes.
+    // It should only run once when the provider mounts.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -41,7 +42,8 @@ export default function SupabaseAuthProvider({ children }: { children: ReactNode
     });
 
     return () => subscription.unsubscribe();
-  }, [router]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (isLoading) return; // Don't perform redirects until the auth state is confirmed
