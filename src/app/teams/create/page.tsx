@@ -20,13 +20,13 @@ export default function CreateTeamPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthReady(true);
-      if (!currentUser) {
-        // If user logs out or session expires, redirect to login
+      if (!isAuthReady && !currentUser) {
+        // Initial load and no user, redirect.
         router.push('/login');
       }
     });
     return () => unsubscribe();
-  }, [auth, router]);
+  }, [auth, router, isAuthReady]);
 
 
   const handleCreateTeam = async () => {
