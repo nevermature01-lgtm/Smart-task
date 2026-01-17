@@ -20,6 +20,31 @@
         }
       },
       "required": ["firstName", "lastName", "email"]
+    },
+    "Team": {
+      "title": "Team",
+      "description": "Represents a team of users.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the team."
+        },
+        "code": {
+          "type": "string",
+          "description": "A unique 6-digit code to join the team."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The UID of the user who created the team."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the team was created."
+        }
+      },
+      "required": ["name", "code", "createdBy"]
     }
   },
   "auth": {
@@ -33,6 +58,12 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "Stores user profile information, keyed by their auth UID."
+    },
+    "/teams/{teamId}": {
+      "schema": {
+        "$ref": "#/entities/Team"
+      },
+      "description": "Stores team information."
     }
   }
 }

@@ -3,36 +3,22 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import admin from '@/lib/firebase/admin';
-import { supabaseAdmin } from '@/lib/supabase/admin';
 
 // Function to generate a unique 6-digit numeric code
 async function generateUniqueTeamCode(): Promise<string> {
+  const db = admin.firestore();
   let teamCode: string;
   let isUnique = false;
 
   while (!isUnique) {
-    // Generate a 6-digit random number
     teamCode = Math.floor(100000 + Math.random() * 900000).toString();
-    
-    // Check if it already exists in the database
-    const { data, error } = await supabaseAdmin
-      .from('teams')
-      .select('team_code')
-      .eq('team_code', teamCode)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // 'PGRST116' means no rows found, which is good
-      console.error('Supabase check error:', error);
-      throw new Error('Could not verify team code uniqueness.');
-    }
-
-    if (!data) {
-      isUnique = true; // The code is unique
+    const snapshot = await db.collection('teams').where('code', '==', teamCode).limit(1).get();
+    if (snapshot.empty) {
+      isUnique = true;
     }
   }
   return teamCode!;
 }
-
 
 export async function POST(request: Request) {
   try {
@@ -45,45 +31,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Team name is required.' }, { status: 400 });
     }
 
-    // Verify the Firebase ID token from the request body
     const decodedToken = await admin.auth().verifyIdToken(token);
-    const { uid, email } = decodedToken;
+    const { uid } = decodedToken;
 
-    if (!uid || !email) {
-      // This should not happen if verifyIdToken succeeds, but as a safeguard:
+    if (!uid) {
       return NextResponse.json({ error: 'Invalid token payload.' }, { status: 401 });
     }
     
-    // Generate a unique team code
     const teamCode = await generateUniqueTeamCode();
+    
+    const db = admin.firestore();
+    const teamData = {
+        name: teamName.trim(),
+        code: teamCode,
+        createdBy: uid,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
 
-    // Insert new team into Supabase
-    const { data: newTeam, error: insertError } = await supabaseAdmin
-      .from('teams')
-      .insert({
-        team_name: teamName.trim(),
-        team_code: teamCode,
-        created_by_uid: uid,
-        created_by_email: email,
-      })
-      .select()
-      .single();
+    const newTeamRef = await db.collection('teams').add(teamData);
 
-    if (insertError) {
-      console.error('Supabase insert error:', insertError);
-      return NextResponse.json({ error: `Database error: ${insertError.message}` }, { status: 500 });
-    }
-
-    // Return the new team code
-    return NextResponse.json({ teamCode: newTeam.team_code }, { status: 201 });
+    return NextResponse.json({ teamCode: teamCode, teamId: newTeamRef.id }, { status: 201 });
 
   } catch (error: any) {
     console.error('API Error:', error);
-     // Catch token verification errors specifically
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error' || error.code?.startsWith('auth/')) {
       return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
     }
-    // Catch other errors, like JSON parsing failures or unexpected issues
     return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
   }
 }
