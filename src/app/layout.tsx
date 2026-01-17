@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
+import { Toaster } from "@/components/ui/toaster"
 
 export const metadata: Metadata = {
   title: 'Smart Task - Welcome Screen',
@@ -21,6 +22,7 @@ export default function RootLayout({
       </head>
       <body className="font-display antialiased m-0 p-0 overflow-hidden" suppressHydrationWarning>
         {children}
+        <Toaster />
       </body>
     </html>
   );

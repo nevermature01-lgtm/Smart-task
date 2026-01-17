@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from "@/hooks/use-toast";
 
 export default function VerifyEmailPage() {
   const router = useRouter();
+  const { toast } = useToast();
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -21,6 +24,10 @@ export default function VerifyEmailPage() {
 
       // We check if a session exists and if the user's email has been confirmed.
       if (session?.user?.email_confirmed_at) {
+        toast({
+          title: "Email Verified",
+          description: "You can now access all features.",
+        });
         // If the email is confirmed, the user is fully authenticated.
         // We can now redirect them to the main part of the app.
         router.push('/home');
@@ -31,7 +38,39 @@ export default function VerifyEmailPage() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]); // The effect depends on the router.
+  }, [router, toast]); // The effect depends on the router and toast.
+
+  const handleResendVerification = async () => {
+    setIsResending(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user?.email) {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: user.email,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: 'Verification Link Sent',
+          description: 'A new verification link has been sent to your email.',
+        });
+      } else {
+        throw new Error("Could not find user's email to resend verification.");
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Resending Link',
+        description: error.message || 'An unexpected error occurred.',
+      });
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
@@ -75,9 +114,19 @@ export default function VerifyEmailPage() {
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
-        <button className="text-lavender-muted text-sm font-medium hover:text-white transition-colors">
-          Didn't receive the email?{' '}
-          <span className="font-bold underline underline-offset-4">Resend</span>
+        <button 
+          onClick={handleResendVerification}
+          disabled={isResending}
+          className="text-lavender-muted text-sm font-medium hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isResending ? (
+            'Resending...'
+          ) : (
+            <>
+              Didn't receive the email?{' '}
+              <span className="font-bold underline underline-offset-4">Resend</span>
+            </>
+          )}
         </button>
       </div>
       <div className="h-4 w-full shrink-0"></div>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from "@/hooks/use-toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -24,6 +26,12 @@ export default function LoginPage() {
       if (error) {
         throw error;
       }
+      
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+
       // Redirect to home page on successful login
       router.push('/home');
     } catch (err: any) {

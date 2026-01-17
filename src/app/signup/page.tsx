@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type FormData = {
   firstName: string;
@@ -15,6 +16,7 @@ type FormData = {
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -62,6 +64,11 @@ export default function SignUpPage() {
       if (dbError) {
         throw dbError;
       }
+
+      toast({
+        title: "Verification Link Sent",
+        description: "Please check your email to verify your account.",
+      });
 
       router.push('/verify-email');
     } catch (err: any) {
