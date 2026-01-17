@@ -53,6 +53,28 @@ export default function SwitchAccountPage() {
                             };
                         })
                         .filter((t): t is Team => t !== null && t.id !== null);
+                    
+                    // Backfill owner_name and owner_email for teams owned by the current user
+                    userTeamsData.forEach(team => {
+                        if (team.owner_id === user.id && !team.owner_name) {
+                            const newOwnerName = user.user_metadata?.full_name || user.email;
+                            const newOwnerEmail = user.email;
+
+                            // Update local state for immediate UI change
+                            team.owner_name = newOwnerName;
+                            team.owner_email = newOwnerEmail;
+                            
+                            // Trigger background update to the database
+                            supabase.from('teams').update({
+                                owner_name: newOwnerName,
+                                owner_email: newOwnerEmail
+                            }).eq('id', team.id).then(({ error }) => {
+                                if (error) {
+                                    console.error(`Failed to backfill owner info for team ${team.id}:`, error.message);
+                                }
+                            });
+                        }
+                    });
 
                     const sortedTeams = userTeamsData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
                     setTeams(sortedTeams);
