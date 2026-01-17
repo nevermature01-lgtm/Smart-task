@@ -6,10 +6,7 @@ export default function TeamsPage() {
   return (
     <div className="relative flex flex-col pb-28 min-h-screen">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-        <Link href="/home" className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
-          <span className="material-symbols-outlined text-xl">arrow_back_ios_new</span>
-        </Link>
-        <h1 className="text-xl font-bold tracking-tight">Teams</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
         <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
           <span className="material-symbols-outlined text-xl">notifications</span>
         </button>
@@ -23,7 +20,7 @@ export default function TeamsPage() {
             <span className="font-bold text-sm">Create Team</span>
           </button>
           <button className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center border border-white/10">
+            <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
               <span className="material-symbols-outlined text-white text-3xl">login</span>
             </div>
             <span className="font-bold text-sm">Join Team</span>
