@@ -161,4 +161,13 @@
             radial-gradient(at 100% 0%, rgba(86, 29, 201, 0.1) 0px, transparent 50%),
             radial-gradient(at 50% 100%, rgba(86, 29, 201, 0.2) 0px, transparent 50%);
     }
+    .modal-overlay {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+    .input-glass {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1.5px solid rgba(255, 255, 255, 0.2);
+    }
 }

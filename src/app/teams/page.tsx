@@ -12,17 +12,17 @@ export default function TeamsPage() {
             </header>
             <main className="px-6 pt-8 space-y-8">
                 <section className="grid grid-cols-2 gap-4">
-                    <button className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
+                    <Link href="/teams/create" className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
                         <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-primary text-3xl">group_add</span>
                         </div>
-                        <span className="font-bold text-sm">Create Team</span>
-                    </button>
+                        <span className="font-bold text-sm text-white">Create Team</span>
+                    </Link>
                     <button className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                         <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-white text-3xl">login</span>
                         </div>
-                        <span className="font-bold text-sm">Join Team</span>
+                        <span className="font-bold text-sm text-white">Join Team</span>
                     </button>
                 </section>
                 <section className="space-y-4">
@@ -36,7 +36,7 @@ export default function TeamsPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-sm truncate">Smart Decor</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Admin</p>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 font-bold">Admin</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <div className="px-2.5 py-1 rounded-full glass-panel bg-green-500/20 border-green-500/20">
@@ -51,7 +51,7 @@ export default function TeamsPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-sm truncate">Project Alpha</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Manager</p>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 font-bold">Manager</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
@@ -63,7 +63,7 @@ export default function TeamsPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-sm truncate">Design Studio</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Contributor</p>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 font-bold">Contributor</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
@@ -75,7 +75,7 @@ export default function TeamsPage() {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <h4 className="font-bold text-sm truncate">Marketing Sync</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Viewer</p>
+                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5 font-bold">Viewer</p>
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
