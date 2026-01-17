@@ -1,10 +1,10 @@
 // /src/app/signup/page.tsx
-'use client'; 
+'use client';
 
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client'; 
+import { createClient } from '@/lib/supabase/client';
 
 type FormData = {
   firstName: string;
@@ -24,17 +24,19 @@ export default function SignUpPage() {
 
   const [error, setError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault(); 
-    setError(null); 
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
 
     try {
-      const supabase = createClient(); 
+      const supabase = createClient();
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
@@ -42,7 +44,7 @@ export default function SignUpPage() {
       });
 
       if (authError) {
-        throw new Error(`Authentication error: ${authError.message}`);
+        throw authError;
       }
 
       const user = authData.user;
@@ -50,30 +52,32 @@ export default function SignUpPage() {
         throw new Error('Sign up successful, but no user object returned.');
       }
 
-      const authUserId = user.id;
-
       const { error: dbError } = await supabase.from('users').insert({
-        auth_user_id: authUserId,
+        auth_user_id: user.id,
         first_name: formData.firstName,
         last_name: formData.lastName,
         email: formData.email,
       });
 
       if (dbError) {
-        throw new Error(`Database error: ${dbError.message}`);
+        throw dbError;
       }
-      
-      router.push('/verify-email');
 
+      router.push('/verify-email');
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
-        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+        <Link
+          href="/"
+          className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform"
+        >
           <span className="material-symbols-outlined">arrow_back_ios_new</span>
         </Link>
         <h1 className="text-white text-xl font-bold">Create Account</h1>
@@ -85,7 +89,9 @@ export default function SignUpPage() {
           <form onSubmit={handleSignUp} className="flex flex-col gap-5">
             <div className="flex gap-4">
               <div className="flex-1 flex flex-col gap-2">
-                <label className="text-white/70 text-sm font-medium pl-1">First Name</label>
+                <label className="text-white/70 text-sm font-medium pl-1">
+                  First Name
+                </label>
                 <input
                   name="firstName"
                   className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
@@ -97,7 +103,9 @@ export default function SignUpPage() {
                 />
               </div>
               <div className="flex-1 flex flex-col gap-2">
-                <label className="text-white/70 text-sm font-medium pl-1">Last Name</label>
+                <label className="text-white/70 text-sm font-medium pl-1">
+                  Last Name
+                </label>
                 <input
                   name="lastName"
                   className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
@@ -110,7 +118,9 @@ export default function SignUpPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-white/70 text-sm font-medium pl-1">Email</label>
+              <label className="text-white/70 text-sm font-medium pl-1">
+                Email
+              </label>
               <input
                 name="email"
                 className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
@@ -122,36 +132,52 @@ export default function SignUpPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-white/70 text-sm font-medium pl-1">Password</label>
+              <label className="text-white/70 text-sm font-medium pl-1">
+                Password
+              </label>
               <div className="relative">
                 <input
                   name="password"
                   className="glass-input w-full px-4 py-3.5 rounded-2xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40"
                   placeholder="••••••••"
-                  type={isPasswordVisible ? "text" : "password"}
+                  type={isPasswordVisible ? 'text' : 'password'}
                   value={formData.password}
                   onChange={handleChange}
                   required
                 />
-                <button 
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40" 
+                <button
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"
                   type="button"
                   onClick={() => setIsPasswordVisible(!isPasswordVisible)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">{isPasswordVisible ? 'visibility_off' : 'visibility'}</span>
+                  <span className="material-symbols-outlined text-[20px]">
+                    {isPasswordVisible ? 'visibility_off' : 'visibility'}
+                  </span>
                 </button>
               </div>
             </div>
-            <button className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted" type="submit">
-              Sign Up
+            <button
+              className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed"
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing Up...' : 'Sign Up'}
             </button>
           </form>
-          {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
+          {error && (
+            <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
+          )}
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
-        <Link className="text-lavender-muted text-sm font-medium hover:text-white transition-colors" href="/login">
-          Already have an account? <span className="font-bold underline underline-offset-4">Log In</span>
+        <Link
+          className="text-lavender-muted text-sm font-medium hover:text-white transition-colors"
+          href="/login"
+        >
+          Already have an account?{' '}
+          <span className="font-bold underline underline-offset-4">
+            Log In
+          </span>
         </Link>
       </div>
       <div className="h-4 w-full shrink-0"></div>

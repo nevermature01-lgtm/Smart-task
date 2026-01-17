@@ -10,22 +10,28 @@ export default function VerifyEmailPage() {
 
   useEffect(() => {
     const supabase = createClient();
+
+    // Listen for changes to the user's authentication state.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      // The 'SIGNED_IN' event is triggered when the user clicks the verification link.
-      // This listener will also fire on initial page load.
-      if (session?.user) {
-        // User is now authenticated, redirect to the home page.
+      // This event listener fires on sign-in, sign-out, and token refresh.
+      // When the user clicks the verification link, Supabase redirects them
+      // back to the app, the session is updated, and this event fires.
+
+      // We check if a session exists and if the user's email has been confirmed.
+      if (session?.user?.email_confirmed_at) {
+        // If the email is confirmed, the user is fully authenticated.
+        // We can now redirect them to the main part of the app.
         router.push('/home');
       }
     });
 
-    // Cleanup subscription on component unmount
+    // When the component unmounts, we clean up the subscription.
     return () => {
       subscription.unsubscribe();
     };
-  }, [router]);
+  }, [router]); // The effect depends on the router.
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
