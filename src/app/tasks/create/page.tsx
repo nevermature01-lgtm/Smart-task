@@ -42,7 +42,7 @@ export default function CreateTaskPage() {
                     }];
                 }
             } else {
-                // In a team, fetch all members *except* the owner and self, filtering at the DB level.
+                // In a team, fetch all members *except* the owner and self.
                 
                 // 1. First, get the owner's ID for the current team.
                 const { data: teamData, error: teamError } = await supabase
@@ -56,13 +56,12 @@ export default function CreateTaskPage() {
                 } else {
                     const ownerId = teamData?.owner_id;
     
-                    // 2. Build the query to fetch members, excluding the owner and the current user.
+                    // 2. Build the query to fetch members, excluding the owner.
                     let membersQuery = supabase
                         .from('team_members')
                         .select('profiles(id, full_name, avatar_url)')
                         .eq('team_id', activeTeam)
-                        .neq('role', 'owner') // Exclude anyone with the 'owner' role.
-                        .neq('user_id', user.id); // Exclude the current user.
+                        .neq('role', 'owner'); // Exclude anyone with the 'owner' role.
 
                     // Also explicitly exclude the owner ID from the `teams` table for extra safety.
                     if (ownerId) {
@@ -72,15 +71,23 @@ export default function CreateTaskPage() {
                     const { data: membersData, error: membersError } = await membersQuery;
 
                     if (membersError) {
-                        // Avoid logging schema errors if 'profiles' doesn't exist.
                         if (membersError && membersError.message && !membersError.message.includes("schema cache")) {
                              console.error("Error fetching team members:", membersError.message);
                         }
                     } else if (membersData) {
-                        // Map the successfully fetched and filtered member profiles.
-                        finalProfiles = membersData
+                        const profilesFromDB = membersData
                             .map(item => item.profiles)
                             .filter((p): p is Profile => p !== null);
+                        
+                        // ** APPLY EXPLICIT FILTER FOR CURRENT USER **
+                        // The user must never be in the list of people they can assign tasks to in a team.
+                        finalProfiles = profilesFromDB.filter(p => p.id !== user.id);
+
+                        // ** DEFENSIVE GUARD **
+                        if (finalProfiles.some(p => p.id === user.id)) {
+                           console.error("FATAL: Current user is still in the assignable list after filtering! Aborting render.");
+                           finalProfiles = []; // Do not render list with current user
+                        }
                     }
                 }
             }
@@ -191,7 +198,7 @@ export default function CreateTaskPage() {
                     ))
                 ) : (
                     <div className="text-center text-lavender-muted pt-16">
-                        <p>No other members found.</p>
+                        <p>No other members found to assign.</p>
                         {searchTerm && <p className="text-sm mt-2">Try adjusting your search.</p>}
                     </div>
                 )}
