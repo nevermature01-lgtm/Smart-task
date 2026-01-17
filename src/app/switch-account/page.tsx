@@ -28,28 +28,43 @@ export default function SwitchAccountPage() {
         const fetchTeamsAndOwners = async () => {
             if (user) {
                 setIsLoadingTeams(true);
-                // Fetch team memberships and join with teams and profiles in one go
+                
+                // Step 1: Fetch team memberships and team data
                 const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
-                    .select('role, teams(*, profiles(id, full_name, first_name, last_name))')
+                    .select('role, teams(*)')
                     .eq('user_id', user.id);
 
-                if (membershipError) {
+                if (membershipError && Object.keys(membershipError).length > 0) {
                     console.error('Error fetching teams:', membershipError);
                     setTeams([]);
                     setIsLoadingTeams(false);
                     return;
                 }
 
-                if (memberships) {
-                    const userTeamsData = memberships
+                if (memberships && memberships.length > 0) {
+                    const validMemberships = memberships.filter(m => m.teams);
+                    const ownerIds = validMemberships.map(m => m.teams!.owner_id);
+
+                    // Step 2: Fetch profiles for all owners in a single query
+                    const { data: profiles, error: profilesError } = await supabase
+                        .from('profiles')
+                        .select('id, full_name, first_name, last_name')
+                        .in('id', ownerIds);
+                    
+                    if (profilesError) {
+                        console.error('Error fetching owner profiles:', profilesError);
+                    }
+
+                    const profilesById = profiles?.reduce((acc, p) => {
+                        acc[p.id] = p;
+                        return acc;
+                    }, {} as Record<string, any>) || {};
+
+                    const userTeamsData = validMemberships
                         .map(m => {
-                            if (!m.teams) return null;
-
-                            // The 'teams' property will contain the team data including the nested 'profiles' object
-                            const teamData = m.teams as any;
-                            const ownerProfile = teamData.profiles;
-
+                            const teamData = m.teams!;
+                            const ownerProfile = profilesById[teamData.owner_id];
                             const ownerName = ownerProfile?.full_name ||
                                               (`${ownerProfile?.first_name || ''} ${ownerProfile?.last_name || ''}`).trim() ||
                                               'Unknown Owner';
@@ -142,7 +157,7 @@ export default function SwitchAccountPage() {
                                         <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Personal Account</p>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        {activeTeam === 'personal' && (
+                                        {(activeTeam === 'personal' || activeTeam === null) && (
                                             <div className="px-3 py-1.5 rounded-full glass-panel bg-green-500/10 border-green-500/20">
                                                 <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Active</span>
                                             </div>
