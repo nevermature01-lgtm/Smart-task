@@ -1,26 +1,10 @@
-import { NextResponse, type NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request: NextRequest) {
-  // This is now a pass-through middleware.
-  // Authentication state is handled on the client-side using Firebase hooks.
-  return NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  });
+// This middleware is intentionally minimal.
+// It exists to prevent a Next.js build error caused by an empty or invalid middleware file.
+// All authentication and routing logic is handled on the client-side in this application,
+// so this function simply passes all requests through without modification.
+export function middleware(request: NextRequest) {
+  return NextResponse.next();
 }
-
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     *
-     * This is a broad matcher, but since the middleware is a pass-through,
-     * it doesn't add significant overhead.
-     */
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
-};
