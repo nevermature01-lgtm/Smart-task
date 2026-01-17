@@ -24,8 +24,8 @@ export default function CreateTeamPage() {
       // Check if the code already exists in the database
       const { data, error } = await supabase
         .from('teams')
-        .select('code')
-        .eq('code', teamCode)
+        .select('team_code')
+        .eq('team_code', teamCode)
         .single();
       
       // If there's an error and it's not the "No rows found" error, throw it
@@ -66,8 +66,8 @@ export default function CreateTeamPage() {
       const teamCode = await generateUniqueTeamCode();
       
       const { error } = await supabase.from('teams').insert({
-        name: teamName.trim(),
-        code: teamCode,
+        team_name: teamName.trim(),
+        team_code: teamCode,
         owner_id: user.id, // The authenticated user is the owner
       });
 
