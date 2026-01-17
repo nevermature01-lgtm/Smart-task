@@ -18,28 +18,18 @@ export async function middleware(request: NextRequest) {
             return request.cookies.get(name)?.value;
           },
           set(name: string, value: string, options: CookieOptions) {
-            request.cookies.set({ name, value, ...options });
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            });
+            // Update both request and response cookies
             response.cookies.set({ name, value, ...options });
           },
           remove(name: string, options: CookieOptions) {
-            request.cookies.set({ name, value: '', ...options });
-            response = NextResponse.next({
-              request: {
-                headers: request.headers,
-              },
-            });
+            // Update both request and response cookies
             response.cookies.set({ name, value: '', ...options });
           },
         },
       }
     );
 
-    // this will refresh the session if it's expired
+    // Refresh session - yeh cookies ko update karega
     const {
       data: { session },
     } = await supabase.auth.getSession();
@@ -67,8 +57,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // This matcher ensures the middleware runs on all relevant pages for authentication checks.
-   matcher: [
+  matcher: [
     /*
      * Match all request paths except for the ones starting with:
      * - _next/static (static files)
