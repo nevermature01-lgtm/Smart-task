@@ -1,9 +1,48 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import { supabase } from '@/lib/supabase/client';
+import { useState, useEffect } from 'react';
+
+type Team = {
+  id: string;
+  team_name: string;
+  owner_id: string;
+  created_at: string;
+};
 
 export default function SwitchAccountPage() {
     const router = useRouter();
+    const { user } = useSupabaseAuth();
+    const [teams, setTeams] = useState<Team[]>([]);
+    const [isLoadingTeams, setIsLoadingTeams] = useState(true);
+
+    useEffect(() => {
+        const fetchTeams = async () => {
+            if (user) {
+                setIsLoadingTeams(true);
+                const { data, error } = await supabase
+                    .from('teams')
+                    .select('*')
+                    .eq('owner_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Error fetching teams:', error);
+                } else if (data) {
+                    setTeams(data);
+                }
+                setIsLoadingTeams(false);
+            }
+        };
+
+        if (user) {
+            fetchTeams();
+        } else {
+            setIsLoadingTeams(false);
+        }
+    }, [user]);
 
     return (
         <div className="relative flex flex-col pb-8 min-h-screen">
@@ -38,57 +77,35 @@ export default function SwitchAccountPage() {
                         <h3 className="font-bold text-xl">Your Teams</h3>
                     </div>
                     <div className="space-y-3">
-                        <div className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
-                            <div className="w-12 h-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/40 to-transparent shrink-0">
-                                <span className="material-symbols-outlined">auto_awesome</span>
+                        {isLoadingTeams ? (
+                            <div className="flex justify-center items-center p-8">
+                                <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                             </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-base truncate">Smart Decor</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Admin</p>
+                        ) : teams.length === 0 ? (
+                            <div className="glass-panel p-5 rounded-[2rem] text-center">
+                                <p className="text-lavender-muted">You haven't created any teams yet.</p>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <div className="px-3 py-1.5 rounded-full glass-panel bg-green-500/10 border-green-500/20">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Active</span>
+                        ) : (
+                            teams.map((team, index) => (
+                                <div key={team.id} className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
+                                    <div className={`w-12 h-12 rounded-full border-2 ${index === 0 ? 'border-primary/30' : 'border-white/10'} flex items-center justify-center ${index === 0 ? 'bg-gradient-to-br from-primary/40 to-transparent' : 'bg-white/5'} shrink-0`}>
+                                        <span className="material-symbols-outlined">auto_awesome</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-base truncate">{team.team_name}</h4>
+                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Admin</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {index === 0 && (
+                                            <div className="px-3 py-1.5 rounded-full glass-panel bg-green-500/10 border-green-500/20">
+                                                <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Active</span>
+                                            </div>
+                                        )}
+                                        <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
+                                    </div>
                                 </div>
-                                <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
-                            </div>
-                        </div>
-                        <div className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
-                            <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center bg-white/5 shrink-0">
-                                <span className="material-symbols-outlined">rocket_launch</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-base truncate">Project Alpha</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Manager</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
-                            </div>
-                        </div>
-                        <div className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
-                            <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center bg-white/5 shrink-0">
-                                <span className="material-symbols-outlined">brush</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-base truncate">Design Studio</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Contributor</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
-                            </div>
-                        </div>
-                        <div className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
-                            <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center bg-white/5 shrink-0">
-                                <span className="material-symbols-outlined">campaign</span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                                <h4 className="font-bold text-base truncate">Marketing Sync</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Viewer</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
-                            </div>
-                        </div>
+                            ))
+                        )}
                     </div>
                 </section>
             </main>
