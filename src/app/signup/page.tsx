@@ -3,6 +3,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client'; // Import the Supabase client creator.
 
 // Define the shape of the form data using a TypeScript type for clarity.
@@ -14,6 +15,7 @@ type FormData = {
 };
 
 export default function SignUpPage() {
+  const router = useRouter();
   // State for managing form input values.
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -24,8 +26,6 @@ export default function SignUpPage() {
 
   // State for handling and displaying errors.
   const [error, setError] = useState<string | null>(null);
-  // State for displaying a success message.
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Generic handler to update form data state on input changes.
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,7 +36,6 @@ export default function SignUpPage() {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault(); // Prevent the default form submission behavior.
     setError(null); // Reset any previous errors.
-    setSuccessMessage(null); // Reset any previous success messages.
 
     try {
       // 2. ON FORM SUBMIT
@@ -78,8 +77,8 @@ export default function SignUpPage() {
         throw new Error(`Database error: ${dbError.message}`);
       }
 
-      // 4. SHOW USER-FRIENDLY SUCCESS MESSAGE
-      setSuccessMessage('Sign up successful! Please check your email to verify your account.');
+      // 4. REDIRECT TO VERIFY EMAIL PAGE
+      router.push('/verify-email');
 
     } catch (err: any) {
       // 4. SHOW USER-FRIENDLY ERROR MESSAGE
@@ -161,9 +160,8 @@ export default function SignUpPage() {
               Sign Up
             </button>
           </form>
-          {/* Display error or success messages */}
+          {/* Display error message */}
           {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
-          {successMessage && <p className="text-green-400 text-sm mt-4 text-center">{successMessage}</p>}
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
