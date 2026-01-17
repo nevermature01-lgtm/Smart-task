@@ -77,12 +77,11 @@ export default function CreateTaskPage() {
 
     return (
         <div className="mesh-background min-h-screen flex flex-col">
-            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+            <header className="pt-14 px-6 pb-4 flex items-center justify-center sticky top-0 z-30">
+                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
                     <span className="material-symbols-outlined text-2xl">chevron_left</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Create Task</h1>
-                <div className="w-10 h-10" />
             </header>
             <div className="px-6 py-4">
                 <h2 className="text-sm font-semibold uppercase tracking-widest text-white/50">Assign Task to:</h2>
