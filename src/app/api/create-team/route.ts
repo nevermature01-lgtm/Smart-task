@@ -1,4 +1,4 @@
-// Enforce Node.js runtime
+// Enforce Node.js runtime for Firebase Admin SDK
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
@@ -22,7 +22,8 @@ async function generateUniqueTeamCode(): Promise<string> {
       .single();
 
     if (error && error.code !== 'PGRST116') { // 'PGRST116' means no rows found, which is good
-      throw error; // Rethrow other errors
+      console.error('Supabase check error:', error);
+      throw new Error('Could not verify team code uniqueness.');
     }
 
     if (!data) {
@@ -44,12 +45,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Team name is required.' }, { status: 400 });
     }
 
-    // Verify the Firebase ID token
+    // Verify the Firebase ID token from the request body
     const decodedToken = await admin.auth().verifyIdToken(token);
     const { uid, email } = decodedToken;
 
     if (!uid || !email) {
-      // This should theoretically not happen if verifyIdToken succeeds
+      // This should not happen if verifyIdToken succeeds, but as a safeguard:
       return NextResponse.json({ error: 'Invalid token payload.' }, { status: 401 });
     }
     
@@ -78,10 +79,11 @@ export async function POST(request: Request) {
 
   } catch (error: any) {
     console.error('API Error:', error);
-     // Catch token verification errors
+     // Catch token verification errors specifically
     if (error.code === 'auth/id-token-expired' || error.code === 'auth/argument-error' || error.code?.startsWith('auth/')) {
       return NextResponse.json({ error: 'Unauthorized: Invalid or expired token.' }, { status: 401 });
     }
+    // Catch other errors, like JSON parsing failures or unexpected issues
     return NextResponse.json({ error: 'An unexpected server error occurred.' }, { status: 500 });
   }
 }

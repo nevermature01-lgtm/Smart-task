@@ -20,9 +20,13 @@ export default function CreateTeamPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthReady(true);
+      if (!currentUser) {
+        // If user logs out or session expires, redirect to login
+        router.push('/login');
+      }
     });
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, router]);
 
 
   const handleCreateTeam = async () => {
@@ -89,6 +93,7 @@ export default function CreateTeamPage() {
   };
   
   const isLoading = !isAuthReady || isCreating;
+  const buttonText = !isAuthReady ? 'Authenticating...' : (isCreating ? 'Creating...' : 'Create');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
@@ -127,7 +132,7 @@ export default function CreateTeamPage() {
               className="w-full h-14 bg-white text-primary rounded-2xl font-bold text-lg active:scale-[0.98] transition-all shadow-xl shadow-black/20 disabled:opacity-70 disabled:cursor-not-allowed"
               disabled={isLoading}
             >
-              {isCreating ? 'Creating...' : (!isAuthReady ? 'Authenticating...' : 'Create')}
+              {buttonText}
             </button>
             <button 
               onClick={() => router.back()}
