@@ -35,7 +35,10 @@ export default function LoginPage() {
         description: "Welcome back!",
       });
 
-      router.refresh();
+      // Force a full page reload to ensure the server recognizes the new session
+      // and the middleware can redirect correctly.
+      window.location.href = '/home';
+
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
       setIsLoading(false);
@@ -46,7 +49,7 @@ export default function LoginPage() {
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
         <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
-          <span className="material-symbols-outlined">arrow_back_ios_new</span>
+          <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
         </Link>
         <h1 className="text-white text-xl font-bold">Login</h1>
         <div className="w-10"></div>
