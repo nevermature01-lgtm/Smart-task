@@ -1,20 +1,38 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const supabase = createClient();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // This full-page redirect is the most reliable way to ensure
+        // the server recognizes the new auth state in the middleware.
+        window.location.href = '/home';
+      }
+    });
+
+    // Cleanup the subscription on component unmount
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError(null);
     setIsLoading(true);
 
     const supabase = createClient();
@@ -22,38 +40,17 @@ export default function LoginPage() {
       email,
       password,
     });
-
-    if (error) {
-      setError(error.message || 'An unexpected error occurred.');
-      setIsLoading(false);
-      return;
-    }
-
-    // After successful sign-in, poll for the session to ensure the
-    // auth cookie is set before redirecting. This is a robust way to
-    // handle the race condition between setting the cookie and the server
-    // recognizing the session.
-    const checkSession = async (retries = 5) => {
-      if (retries <= 0) {
-        setError('Could not verify session. Please try logging in again.');
-        setIsLoading(false);
-        return;
-      }
-
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session) {
-        // Use window.location.href for a full page reload to ensure
-        // server-side components and middleware re-evaluate auth state.
-        window.location.href = '/home';
-      } else {
-        // Wait and retry if the session is not yet available.
-        setTimeout(() => checkSession(retries - 1), 300);
-      }
-    };
     
-    // Start the polling process.
-    await checkSession();
+    // The loading state will be naturally handled by the page redirect.
+    // If there's an error, we stop loading and show a toast.
+    if (error) {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || 'An unexpected error occurred.',
+      });
+    }
   };
 
   return (
@@ -114,7 +111,6 @@ export default function LoginPage() {
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
           </form>
-          {error && <p className="text-red-400 text-sm mt-4 text-center">{error}</p>}
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
