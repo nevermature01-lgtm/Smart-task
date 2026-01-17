@@ -1,12 +1,10 @@
 'use client';
 
-import React, { ReactNode, useEffect, useState, useRef } from 'react';
+import React, { ReactNode, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { initializeFirebase } from './index';
 import { FirebaseProvider, useAuth } from './provider';
-import { syncUser } from '@/app/actions/sync-user';
-import { User } from 'firebase/auth';
 
 const AuthManager = ({ children }: { children: ReactNode }) => {
     const auth = useAuth();
@@ -23,23 +21,45 @@ const AuthManager = ({ children }: { children: ReactNode }) => {
                 if (user.emailVerified) {
                     if (!isSyncTriggeredRef.current) {
                         isSyncTriggeredRef.current = true;
-                        const nameParts = user.displayName?.split(' ') || ['', ''];
-                        await syncUser({
-                            firebase_uid: user.uid,
-                            email: user.email!,
-                            first_name: nameParts[0] || null,
-                            last_name: nameParts.slice(1).join(' ') || null,
-                        });
+                        
+                        try {
+                            const nameParts = user.displayName?.split(' ') || ['', ''];
+                            const response = await fetch('/api/sync-user', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    firebase_uid: user.uid,
+                                    email: user.email!,
+                                    first_name: nameParts[0] || null,
+                                    last_name: nameParts.slice(1).join(' ') || null,
+                                }),
+                            });
+
+                            if (!response.ok) {
+                                console.error('Failed to sync user to Supabase.', await response.json());
+                            }
+                        } catch (error) {
+                            console.error('Error calling sync-user API:', error);
+                        } finally {
+                            // Redirect to home only after the API call is attempted.
+                            if (pathname !== '/home') {
+                                router.replace('/home');
+                            }
+                        }
+                    } else {
+                        // Sync already triggered, just ensure redirect if not on home
+                        if (pathname !== '/home') {
+                            router.replace('/home');
+                        }
                     }
-                    if (pathname !== '/home') {
-                        router.replace('/home');
-                    }
-                } else {
+                } else { // Email not verified
                     if (pathname !== '/verify-email') {
                          router.replace('/verify-email');
                     }
                 }
-            } else { // no user
+            } else { // No user
                 isSyncTriggeredRef.current = false;
                 if (!isPublicPath) {
                     router.replace('/login');
