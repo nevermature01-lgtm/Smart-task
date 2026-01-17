@@ -4,17 +4,7 @@ import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 type Team = {
   id: string;
@@ -42,6 +32,7 @@ export default function ManageTeamsPage() {
     const { user } = useSupabaseAuth();
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -69,86 +60,99 @@ export default function ManageTeamsPage() {
         }
     }, [user]);
 
-    const handleDeleteTeam = async (teamId: string) => {
+    const handleDeleteTeam = async () => {
+        if (!teamToDelete) return;
+
         const { error } = await supabase
             .from('teams')
             .delete()
-            .eq('id', teamId);
+            .eq('id', teamToDelete.id);
 
         if (error) {
             console.error('Error deleting team:', error);
             // Optionally, show a toast notification for the error
         } else {
-            setTeams(teams.filter(team => team.id !== teamId));
+            setTeams(teams.filter(team => team.id !== teamToDelete.id));
             // Optionally, show a success toast
         }
+        setTeamToDelete(null);
     };
 
     return (
-        <div className="mesh-background min-h-screen text-white font-display">
-             <header className="pt-14 px-6 pb-8 flex items-center sticky top-0 z-30 bg-gradient-to-b from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
-                    <span className="material-symbols-outlined text-2xl">chevron_left</span>
-                </button>
-                <div className="w-full flex justify-center">
-                    <h1 className="text-xl font-bold tracking-tight">Manage Teams</h1>
-                </div>
-            </header>
-            <main className="px-6 pb-12 space-y-4">
-                {isLoading ? (
-                    <div className="flex justify-center items-center p-8">
-                        <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="mesh-background min-h-screen text-white font-display relative overflow-hidden">
+            <div className={cn("min-h-screen transition-all", { "deep-blur opacity-50 pointer-events-none": teamToDelete })}>
+                 <header className="pt-14 px-6 pb-8 flex items-center sticky top-0 z-30 bg-gradient-to-b from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent">
+                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
+                        <span className="material-symbols-outlined text-2xl">chevron_left</span>
+                    </button>
+                    <div className="w-full flex justify-center">
+                        <h1 className="text-xl font-bold tracking-tight">Manage Teams</h1>
                     </div>
-                ) : teams.length === 0 ? (
-                    <div className="glass-panel p-6 rounded-[2.5rem] text-center">
-                        <p className="text-lavender-muted">You haven't created any teams to manage.</p>
-                    </div>
-                ) : (
-                    teams.map((team, index) => (
-                        <div key={team.id} className="glass-panel p-6 rounded-[2.5rem] flex items-center justify-between">
-                            <div className="flex flex-col gap-2">
-                                <h3 className="font-bold text-lg leading-tight">{team.team_name}</h3>
-                                <div className="flex items-center gap-2">
-                                    <div className="flex -space-x-2">
-                                        <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                            <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[index % mockAvatars.length]} width={28} height={28}/>
-                                        </div>
-                                        <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                            <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[(index + 1) % mockAvatars.length]} width={28} height={28} />
-                                        </div>
-                                        {teamDetailsMock[index % teamDetailsMock.length]?.plusCount > 0 && (
-                                            <div className="w-7 h-7 rounded-full border border-white/20 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">
-                                                +{teamDetailsMock[index % teamDetailsMock.length].plusCount}
-                                            </div>
-                                        )}
-                                    </div>
-                                    <span className="text-xs font-medium text-white/60">{teamDetailsMock[index % teamDetailsMock.length]?.memberCount || 0} members</span>
-                                </div>
-                            </div>
-
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                     <button className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white active:scale-90 transition-transform">
-                                        <span className="material-symbols-outlined text-xl">delete</span>
-                                    </button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent className="max-w-sm mx-4 text-white border-white/20 bg-black/60 backdrop-blur-xl rounded-2xl p-5">
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                        <AlertDialogDescription className="text-lavender-muted/80">
-                                            This action cannot be undone. This will permanently delete the "{team.team_name}" team and all of its data.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter className="border-t-0 pt-4 flex-row gap-3">
-                                        <AlertDialogCancel className="bg-transparent border border-white/20 text-white hover:bg-white/10 hover:text-white mt-0 w-full rounded-lg">Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleDeleteTeam(team.id)} className="bg-red-600 hover:bg-red-700 text-white w-full rounded-lg">Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                </header>
+                <main className="px-6 pb-12 space-y-4">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center p-8">
+                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                         </div>
-                    ))
-                )}
-            </main>
+                    ) : teams.length === 0 ? (
+                        <div className="glass-panel p-6 rounded-[2.5rem] text-center">
+                            <p className="text-lavender-muted">You haven't created any teams to manage.</p>
+                        </div>
+                    ) : (
+                        teams.map((team, index) => (
+                            <div key={team.id} className="glass-panel p-6 rounded-[2.5rem] flex items-center justify-between">
+                                <div className="flex flex-col gap-2">
+                                    <h3 className="font-bold text-lg leading-tight">{team.team_name}</h3>
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex -space-x-2">
+                                            <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
+                                                <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[index % mockAvatars.length]} width={28} height={28}/>
+                                            </div>
+                                            <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
+                                                <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[(index + 1) % mockAvatars.length]} width={28} height={28} />
+                                            </div>
+                                            {teamDetailsMock[index % teamDetailsMock.length]?.plusCount > 0 && (
+                                                <div className="w-7 h-7 rounded-full border border-white/20 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">
+                                                    +{teamDetailsMock[index % teamDetailsMock.length].plusCount}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="text-xs font-medium text-white/60">{teamDetailsMock[index % teamDetailsMock.length]?.memberCount || 0} members</span>
+                                    </div>
+                                </div>
+
+                                <button onClick={() => setTeamToDelete(team)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-red-400 active:scale-90 transition-transform">
+                                    <span className="material-symbols-outlined text-xl">delete</span>
+                                </button>
+                            </div>
+                        ))
+                    )}
+                </main>
+            </div>
+            
+            {teamToDelete && (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
+                    <div className="glass-modal w-full max-w-sm rounded-[3rem] p-8 flex flex-col items-center text-center">
+                        <div className="w-20 h-20 mb-6 rounded-full glass-button-red flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/30">
+                                <span className="material-symbols-outlined text-3xl text-white font-bold">priority_high</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold mb-3 tracking-tight">Delete Team?</h2>
+                        <p className="text-white/80 leading-relaxed mb-8 text-base">
+                            Are you sure you want to delete the "{teamToDelete.team_name}" team? This action cannot be undone.
+                        </p>
+                        <div className="w-full space-y-3">
+                            <button onClick={handleDeleteTeam} className="w-full py-4 rounded-2xl glass-button-red text-white font-bold text-lg active:scale-95 transition-transform">
+                                Delete
+                            </button>
+                            <button onClick={() => setTeamToDelete(null)} className="w-full py-4 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -170,4 +170,27 @@
         background: rgba(255, 255, 255, 0.05);
         border: 1.5px solid rgba(255, 255, 255, 0.2);
     }
+    .glass-modal {
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .glass-button-red {
+        background: rgba(239, 68, 68, 0.3);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    .glass-button-secondary {
+        background: rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .deep-blur {
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
 }
