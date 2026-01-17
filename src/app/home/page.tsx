@@ -1,19 +1,24 @@
 'use client';
+import { useState } from 'react';
 import { useUser } from '@/firebase';
 import { getAuth, signOut } from 'firebase/auth';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
 
 export default function HomePage() {
   const { user, isLoading } = useUser();
   const auth = getAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      // The central AuthManager will detect the sign-out and redirect to /login.
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
+  
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   if (isLoading || !user) {
     return (
@@ -23,13 +28,71 @@ export default function HomePage() {
     );
   }
   
-  const firstName = user?.displayName?.split(' ')[0] || 'User';
+  const displayName = user?.displayName || 'User';
+  const userPhoto = user?.photoURL;
+  const firstName = displayName.split(' ')[0];
 
   return (
-    <div className="font-display antialiased text-white mesh-background min-h-screen">
-        <div className="relative flex flex-col pb-8">
+    <div className="font-display antialiased text-white mesh-background min-h-screen relative overflow-hidden">
+        
+        {isMenuOpen && (
+            <div className="fixed inset-0 z-[60] flex animate-in fade-in-0 duration-300">
+                <aside className="w-[85%] max-w-[320px] h-full deep-glass flex flex-col relative overflow-hidden shadow-2xl animate-in slide-in-from-left-full duration-500">
+                    <button onClick={toggleMenu} className="absolute top-14 right-6 w-10 h-10 flex items-center justify-center rounded-full glass-panel active:scale-95 transition-transform">
+                        <span className="material-symbols-outlined text-xl">close</span>
+                    </button>
+                    <div className="pt-20 px-8 pb-10">
+                        <div className="w-16 h-16 rounded-full border-2 border-primary/40 p-1 mb-4">
+                            {userPhoto ? (
+                                <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={64} height={64} />
+                            ) : (
+                                <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span className="text-2xl font-bold">{displayName.charAt(0)}</span>
+                                </div>
+                            )}
+                        </div>
+                        <h2 className="text-xl font-bold text-white tracking-tight">{displayName}</h2>
+                        <p className="text-sm text-lavender-muted/80 font-medium">Pro Member</p>
+                    </div>
+                    <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl bg-white/5 border border-white/5" href="#">
+                            <span className="material-symbols-outlined text-white">grid_view</span>
+                            <span className="font-semibold text-[15px]">Dashboard</span>
+                        </a>
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                            <span className="material-symbols-outlined text-white/70">history</span>
+                            <span className="font-medium text-white/70 text-[15px]">Task History</span>
+                        </a>
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                            <span className="material-symbols-outlined text-white/70">hub</span>
+                            <span className="font-medium text-white/70 text-[15px]">Team Workspace</span>
+                        </a>
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                            <span className="material-symbols-outlined text-white/70">query_stats</span>
+                            <span className="font-medium text-white/70 text-[15px]">Project Analytics</span>
+                        </a>
+                        <a className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5" href="#">
+                            <span className="material-symbols-outlined text-white/70">contact_support</span>
+                            <span className="font-medium text-white/70 text-[15px]">Support</span>
+                        </a>
+                    </nav>
+                    <div className="p-8">
+                        <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-red-500/10 border border-red-500/20 backdrop-blur-md active:scale-95 transition-transform">
+                            <span className="material-symbols-outlined text-red-400">logout</span>
+                            <span className="font-bold text-red-400">Logout</span>
+                        </button>
+                    </div>
+                </aside>
+                <div onClick={toggleMenu} className="flex-1 bg-black/20 backdrop-blur-sm"></div>
+            </div>
+        )}
+
+        <div className={cn(
+          "relative flex flex-col transition-transform duration-500",
+          { "scale-[0.9] -translate-x-[15%] rounded-3xl overflow-hidden": isMenuOpen }
+        )}>
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
-                <button onClick={handleLogout} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={toggleMenu} className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">menu</span>
                 </button>
                 <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>

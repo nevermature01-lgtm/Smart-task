@@ -132,4 +132,13 @@
         color: #ffffff;
         filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
     }
+    .deep-glass {
+        background: rgba(26, 11, 46, 0.6);
+        backdrop-filter: blur(40px);
+        -webkit-backdrop-filter: blur(40px);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .sidebar-item:active {
+        background: rgba(255, 255, 255, 0.05);
+    }
 }
