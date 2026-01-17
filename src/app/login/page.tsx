@@ -24,7 +24,7 @@ export default function LoginPage() {
       if (event === 'SIGNED_IN' && session) {
         // This is the most reliable way to redirect after login.
         // It ensures the session is established before attempting to navigate.
-        window.location.href = '/home';
+        window.location.replace('/home');
       }
     });
 
