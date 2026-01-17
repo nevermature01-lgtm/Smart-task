@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     // If selectError exists AND it's not the "no rows found" error (PGRST116), something went wrong
     if (selectError && selectError.code !== 'PGRST116') {
       console.error('Error checking for user in Supabase:', selectError);
-      return NextResponse.json({ error: 'Could not verify user existence.' }, { status: 500 });
+      return NextResponse.json({ error: `Could not verify user existence: ${selectError.message}` }, { status: 500 });
     }
 
     // 2. If user exists, do nothing and return success
@@ -37,13 +37,16 @@ export async function POST(request: Request) {
 
     if (insertError) {
       console.error('Error inserting new user into Supabase:', insertError);
-      return NextResponse.json({ error: 'Could not create user profile in database.' }, { status: 500 });
+      return NextResponse.json({ error: `Could not create user profile in database: ${insertError.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ message: 'User profile created successfully.' }, { status: 201 });
 
   } catch (error) {
     console.error('Unexpected error in sync-user:', error);
+    if (error instanceof Error) {
+        return NextResponse.json({ error: `An unexpected error occurred: ${error.message}` }, { status: 500 });
+    }
     return NextResponse.json({ error: 'An unexpected error occurred.' }, { status: 500 });
   }
 }
