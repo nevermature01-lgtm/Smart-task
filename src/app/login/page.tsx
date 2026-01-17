@@ -62,7 +62,7 @@ export default function LoginPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
               <input 
@@ -101,13 +101,14 @@ export default function LoginPage() {
               </div>
             </div>
             <button 
+              onClick={handleLogin}
               className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed" 
-              type="submit"
+              type="button"
               disabled={isLoading}
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
-          </form>
+          </div>
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
