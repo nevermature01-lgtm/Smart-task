@@ -29,7 +29,7 @@ export default function SwitchAccountPage() {
             if (user) {
                 setIsLoadingTeams(true);
                 
-                // Step 1: Fetch team memberships and team data
+                // Step 1: Fetch team memberships and the associated team data.
                 const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
                     .select('role, teams(*)')
@@ -44,28 +44,16 @@ export default function SwitchAccountPage() {
 
                 if (memberships && memberships.length > 0) {
                     const validMemberships = memberships.filter(m => m.teams);
-                    const ownerIds = [...new Set(validMemberships.map(m => m.teams!.owner_id))];
-
-                    // Step 2: Fetch public user data for all owners in a single query
-                    const { data: owners, error: ownersError } = await supabase
-                        .from('public_users')
-                        .select('id, email')
-                        .in('id', ownerIds);
-
-                    if (ownersError && ownersError.message) {
-                        console.error('Error fetching owner emails:', ownersError.message);
-                    }
-
-                    const ownersById = owners?.reduce((acc, p) => {
-                        acc[p.id] = p;
-                        return acc;
-                    }, {} as Record<string, {id: string, email: string | null}>) || {};
                     
                     const userTeamsData = validMemberships
                         .map(m => {
                             const teamData = m.teams!;
-                            const ownerInfo = ownersById[teamData.owner_id];
-                            const ownerName = ownerInfo?.email || 'Unknown Owner';
+                            
+                            // If the current user is the owner, show their name.
+                            // Otherwise, show a generic label to avoid failed lookups.
+                            const ownerName = teamData.owner_id === user.id
+                                ? (user.user_metadata?.full_name || user.email)
+                                : 'Team Owner';
 
                             return {
                                 ...teamData,
