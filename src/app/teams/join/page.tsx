@@ -76,17 +76,15 @@ export default function JoinTeamPage() {
     setIsLoading(true);
 
     try {
-      // 1. Find team by code using a secure RPC call, bypassing RLS for lookup only.
-      const { data: teams, error: findTeamError } = await supabase
-        .rpc('get_team_id_by_code', { p_team_code: teamCode });
+      // 1. Find team by code using a secure RPC call.
+      const { data: team, error: findTeamError } = await supabase
+        .rpc('get_team_id_by_code', { p_team_code: teamCode })
+        .maybeSingle();
 
       if (findTeamError) {
-        // If there's an error, it's a server/network problem, not just 'not found'
-        throw findTeamError;
+        throw new Error(findTeamError.message);
       }
       
-      const team = Array.isArray(teams) && teams.length > 0 ? teams[0] : null;
-
       if (!team || !team.id) {
         toast({
             variant: 'destructive',
@@ -116,7 +114,7 @@ export default function JoinTeamPage() {
                   description: "You are already a member of this team.",
               });
           } else {
-              throw joinError;
+              throw new Error(joinError.message);
           }
       } else {
           toast({
