@@ -17,8 +17,14 @@ const AuthManager = ({ children }: { children: ReactNode }) => {
             const publicPaths = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/verify-email'];
             const isPublicPath = publicPaths.includes(pathname);
             
-            if (user) {
-                if (user.emailVerified) {
+            if (user) { // User is logged in
+                if (user.emailVerified) { // User is verified
+                    // If user is on a public path, they should be redirected to the app's home.
+                    if (isPublicPath) {
+                        router.replace('/home');
+                    }
+                    
+                    // The sync should only happen once per session, typically after login.
                     if (!isSyncTriggeredRef.current) {
                         isSyncTriggeredRef.current = true;
                         
@@ -43,25 +49,17 @@ const AuthManager = ({ children }: { children: ReactNode }) => {
                             }
                         } catch (error) {
                             console.error('Error calling sync-user API:', error);
-                        } finally {
-                            // Redirect to home only after the API call is attempted.
-                            if (pathname !== '/home') {
-                                router.replace('/home');
-                            }
-                        }
-                    } else {
-                        // Sync already triggered, just ensure redirect if not on home
-                        if (pathname !== '/home') {
-                            router.replace('/home');
                         }
                     }
                 } else { // Email not verified
+                    // If they are not on the verification page, send them there.
                     if (pathname !== '/verify-email') {
                          router.replace('/verify-email');
                     }
                 }
-            } else { // No user
+            } else { // No user is logged in
                 isSyncTriggeredRef.current = false;
+                // If they are on a protected page, redirect to login.
                 if (!isPublicPath) {
                     router.replace('/login');
                 }
