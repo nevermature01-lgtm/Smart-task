@@ -70,9 +70,10 @@ export default function ManageTeamsPage() {
     const handleDeleteTeam = async () => {
         if (!teamToDelete) return;
 
-        const { error } = await supabase
+        // Use { count: 'exact' } to get the number of deleted rows.
+        const { error, count } = await supabase
             .from('teams')
-            .delete()
+            .delete({ count: 'exact' })
             .eq('id', teamToDelete.id);
 
         if (error) {
@@ -82,11 +83,21 @@ export default function ManageTeamsPage() {
                 title: 'Error Deleting Team',
                 description: error.message,
             });
-        } else {
+        } else if (count === 0) {
+            // If count is 0, the delete didn't happen, likely due to RLS.
+            console.error('Delete failed: No rows were deleted. Check RLS policies.');
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Failed',
+                description: 'You may not have permission to delete this team. Please check security policies.',
+            });
+        }
+        else {
+            // Only update the UI if the delete was successful in the database.
             setTeams(teams.filter(team => team.id !== teamToDelete.id));
             toast({
                 title: 'Team Deleted',
-                description: `The team "${teamToDelete.team_name}" has been deleted.`,
+                description: `The team "${teamToDelete.team_name}" has been successfully deleted.`,
             });
         }
         setTeamToDelete(null);
