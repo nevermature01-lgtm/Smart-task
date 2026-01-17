@@ -1,11 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth, useFirestore, useUser } from '@/firebase';
-import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { useAuth } from '@/firebase';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -20,8 +19,6 @@ export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
-  const firestore = useFirestore();
-  const { user, isLoading: isUserLoading } = useUser();
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -32,12 +29,6 @@ export default function SignUpPage() {
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.push('/home');
-    }
-  }, [user, isUserLoading, router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -61,12 +52,12 @@ export default function SignUpPage() {
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
       const user = userCredential.user;
 
-      await setDoc(doc(firestore, 'users', user.uid), {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
+      // Set the user's display name
+      await updateProfile(user, {
+        displayName: `${formData.firstName} ${formData.lastName}`.trim(),
       });
 
+      // Send the verification email
       await sendEmailVerification(user);
 
       toast({
@@ -74,25 +65,34 @@ export default function SignUpPage() {
         description: "Please check your email to verify your account.",
       });
 
+      // Redirect to the verify-email page. The AuthManager will handle logic from there.
       router.push('/verify-email');
     } catch (err: any) {
+       let errorMessage = 'An unexpected error occurred.';
+        if (err.code) {
+            switch (err.code) {
+                case 'auth/email-already-in-use':
+                    errorMessage = 'This email address is already in use.';
+                    break;
+                case 'auth/invalid-email':
+                    errorMessage = 'Please enter a valid email address.';
+                    break;
+                case 'auth/weak-password':
+                    errorMessage = 'The password is too weak.';
+                    break;
+                default:
+                    errorMessage = err.message;
+            }
+        }
       toast({
         variant: 'destructive',
         title: 'Sign Up Failed',
-        description: err.message || 'An unexpected error occurred.',
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
     }
   };
-
-  if (isUserLoading || user) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    );
-  }
 
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
