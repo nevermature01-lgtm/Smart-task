@@ -2,66 +2,33 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { login } from '@/app/actions/auth';
 
 export default function LoginPage() {
-  const router = useRouter();
   const { toast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async () => {
+  const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setIsLoading(true);
-    const supabase = createClient();
     
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
-      });
-  
-      if (error) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: error.message,
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      if (data.session) {
-        // Console mein check karo session mil raha hai
-        console.log('Login successful, session:', data.session);
-        
-        toast({
-          title: 'Success!',
-          description: 'Redirecting to home...',
-        });
-        
-        // Router refresh
-        router.refresh();
-        
-        // Jyada wait time
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Hard redirect - yeh pakka kaam karega
-        window.location.href = '/home';
-      }
-    } catch (err: any) {
-      console.error('Login error:', err);
+    const result = await login(email, password);
+
+    if (result?.error) {
       toast({
         variant: 'destructive',
-        title: 'An unexpected error occurred',
-        description: err.message || 'An error occurred during login.',
+        title: 'Login Failed',
+        description: result.error,
       });
-      setIsLoading(false);
     }
+    
+    // On failure, reset loading state. On success, the server action redirects.
+    setIsLoading(false);
   };
 
   return (
@@ -76,8 +43,7 @@ export default function LoginPage() {
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col gap-6 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>
-          {/* This is NOT a <form> to prevent page reloads */}
-          <div className="flex flex-col gap-5">
+          <form onSubmit={handleLoginSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-2">
               <label className="text-white/70 text-sm font-medium pl-1">Email</label>
               <input 
@@ -116,14 +82,13 @@ export default function LoginPage() {
               </div>
             </div>
             <button 
-              onClick={handleLogin}
+              type="submit"
               className="mt-2 w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted disabled:opacity-70 disabled:cursor-not-allowed" 
-              type="button" // MUST be type="button" to prevent form submission
               disabled={isLoading}
             >
               {isLoading ? 'Logging in...' : 'Login'}
             </button>
-          </div>
+          </form>
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
