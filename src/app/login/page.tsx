@@ -24,7 +24,7 @@ export default function LoginPage() {
         email: email,
         password: password,
       });
-
+  
       if (error) {
         toast({
           variant: 'destructive',
@@ -36,24 +36,25 @@ export default function LoginPage() {
       }
       
       if (data.session) {
+        // Console mein check karo session mil raha hai
+        console.log('Login successful, session:', data.session);
+        
         toast({
           title: 'Success!',
           description: 'Redirecting to home...',
         });
         
+        // Router refresh
         router.refresh();
         
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Jyada wait time
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        router.push('/home');
-      } else {
-        toast({
-          title: 'Login Pending',
-          description: 'Please complete the next step to log in.',
-        });
-        setIsLoading(false);
+        // Hard redirect - yeh pakka kaam karega
+        window.location.href = '/home';
       }
     } catch (err: any) {
+      console.error('Login error:', err);
       toast({
         variant: 'destructive',
         title: 'An unexpected error occurred',
