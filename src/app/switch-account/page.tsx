@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 type Team = {
   id: string;
@@ -45,6 +46,8 @@ export default function SwitchAccountPage() {
     }, [user]);
 
     const ownerName = user?.user_metadata?.full_name || 'Owner';
+    const displayName = user?.user_metadata?.full_name || 'Personal Account';
+    const userPhoto = user?.user_metadata?.avatar_url;
 
     return (
         <div className="relative flex flex-col min-h-screen pb-28">
@@ -83,30 +86,51 @@ export default function SwitchAccountPage() {
                             <div className="flex justify-center items-center p-8">
                                 <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                             </div>
-                        ) : teams.length === 0 ? (
-                            <div className="glass-panel p-5 rounded-[2rem] text-center">
-                                <p className="text-lavender-muted">You haven't created any teams yet.</p>
-                            </div>
                         ) : (
-                            teams.map((team, index) => (
-                                <div key={team.id} className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
-                                    <div className={`w-12 h-12 rounded-full border-2 ${index === 0 ? 'border-primary/30' : 'border-white/10'} flex items-center justify-center ${index === 0 ? 'bg-gradient-to-br from-primary/40 to-transparent' : 'bg-white/5'} shrink-0`}>
-                                        <span className="material-symbols-outlined">auto_awesome</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-base truncate">{team.team_name}</h4>
-                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created By {ownerName}</p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        {index === 0 && (
-                                            <div className="px-3 py-1.5 rounded-full glass-panel bg-green-500/10 border-green-500/20">
-                                                <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Active</span>
+                            <>
+                                <div className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
+                                    <div className="w-12 h-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/40 to-transparent shrink-0 p-1">
+                                        {userPhoto ? (
+                                            <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={48} height={48} />
+                                        ) : (
+                                            <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
+                                                <span className="text-xl font-bold text-white">{displayName.charAt(0)}</span>
                                             </div>
                                         )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-base truncate">{displayName}</h4>
+                                        <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Personal Account</p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="px-3 py-1.5 rounded-full glass-panel bg-green-500/10 border-green-500/20">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-green-400">Active</span>
+                                        </div>
                                         <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
                                     </div>
                                 </div>
-                            ))
+                                
+                                {teams.length > 0 ? (
+                                    teams.map((team) => (
+                                        <div key={team.id} className="glass-panel p-5 rounded-[2rem] flex items-center gap-4 active:bg-white/10 transition-colors">
+                                            <div className="w-12 h-12 rounded-full border-2 border-white/10 flex items-center justify-center bg-white/5 shrink-0">
+                                                <span className="material-symbols-outlined">auto_awesome</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h4 className="font-bold text-base truncate">{team.team_name}</h4>
+                                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Created By {ownerName}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-lavender-muted/50 text-lg">chevron_right</span>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="glass-panel p-5 rounded-[2rem] text-center">
+                                        <p className="text-lavender-muted">You haven't created any teams yet.</p>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </section>
