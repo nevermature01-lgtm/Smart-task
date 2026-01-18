@@ -21,7 +21,6 @@ export default function ManageMembersPage() {
     const { toast } = useToast();
     
     const [members, setMembers] = useState<Member[]>([]);
-    const [teamName, setTeamName] = useState<string>('');
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -40,25 +39,31 @@ export default function ManageMembersPage() {
         const fetchTeamData = async () => {
             setIsLoading(true);
 
-            // Fetch team name
+            // Fetch team owner
             const { data: teamData, error: teamError } = await supabase
                 .from('teams')
-                .select('team_name')
+                .select('owner_id')
                 .eq('id', activeTeamId)
                 .single();
 
             if (teamError) {
-                console.error('Error fetching team name:', teamError);
+                console.error('Error fetching team data:', teamError);
                 toast({ variant: 'destructive', title: 'Failed to load team.' });
                 setIsLoading(false);
                 return;
             }
-            setTeamName(teamData.team_name);
 
             // Fetch members
             const { data: teamMembersData, error: membersError } = await supabase
                 .from('team_members')
-                .select('user_id, role, users(full_name)')
+                .select(`
+                    user_id,
+                    role,
+                    users!team_members_user_id_fkey (
+                      id,
+                      full_name
+                    )
+                `)
                 .eq('team_id', activeTeamId);
 
             if (membersError) {
@@ -72,7 +77,7 @@ export default function ManageMembersPage() {
                 const processedMembers: Member[] = teamMembersData.map((item: any) => ({
                     id: item.user_id,
                     full_name: item.users?.full_name || 'Team Member',
-                    role: item.role,
+                    role: item.user_id === teamData.owner_id ? 'owner' : item.role,
                 }));
                 
                 setMembers(processedMembers);
