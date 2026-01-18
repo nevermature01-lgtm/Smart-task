@@ -28,7 +28,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             .from('users')
             .select('id')
             .eq('email', authUser.email)
-            .single();
+            .maybeSingle();
 
         if (profileError || !userProfile) {
             console.error('Error resolving Supabase user by email:', profileError?.message || 'User not found');
