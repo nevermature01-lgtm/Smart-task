@@ -243,8 +243,8 @@ export default function HomePage() {
                     ) : tasks.length > 0 ? (
                         <div>
                             {tasks.map((task) => (
-                                <Link href={`/tasks/${task.id}`} key={task.id} className="block mb-8">
-                                    <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-transform">
+                                <div key={task.id} className="block mb-8">
+                                    <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10">
                                             <span className="material-symbols-outlined text-white leading-none">task</span>
                                         </div>
@@ -262,7 +262,7 @@ export default function HomePage() {
                                             </span>
                                         </div>
                                     </div>
-                                </Link>
+                                </div>
                             ))}
                         </div>
                     ) : (
