@@ -156,7 +156,7 @@ export default function JoinTeamPage() {
             <div className="relative z-10 flex flex-col items-center justify-center text-center space-y-8 w-full">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center border border-white/20 shadow-inner">
-                        <span className="material-symbols-outlined text-white text-4xl" style={{fontVariationSettings: "'wght' 500"}}>group_add</span>
+                        <span className="material-symbols-outlined text-4xl" style={{fontVariationSettings: "'wght' 500"}}>group_add</span>
                     </div>
                     <div className="space-y-1.5">
                         <h2 className="text-2xl font-bold text-white tracking-tight">Join a Team</h2>
