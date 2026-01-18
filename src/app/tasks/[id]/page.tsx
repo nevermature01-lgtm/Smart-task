@@ -224,7 +224,6 @@ export default function TaskDetailsPage() {
                             )}
                             <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-full border-white/20 priority-glow bg-white/10">
                                 <span className="text-xs font-bold text-white uppercase tracking-tighter">P{task.priority}</span>
-                                 <span className="text-[10px] opacity-70">Priority</span>
                             </div>
                         </section>
                         
@@ -235,7 +234,7 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {steps.map((step, index) => (
-                                        <div key={step.id || `step-${index}`}>
+                                        <div key={step.id || `step-temp-${index}`}>
                                             <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                                 <p className="text-sm font-medium">{step.value}</p>
                                             </div>
