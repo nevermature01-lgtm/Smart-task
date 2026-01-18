@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -68,6 +68,25 @@ export default function TaskDetailsPage() {
         }
     }, [taskId, session, isAuthLoading]);
 
+    const assigneeName = useMemo(() => task?.assignee?.full_name || '...', [task]);
+
+    const assigneeAvatar = useMemo(() => {
+        if (!task?.assignee) return '';
+        return getHumanAvatarSvg(task.assignee.id);
+    }, [task?.assignee]);
+
+    const steps = useMemo(() => 
+        Array.isArray(task?.steps) ? task.steps.filter(item => item.type === 'step') : [],
+    [task?.steps]);
+    
+    const checklist = useMemo(() => 
+        Array.isArray(task?.steps) ? task.steps.filter(item => item.type === 'checklist') : [],
+    [task?.steps]);
+
+    const checklistCompleted = useMemo(() => 
+        checklist.filter(item => item.checked).length,
+    [checklist]);
+
     if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center mesh-background">
@@ -89,13 +108,6 @@ export default function TaskDetailsPage() {
             </div>
         );
     }
-
-    const assigneeName = task.assignee?.full_name || '...';
-    const assigneeAvatar = task.assignee ? getHumanAvatarSvg(task.assignee.id) : '';
-    
-    const steps = Array.isArray(task.steps) ? task.steps.filter(item => item.type === 'step') : [];
-    const checklist = Array.isArray(task.steps) ? task.steps.filter(item => item.type === 'checklist') : [];
-    const checklistCompleted = checklist.filter(item => item.checked).length;
     
   return (
     <>
