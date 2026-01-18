@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
 
-        const { title, description, priority, assigneeId, teamId, steps } = body;
+        const { title, description, priority, assigneeId, teamId, steps, checklist } = body;
 
         if (!title) {
             return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -46,13 +46,31 @@ export async function POST(request: Request) {
             numericPriority = 5;
         }
 
+        const combinedSteps: { type: string; value: string; checked?: boolean }[] = [];
+
+        if (steps && Array.isArray(steps)) {
+            steps.forEach((step: unknown) => {
+                if (typeof step === 'string' && step.trim() !== '') {
+                    combinedSteps.push({ type: 'step', value: step.trim() });
+                }
+            });
+        }
+
+        if (checklist && Array.isArray(checklist)) {
+            checklist.forEach((item: any) => {
+                if (typeof item === 'object' && item !== null && typeof item.text === 'string' && item.text.trim() !== '') {
+                    combinedSteps.push({ type: 'checklist', value: item.text.trim(), checked: !!item.checked });
+                }
+            });
+        }
+
         const { data: newTask, error: insertError } = await supabaseAdmin
             .from('tasks')
             .insert({
                 title,
                 description,
                 priority: numericPriority,
-                steps: steps || [],
+                steps: combinedSteps,
                 team_id: teamId,
                 assigned_to: assigneeId,
                 assigned_by: user.id,

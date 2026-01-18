@@ -68,8 +68,8 @@ export default function AssignTaskPage() {
             priority: priorityString,
             assigneeId: assignee.id,
             teamId: teamId,
-            steps: [],
-            checklist: [],
+            steps: steps,
+            checklist: checklist,
         };
 
         try {
