@@ -33,61 +33,50 @@ export default function CreateTaskPage() {
             let finalProfiles: Profile[] = [];
 
             if (activeTeam === 'personal') {
-                // In personal workspace, only the user themselves can be assigned.
-                 if (user) {
+                if (user) {
                     finalProfiles = [{
                         id: user.id,
                         full_name: user.user_metadata?.full_name || 'Personal Account',
                         avatar_url: user.user_metadata?.avatar_url || null,
                     }];
                 }
-            } else {
-                // In a team, fetch all members *except* the owner and self.
-                
-                // 1. First, get the owner's ID for the current team.
+            } else if (activeTeam) {
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
                     .eq('id', activeTeam)
                     .single();
 
-                if (teamError && teamError.message) {
-                    console.error("Error fetching team owner:", teamError.message);
-                } else {
-                    const ownerId = teamData?.owner_id;
-    
-                    // 2. Build the query to fetch members, excluding the owner.
-                    let membersQuery = supabase
-                        .from('team_members')
-                        .select('profiles(id, full_name, avatar_url)')
-                        .eq('team_id', activeTeam)
-                        .neq('role', 'owner'); // Exclude anyone with the 'owner' role.
+                const ownerId = teamData?.owner_id;
 
-                    // Also explicitly exclude the owner ID from the `teams` table for extra safety.
-                    if (ownerId) {
-                        membersQuery = membersQuery.neq('user_id', ownerId);
+                const { data: membersData, error: membersError } = await supabase
+                    .from('team_members')
+                    .select('user_id, role')
+                    .eq('team_id', activeTeam);
+
+                if (membersError) {
+                    if (membersError.message && !membersError.message.includes("schema cache")) {
+                        console.error("Error fetching team members:", membersError.message);
                     }
+                    setMembers([]);
+                } else if (membersData) {
                     
-                    const { data: membersData, error: membersError } = await membersQuery;
+                    const assignableMembers = membersData.filter(member => {
+                        const isOwner = member.user_id === ownerId;
+                        const isSelf = member.user_id === user.id;
+                        return !isOwner && !isSelf;
+                    });
+                    
+                    finalProfiles = assignableMembers.map(member => ({
+                        id: member.user_id,
+                        full_name: member.role.charAt(0).toUpperCase() + member.role.slice(1),
+                        avatar_url: `https://i.pravatar.cc/150?u=${member.user_id}`
+                    }));
 
-                    if (membersError) {
-                        if (membersError && membersError.message && !membersError.message.includes("schema cache")) {
-                             console.error("Error fetching team members:", membersError.message);
-                        }
-                    } else if (membersData) {
-                        const profilesFromDB = membersData
-                            .map(item => item.profiles)
-                            .filter((p): p is Profile => p !== null);
-                        
-                        // ** APPLY EXPLICIT FILTER FOR CURRENT USER **
-                        // The user must never be in the list of people they can assign tasks to in a team.
-                        finalProfiles = profilesFromDB.filter(p => p.id !== user.id);
-
-                        // ** DEFENSIVE GUARD **
-                        if (finalProfiles.some(p => p.id === user.id)) {
-                           console.error("FATAL: Current user is still in the assignable list after filtering! Aborting render.");
-                           finalProfiles = []; // Do not render list with current user
-                        }
+                    // ** DEFENSIVE GUARD **
+                    if (finalProfiles.some(p => p.id === user.id)) {
+                       console.error("FATAL: Current user is still in the assignable list after filtering! Aborting render.");
+                       finalProfiles = []; // Do not render list with current user
                     }
                 }
             }
