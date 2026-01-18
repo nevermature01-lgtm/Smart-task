@@ -58,14 +58,10 @@ export default function AssignTaskPage() {
 
         const teamId = activeTeam === 'personal' ? null : activeTeam;
 
-        let priorityString = 'medium';
-        if (priority <= 3) priorityString = 'low';
-        if (priority >= 8) priorityString = 'high';
-
         const taskData = {
             title: title.trim(),
             description: description.trim(),
-            priority: priorityString,
+            priority: priority,
             assigneeId: assignee.id,
             teamId: teamId,
             steps: steps,
