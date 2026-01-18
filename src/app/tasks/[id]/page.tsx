@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { format, parseISO } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 type Profile = {
     id: string;
@@ -76,6 +77,50 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
 
+    const handleToggleChecklist = async (itemId: string) => {
+        if (!task) return;
+
+        const originalSteps = task.steps;
+
+        // Optimistic UI update
+        const newSteps = originalSteps.map(step =>
+            step.id === itemId ? { ...step, checked: !step.checked } : step
+        );
+
+        const newTask = { ...task, steps: newSteps };
+        setTask(newTask);
+
+        // Persist to DB
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setTask({ ...task, steps: originalSteps });
+                setError("You are not authenticated.");
+                return;
+            }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: newSteps }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update task.');
+            }
+
+        } catch (e: any) {
+            // Revert optimistic update on any error
+            setTask({ ...task, steps: originalSteps });
+            setError(e.message);
+        }
+    };
+
+
     const { steps, checklist, checklistCompletion } = useMemo(() => {
         if (!task?.steps) {
             return { steps: [], checklist: [], checklistCompletion: "0/0" };
@@ -146,7 +191,7 @@ export default function TaskDetailsPage() {
                 <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl bg-white/10 border-white/20 flex flex-col">
                     <div className="space-y-8">
                         <section className="space-y-5">
-                            <h2 className="text-2xl font-bold tracking-tight">{task.title}</h2>
+                             <h2 className="text-2xl font-bold tracking-tight">{task.title}</h2>
                             {task.description && <p className="text-lavender-muted text-sm leading-relaxed">{task.description}</p>}
                             <div className="flex items-center gap-3">
                                 <div className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/30">
@@ -184,6 +229,7 @@ export default function TaskDetailsPage() {
                                     {steps.map((step, index) => (
                                         <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                             <p className="text-sm font-medium">{step.value}</p>
+                                             {step.checked && <span className="material-symbols-outlined text-success text-xl">check_circle</span>}
                                         </div>
                                     ))}
                                 </div>
@@ -198,11 +244,17 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {checklist.map((item, index) => (
-                                        <div key={item.id || `checklist-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3">
+                                        <div 
+                                            key={item.id || `checklist-${index}`} 
+                                            className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
+                                            onClick={() => handleToggleChecklist(item.id)}
+                                        >
                                             <div className="w-5 h-5 border-2 border-white/30 rounded-md flex items-center justify-center">
                                                 {item.checked && <span className="material-symbols-outlined text-sm">check</span>}
                                             </div>
-                                            <span className="text-sm font-medium">{item.value}</span>
+                                            <span className={cn("text-sm font-medium", item.checked && "line-through text-white/60")}>
+                                                {item.value}
+                                            </span>
                                         </div>
                                     ))}
                                 </div>

@@ -66,3 +66,69 @@ export async function GET(
     return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const taskId = params.id;
+
+  try {
+    const token = request.headers.get('authorization')?.split(' ')[1];
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+    if (userError || !user) {
+      return NextResponse.json({ error: userError?.message || 'Unauthorized' }, { status: 401 });
+    }
+
+    const { steps } = await request.json();
+
+    if (!steps) {
+        return NextResponse.json({ error: 'Missing steps data' }, { status: 400 });
+    }
+
+    // Step 1: Fetch the task to verify ownership
+    const { data: existingTask, error: taskError } = await supabaseAdmin
+      .from('tasks')
+      .select('assigned_to, assigned_by')
+      .eq('id', taskId)
+      .maybeSingle();
+      
+    if (taskError) {
+      console.error('Error fetching task for patch:', taskError);
+      return NextResponse.json({ error: 'Error verifying task ownership.' }, { status: 500 });
+    }
+
+    if (!existingTask) {
+      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+    
+    // Step 2: Authorization check
+    if (existingTask.assigned_to !== user.id && existingTask.assigned_by !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Step 3: Update the task with the new steps
+    const { data: updatedTask, error: updateError } = await supabaseAdmin
+      .from('tasks')
+      .update({ steps: steps })
+      .eq('id', taskId)
+      .select()
+      .single();
+
+    if (updateError) {
+        console.error('Supabase update error:', updateError);
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+    }
+    
+    return NextResponse.json(updatedTask);
+
+  } catch (error: any) {
+    console.error('API PATCH Error:', error);
+    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
+  }
+}
