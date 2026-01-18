@@ -35,7 +35,7 @@ function CreateTaskDetailsContent() {
 
         const fetchAssignee = async () => {
             const { data, error } = await supabase
-                .from('profiles')
+                .from('users')
                 .select('full_name')
                 .eq('id', assigneeId)
                 .single();
