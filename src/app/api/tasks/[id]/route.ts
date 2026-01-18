@@ -85,47 +85,80 @@ export async function PATCH(
       return NextResponse.json({ error: userError?.message || 'Unauthorized' }, { status: 401 });
     }
 
-    const { steps } = await request.json();
+    const body = await request.json();
+    const { steps, complete } = body;
 
-    if (!steps) {
-        return NextResponse.json({ error: 'Missing steps data' }, { status: 400 });
-    }
-
-    // Step 1: Fetch the task to verify ownership
+    // Step 1: Fetch the task to verify ownership and current state
     const { data: existingTask, error: taskError } = await supabaseAdmin
       .from('tasks')
-      .select('assigned_to, assigned_by')
+      .select('assigned_to, assigned_by, completed_at')
       .eq('id', taskId)
       .maybeSingle();
       
     if (taskError) {
       console.error('Error fetching task for patch:', taskError);
-      return NextResponse.json({ error: 'Error verifying task ownership.' }, { status: 500 });
+      return NextResponse.json({ error: 'Error verifying task details.' }, { status: 500 });
     }
 
     if (!existingTask) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
     
-    // Step 2: Authorization check
-    if (existingTask.assigned_to !== user.id && existingTask.assigned_by !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    // Logic for completing a task
+    if (complete) {
+      if (existingTask.assigned_to !== user.id) {
+        return NextResponse.json({ error: 'Forbidden: Only the assignee can complete the task.' }, { status: 403 });
+      }
 
-    // Step 3: Update the task with the new steps
-    const { data: updatedTask, error: updateError } = await supabaseAdmin
-      .from('tasks')
-      .update({ steps: steps })
-      .eq('id', taskId)
-      .select()
-      .single();
+      if (existingTask.completed_at) {
+        const { data: fullTask, error: fullTaskError } = await supabaseAdmin.from('tasks').select('*').eq('id', taskId).single();
+        if (fullTaskError) {
+           return NextResponse.json({ error: 'Failed to retrieve completed task.' }, { status: 500 });
+        }
+        return NextResponse.json(fullTask);
+      }
 
-    if (updateError) {
-        console.error('Supabase update error:', updateError);
+      const { data: updatedTask, error: updateError } = await supabaseAdmin
+        .from('tasks')
+        .update({ completed_at: new Date().toISOString() })
+        .eq('id', taskId)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error('Supabase completion update error:', updateError);
         return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      return NextResponse.json(updatedTask);
     }
     
-    return NextResponse.json(updatedTask);
+    // Logic for updating steps
+    if (steps) {
+        if (existingTask.completed_at) {
+            return NextResponse.json({ error: 'Cannot update a completed task.' }, { status: 400 });
+        }
+
+        if (existingTask.assigned_to !== user.id && existingTask.assigned_by !== user.id) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        const { data: updatedTask, error: updateError } = await supabaseAdmin
+          .from('tasks')
+          .update({ steps: steps })
+          .eq('id', taskId)
+          .select()
+          .single();
+
+        if (updateError) {
+            console.error('Supabase update error:', updateError);
+            return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+        
+        return NextResponse.json(updatedTask);
+    }
+
+    return NextResponse.json({ error: 'Invalid request body. Missing "steps" or "complete".' }, { status: 400 });
 
   } catch (error: any) {
     console.error('API PATCH Error:', error);

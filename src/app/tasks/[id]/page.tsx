@@ -30,6 +30,7 @@ type Task = {
     steps: Step[];
     assignee: Profile;
     assigned_by: string;
+    completed_at: string | null;
 };
 
 export default function TaskDetailsPage() {
@@ -45,6 +46,9 @@ export default function TaskDetailsPage() {
     
     const [isDeleting, setIsDeleting] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    
+    const [isCompleting, setIsCompleting] = useState(false);
+    const [showCompleteDialog, setShowCompleteDialog] = useState(false);
 
     useEffect(() => {
         if (!taskId) return;
@@ -85,6 +89,8 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
     
+    const isTaskCompleted = !!task?.completed_at;
+
     const { steps, checklist, checklistCompletion } = useMemo(() => {
         if (!task?.steps) {
             return { steps: [], checklist: [], checklistCompletion: "0/0" };
@@ -102,7 +108,7 @@ export default function TaskDetailsPage() {
     }, [task]);
 
     const handleToggleChecklist = async (itemToToggle: Step) => {
-        if (!task) return;
+        if (!task || isTaskCompleted) return;
         
         const itemExists = task.steps.find(step => step.id === itemToToggle.id);
         if (!itemExists) {
@@ -179,6 +185,39 @@ export default function TaskDetailsPage() {
             setShowDeleteDialog(false);
         }
     };
+    
+    const handleCompleteTask = async () => {
+        if (!task) return;
+        setIsCompleting(true);
+        
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { throw new Error("Authentication failed."); }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ complete: true }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to complete task.');
+            }
+            
+            const updatedTask = await response.json();
+            setTask(updatedTask);
+            toast({ title: 'Task Completed!' });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error completing task', description: e.message });
+        } finally {
+            setIsCompleting(false);
+            setShowCompleteDialog(false);
+        }
+    };
 
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
@@ -216,6 +255,8 @@ export default function TaskDetailsPage() {
             </div>
         );
     }
+
+    const canCompleteTask = user?.id === task.assignee.id;
 
     return (
         <>
@@ -299,8 +340,11 @@ export default function TaskDetailsPage() {
                                     {checklist.map((item, index) => (
                                         <div 
                                             key={item.id || `checklist-temp-${index}`} 
-                                            className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
-                                            onClick={() => handleToggleChecklist(item)}
+                                            className={cn(
+                                                "glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3",
+                                                !isTaskCompleted && "cursor-pointer"
+                                            )}
+                                            onClick={() => !isTaskCompleted && handleToggleChecklist(item)}
                                         >
                                             <div className="w-5 h-5 border-2 border-white/30 rounded-md flex items-center justify-center">
                                                 {item.checked && <span className="material-symbols-outlined text-sm">check</span>}
@@ -317,8 +361,12 @@ export default function TaskDetailsPage() {
                 </div>
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 z-40 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent">
-                <button className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10">
-                    Submit
+                <button 
+                    onClick={() => setShowCompleteDialog(true)}
+                    disabled={isTaskCompleted || !canCompleteTask}
+                    className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                    {isTaskCompleted ? 'Completed' : 'Submit'}
                 </button>
             </div>
             
@@ -345,6 +393,38 @@ export default function TaskDetailsPage() {
                             <button
                                 onClick={() => setShowDeleteDialog(false)}
                                 disabled={isDeleting}
+                                className="w-full py-4 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showCompleteDialog && (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
+                    <div className="glass-modal w-full max-w-sm rounded-[3rem] p-8 flex flex-col items-center text-center">
+                        <div className="w-20 h-20 mb-6 rounded-full glass-panel flex items-center justify-center border-primary/20">
+                            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                                <span className="material-symbols-outlined text-3xl text-white font-bold">check_circle</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold mb-3 tracking-tight">Complete Task?</h2>
+                        <p className="text-white/80 leading-relaxed mb-8 text-base">
+                           Are you sure you want to mark this task as complete?
+                        </p>
+                        <div className="w-full space-y-3">
+                            <button
+                                onClick={handleCompleteTask}
+                                disabled={isCompleting}
+                                className="w-full py-4 rounded-2xl bg-white text-primary font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                {isCompleting ? 'Completing...' : 'Yes, Complete'}
+                            </button>
+                            <button
+                                onClick={() => setShowCompleteDialog(false)}
+                                disabled={isCompleting}
                                 className="w-full py-4 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
                             >
                                 Cancel
