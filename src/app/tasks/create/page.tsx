@@ -16,7 +16,7 @@ type Profile = {
 export default function CreateTaskPage() {
     const router = useRouter();
     const { user, isLoading: isAuthLoading } = useSupabaseAuth();
-    const { activeTeam, isLoading: isTeamLoading } = useTeam();
+    const { activeTeam: activeTeamId, isLoading: isTeamLoading } = useTeam();
     const [members, setMembers] = useState<Profile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export default function CreateTaskPage() {
                 return;
             }
 
-            if (activeTeam === 'personal' || !activeTeam) {
+            if (activeTeamId === 'personal' || !activeTeamId) {
                 const self: Profile = {
                     id: user.id,
                     full_name: user.user_metadata?.full_name || 'Personal Account',
@@ -53,7 +53,7 @@ export default function CreateTaskPage() {
                 const { data: teamMembersData, error: teamMembersError } = await supabase
                     .from('team_members')
                     .select('user_id')
-                    .eq('team_id', activeTeam);
+                    .eq('team_id', activeTeamId);
 
                 if (teamMembersError) {
                     console.error("Error fetching team members:", teamMembersError);
@@ -89,7 +89,7 @@ export default function CreateTaskPage() {
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
-                    .eq('id', activeTeam)
+                    .eq('id', activeTeamId)
                     .single();
                 
                 if (teamError) {
@@ -126,7 +126,7 @@ export default function CreateTaskPage() {
         };
 
         fetchMembers();
-    }, [user, activeTeam, isTeamLoading, isAuthLoading]);
+    }, [user, activeTeamId, isTeamLoading, isAuthLoading]);
 
     useEffect(() => {
         if(showSearch) {
@@ -192,16 +192,18 @@ export default function CreateTaskPage() {
                             })}
                         >
                             <div className="flex items-center gap-4">
-                                <div className={cn("w-12 h-12 rounded-full border-2 overflow-hidden shrink-0", {
+                                <div className={cn("w-12 h-12 rounded-full border-2 overflow-hidden shrink-0 flex items-center justify-center", {
                                     "border-primary": selectedAssigneeId === member.id,
                                     "border-white/20": selectedAssigneeId !== member.id,
                                 })}>
-                                    <Avatar
-                                        size={40}
-                                        name={member.id}
-                                        variant="beam"
-                                        colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
-                                    />
+                                    <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden' }}>
+                                        <Avatar
+                                            size={40}
+                                            name={String(member.id)}
+                                            variant="beam"
+                                            colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                        />
+                                    </div>
                                 </div>
                                 <span className={cn("font-bold text-base", { "text-white": selectedAssigneeId === member.id, "text-white/90": selectedAssigneeId !== member.id})}>{member.full_name}</span>
                             </div>
@@ -216,8 +218,8 @@ export default function CreateTaskPage() {
                 ) : (
                     <div className="text-center text-lavender-muted pt-16">
                         <p>No other members found to assign.</p>
-                        {activeTeam !== 'personal' && !searchTerm && <p className="text-sm mt-2">You can only assign tasks to team members.</p>}
-                        {activeTeam === 'personal' && <p className="text-sm mt-2">Create or join a team to assign tasks to others.</p>}
+                        {activeTeamId !== 'personal' && !searchTerm && <p className="text-sm mt-2">You can only assign tasks to team members.</p>}
+                        {activeTeamId === 'personal' && <p className="text-sm mt-2">Create or join a team to assign tasks to others.</p>}
                         {searchTerm && <p className="text-sm mt-2">Try adjusting your search.</p>}
                     </div>
                 )}

@@ -25,7 +25,7 @@ export default function HomePage() {
   const { user, isLoading } = useSupabaseAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { activeTeam, isTeamLoading } = useTeam();
+  const { activeTeam: activeTeamId, isTeamLoading } = useTeam();
   const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
@@ -38,11 +38,11 @@ export default function HomePage() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   useEffect(() => {
-    if (isTeamLoading) {
+    if (isTeamLoading || isLoading) {
       return;
     }
 
-    if (!activeTeam || activeTeam === 'personal') {
+    if (!activeTeamId || activeTeamId === 'personal') {
       setTeamDetails(null);
       setMembers([]);
       setIsLoadingMembers(false);
@@ -55,7 +55,7 @@ export default function HomePage() {
       const { data: teamsData, error: teamError } = await supabase
         .from('teams')
         .select('team_name, team_code, owner_id, owner_name')
-        .eq('id', activeTeam);
+        .eq('id', activeTeamId);
         
       if (teamError) {
         console.error("Error fetching team details:", teamError.message);
@@ -66,7 +66,7 @@ export default function HomePage() {
       const { data: memberships, error: membershipError } = await supabase
         .from('team_members')
         .select('user_id, role')
-        .eq('team_id', activeTeam);
+        .eq('team_id', activeTeamId);
 
       if (membershipError || !memberships || memberships.length === 0) {
         if(membershipError && membershipError.message) console.error("Error fetching team members:", membershipError.message);
@@ -83,6 +83,7 @@ export default function HomePage() {
 
       if (usersError) {
         console.error("Error fetching users for team:", usersError.message);
+        setMembers([]);
         setIsLoadingMembers(false);
         return;
       }
@@ -101,7 +102,7 @@ export default function HomePage() {
     };
 
     fetchTeamData();
-  }, [activeTeam, isTeamLoading]);
+  }, [activeTeamId, isTeamLoading, isLoading]);
 
 
   if (isLoading || isTeamLoading) {
@@ -126,12 +127,14 @@ export default function HomePage() {
                     <div className="pt-20 px-8 pb-10">
                         <div className="w-16 h-16 rounded-full border-2 border-primary/60 p-1 mb-4 shadow-lg shadow-black/20 overflow-hidden">
                             {user ? (
-                                <Avatar
-                                    size={56}
-                                    name={user.id}
-                                    variant="beam"
-                                    colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
-                                />
+                                <div style={{ width: 56, height: 56, borderRadius: '50%', overflow: 'hidden' }}>
+                                    <Avatar
+                                        size={56}
+                                        name={String(user.id)}
+                                        variant="beam"
+                                        colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                    />
+                                </div>
                             ) : (
                                 <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
                                     <span className="text-2xl font-bold text-white">{displayName.charAt(0)}</span>
@@ -274,7 +277,7 @@ export default function HomePage() {
                     </div>
                 </section>
 
-                {activeTeam !== 'personal' && (
+                {activeTeamId !== 'personal' && (
                     <section>
                         <h3 className="font-bold text-lg mb-4">Team Members</h3>
                         {isLoadingMembers ? (
@@ -285,13 +288,15 @@ export default function HomePage() {
                             <div className="space-y-3">
                                 {members.length > 0 ? members.map(member => (
                                     <div key={member.id} className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-full border-2 border-white/10 overflow-hidden shrink-0">
-                                            <Avatar
-                                                size={40}
-                                                name={member.id}
-                                                variant="beam"
-                                                colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
-                                            />
+                                        <div className="w-12 h-12 rounded-full border-2 border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                                            <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden' }}>
+                                                <Avatar
+                                                    size={40}
+                                                    name={String(member.id)}
+                                                    variant="beam"
+                                                    colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                                />
+                                            </div>
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-bold text-sm">{member.full_name}</h4>
