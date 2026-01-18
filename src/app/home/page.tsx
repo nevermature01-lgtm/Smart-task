@@ -31,7 +31,8 @@ export default function HomePage() {
   const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
-  const [assignedTasksCount, setAssignedTasksCount] = useState(0);
+  const [assignedByCount, setAssignedByCount] = useState(0);
+  const [assignedToCount, setAssignedToCount] = useState(0);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -83,12 +84,17 @@ export default function HomePage() {
         .or(`assigned_by.eq.${user.id},assigned_to.eq.${user.id}`)
         .order('priority', { ascending: true });
 
-      const countPromise = supabase
+      const assignedByPromise = supabase
         .from('tasks')
         .select('*', { count: 'exact', head: true })
         .eq('assigned_by', user.id);
         
-      const [tasksResult, countResult] = await Promise.all([tasksPromise, countPromise]);
+      const assignedToPromise = supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_to', user.id);
+        
+      const [tasksResult, assignedByResult, assignedToResult] = await Promise.all([tasksPromise, assignedByPromise, assignedToPromise]);
 
       const { data: tasksData, error: tasksError } = tasksResult;
       if (tasksError) {
@@ -98,12 +104,20 @@ export default function HomePage() {
         setTasks(tasksData);
       }
 
-      const { count, error: countError } = countResult;
-      if (countError) {
-          console.error("Error fetching assigned tasks count:", countError);
-          setAssignedTasksCount(0);
+      const { count: byCount, error: byError } = assignedByResult;
+      if (byError) {
+          console.error("Error fetching assigned by count:", byError);
+          setAssignedByCount(0);
       } else {
-          setAssignedTasksCount(count || 0);
+          setAssignedByCount(byCount || 0);
+      }
+      
+      const { count: toCount, error: toError } = assignedToResult;
+      if (toError) {
+          console.error("Error fetching assigned to count:", toError);
+          setAssignedToCount(0);
+      } else {
+          setAssignedToCount(toCount || 0);
       }
 
       setTasksLoading(false);
@@ -211,7 +225,11 @@ export default function HomePage() {
                 <section className="glass-panel p-6 rounded-3xl relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 blur-2xl rounded-full"></div>
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
-                    <p className="text-lavender-muted mt-1 opacity-90">You have {assignedTasksCount} tasks to check today.</p>
+                    {assignedToCount > 0 ? (
+                        <p className="text-lavender-muted mt-1 opacity-90">You have {assignedToCount} tasks to complete today.</p>
+                    ) : (
+                        <p className="text-lavender-muted mt-1 opacity-90">You have {assignedByCount} tasks to check today.</p>
+                    )}
                 </section>
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
