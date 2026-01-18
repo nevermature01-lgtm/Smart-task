@@ -79,22 +79,35 @@ export default function HomePage() {
         if (error) {
             console.error('Error fetching team members:', error);
             setMembers([]);
-        } else if (teamMembersData) {
-             const ownerName = teamDetails?.owner_name;
-             const ownerId = teamDetails?.owner_id;
+            setIsLoadingMembers(false);
+            return;
+        } 
+        
+        if (teamMembersData && teamMembersData.length > 0) {
+            const memberIds = teamMembersData.map(m => m.user_id);
+            const { data: profilesData, error: profilesError } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url')
+                .in('id', memberIds);
 
-            const processedMembers = teamMembersData.map(member => {
-                const isOwner = member.user_id === ownerId;
-                const name = isOwner ? ownerName : member.role.charAt(0).toUpperCase() + member.role.slice(1);
-                
-                return {
-                    id: member.user_id,
-                    role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                    full_name: name,
-                    avatar_url: `https://i.pravatar.cc/150?u=${member.user_id}`
-                };
-            });
-            setMembers(processedMembers);
+            if (profilesError) {
+                console.error('Error fetching member profiles:', profilesError);
+                setMembers([]);
+            } else {
+                const profilesMap = new Map(profilesData.map(p => [p.id, p]));
+                const processedMembers = teamMembersData.map(member => {
+                    const profile = profilesMap.get(member.user_id);
+                    return {
+                        id: member.user_id,
+                        role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
+                        full_name: profile?.full_name || 'Team Member',
+                        avatar_url: profile?.avatar_url || `https://i.pravatar.cc/150?u=${member.user_id}`
+                    };
+                });
+                setMembers(processedMembers);
+            }
+        } else {
+            setMembers([]);
         }
         setIsLoadingMembers(false);
     };
@@ -102,7 +115,7 @@ export default function HomePage() {
     if (!isTeamLoading && activeTeam !== 'personal') {
         fetchMembers();
     }
-}, [activeTeam, teamDetails, isTeamLoading]);
+  }, [activeTeam, isTeamLoading]);
 
   if (isLoading || isTeamLoading) {
     return (

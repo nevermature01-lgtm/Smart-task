@@ -61,17 +61,31 @@ export default function CreateTaskPage() {
                     setMembers([]);
                 } else if (membersData) {
                     
-                    const assignableMembers = membersData.filter(member => {
-                        const isOwner = member.user_id === ownerId;
-                        const isSelf = member.user_id === user.id;
-                        return !isOwner && !isSelf;
-                    });
+                    const assignableMemberIds = membersData
+                        .filter(member => {
+                            const isOwner = member.user_id === ownerId;
+                            const isSelf = member.user_id === user.id;
+                            return !isOwner && !isSelf;
+                        })
+                        .map(m => m.user_id);
                     
-                    finalProfiles = assignableMembers.map(member => ({
-                        id: member.user_id,
-                        full_name: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                        avatar_url: `https://i.pravatar.cc/150?u=${member.user_id}`
-                    }));
+                    if (assignableMemberIds.length > 0) {
+                        const { data: profilesData, error: profilesError } = await supabase
+                            .from('profiles')
+                            .select('id, full_name, avatar_url')
+                            .in('id', assignableMemberIds);
+
+                        if (profilesError) {
+                            console.error("Error fetching profiles:", profilesError);
+                            finalProfiles = [];
+                        } else if (profilesData) {
+                            finalProfiles = profilesData.map(profile => ({
+                                id: profile.id,
+                                full_name: profile.full_name || "Team Member",
+                                avatar_url: profile.avatar_url || `https://i.pravatar.cc/150?u=${profile.id}`
+                            }));
+                        }
+                    }
 
                     // ** DEFENSIVE GUARD **
                     if (finalProfiles.some(p => p.id === user.id)) {
