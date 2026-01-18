@@ -7,6 +7,15 @@ import { getHumanAvatarSvg } from '@/lib/avatar';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { useTeam } from '@/context/TeamProvider';
 import { useToast } from '@/hooks/use-toast';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/components/ui/popover';
+
 
 type Profile = {
     id: string;
@@ -28,6 +37,7 @@ function CreateTaskDetailsComponent() {
     const [priority, setPriority] = useState(1);
     const [steps, setSteps] = useState<string[]>([]);
     const [checklist, setChecklist] = useState<{ text: string, checked: boolean }[]>([]);
+    const [dueDate, setDueDate] = useState<Date | undefined>();
 
     const [isCreating, setIsCreating] = useState(false);
     const assigneeId = searchParams.get('assigneeId');
@@ -112,6 +122,8 @@ function CreateTaskDetailsComponent() {
         if (priority <= 3) priorityString = 'low';
         if (priority >= 8) priorityString = 'high';
 
+        const formattedDueDate = dueDate ? format(dueDate, 'dd-MM-yyyy') : null;
+
         const taskData = {
             title: title.trim(),
             description: description.trim(),
@@ -120,6 +132,7 @@ function CreateTaskDetailsComponent() {
             teamId: teamId,
             steps: steps.filter(s => s.trim() !== ''),
             checklist: checklist.filter(c => c.text.trim() !== ''),
+            dueDate: formattedDueDate,
         };
 
         try {
@@ -162,25 +175,62 @@ function CreateTaskDetailsComponent() {
             <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
                 <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl space-y-8 bg-white/10 border-white/20">
                     <section className="space-y-3">
-                        <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Assign To</h3>
-                        {isLoadingAssignee ? (
-                            <div className="h-8 w-24 bg-white/10 rounded-full animate-pulse"></div>
-                        ) : assignee ? (
-                            <div className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/30">
-                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
-                                     <div
-                                        style={{ width: 24, height: 24 }}
-                                        dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(assignee.id)) }}
-                                    />
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Details</h3>
+                        <div className="flex flex-wrap items-center gap-3">
+                            {isLoadingAssignee ? (
+                                <div className="h-8 w-24 bg-white/10 rounded-full animate-pulse"></div>
+                            ) : assignee ? (
+                                <div className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/30">
+                                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
+                                         <div
+                                            style={{ width: 24, height: 24 }}
+                                            dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(assignee.id)) }}
+                                        />
+                                    </div>
+                                    <span className="text-sm font-medium">{assignee.full_name}</span>
+                                    <button onClick={() => router.back()}>
+                                        <span className="material-symbols-outlined text-xs text-white/60">close</span>
+                                    </button>
                                 </div>
-                                <span className="text-sm font-medium">{assignee.full_name}</span>
-                                <button onClick={() => router.back()}>
-                                    <span className="material-symbols-outlined text-xs text-white/60">close</span>
-                                </button>
-                            </div>
-                        ) : (
-                             <p className="text-white/50 text-sm px-1">Could not load assignee.</p>
-                        )}
+                            ) : (
+                                 <p className="text-white/50 text-sm px-1">Could not load assignee.</p>
+                            )}
+                             <Popover>
+                                <PopoverTrigger asChild>
+                                    <button className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10 disabled:opacity-50" disabled={isLoading}>
+                                        <CalendarIcon className="w-4 h-4 text-white/70" />
+                                        <span className="text-sm font-medium">
+                                            {dueDate ? format(dueDate, 'dd-MM-yyyy') : "Set Due Date"}
+                                        </span>
+                                    </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0 glass-modal border-white/20 text-white" align="start">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dueDate}
+                                        onSelect={setDueDate}
+                                        initialFocus
+                                        className="bg-transparent"
+                                        classNames={{
+                                            caption_label: "text-white",
+                                            nav_button: "text-white hover:bg-white/10 active:bg-white/5",
+                                            nav_icon: "text-white",
+                                            head_cell: "text-white/70",
+                                            day: "text-white hover:bg-white/10 rounded-md",
+                                            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary",
+                                            day_today: "bg-white/20 text-white rounded-md",
+                                            day_outside: "text-white/40",
+                                            day_disabled: "text-white/30",
+                                        }}
+                                    />
+                                    <div className="p-2 border-t border-white/10">
+                                        <button onClick={() => setDueDate(undefined)} className="w-full text-center text-sm font-semibold text-red-400 p-2 rounded-lg hover:bg-white/10 transition-colors">
+                                            Clear
+                                        </button>
+                                    </div>
+                                </PopoverContent>
+                            </Popover>
+                        </div>
                     </section>
                     <section className="space-y-6">
                         <div className="relative group">

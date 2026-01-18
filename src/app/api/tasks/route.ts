@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { parse, format } from 'date-fns';
 
 export async function POST(request: Request) {
     try {
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
 
-        const { title, description, priority, assigneeId, teamId, steps, checklist } = body;
+        const { title, description, priority, assigneeId, teamId, steps, checklist, dueDate } = body;
 
         if (!title) {
             return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -63,6 +64,19 @@ export async function POST(request: Request) {
                 }
             });
         }
+        
+        let formattedDueDateForDb: string | null = null;
+        if (dueDate) {
+            try {
+                // Input format is DD-MM-YYYY, Supabase needs YYYY-MM-DD
+                const parsedDate = parse(dueDate, 'dd-MM-yyyy', new Date());
+                formattedDueDateForDb = format(parsedDate, 'yyyy-MM-dd');
+            } catch (e) {
+                console.error("Error parsing due date:", e);
+                // Don't insert a malformed date, let it be null
+                formattedDueDateForDb = null;
+            }
+        }
 
         const { data: newTask, error: insertError } = await supabaseAdmin
             .from('tasks')
@@ -74,6 +88,7 @@ export async function POST(request: Request) {
                 team_id: teamId,
                 assigned_to: assigneeId,
                 assigned_by: user.id,
+                due_date: formattedDueDateForDb,
             })
             .select()
             .single();
