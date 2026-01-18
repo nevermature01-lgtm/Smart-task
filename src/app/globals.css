@@ -208,4 +208,14 @@
     .hide-scrollbar::-webkit-scrollbar {
         display: none;
     }
+    .priority-glow {
+        box-shadow: 0 0 15px rgba(124, 58, 237, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.4);
+    }
+    .swipe-track {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .fab-glow {
+        box-shadow: 0 8px 32px rgba(86, 29, 201, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    }
 }

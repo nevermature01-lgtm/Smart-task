@@ -71,7 +71,8 @@ export default {
           '200': '#fed7aa',
           '400': '#fb923c',
           '500': '#f97316',
-        }
+        },
+        success: '#22c55e',
       },
       borderRadius: {
         DEFAULT: '0.5rem',
