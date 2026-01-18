@@ -109,7 +109,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { steps, complete, assigneeId } = body;
+    const { steps, complete, assigneeId, reopen } = body;
 
     const returnFullTask = async (taskData: any) => {
         const previousAssigneeIds = (taskData.steps || [])
@@ -152,6 +152,38 @@ export async function PATCH(
 
     if (!existingTask) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    }
+
+    if (reopen) {
+        if (existingTask.assigned_by !== user.id) {
+            return NextResponse.json({ error: 'Forbidden: Only the task creator can reopen.' }, { status: 403 });
+        }
+        const { data: updatedTask, error: updateError } = await supabaseAdmin
+            .from('tasks')
+            .update({ is_completed: false, completed_at: null })
+            .eq('id', taskId)
+            .select()
+            .single();
+
+        if (updateError) {
+            console.error('Supabase reopen error:', updateError);
+            return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+
+        await createNotification({
+            user_id: updatedTask.assigned_to,
+            message: `The task "${updatedTask.title}" has been reopened by the assigner.`,
+            link: `/tasks/${updatedTask.id}`,
+            type: 'task_reopened',
+            title: 'Task Reopened',
+            task_id: updatedTask.id,
+        });
+
+        return await returnFullTask(updatedTask);
+    }
+    
+    if (existingTask.is_completed) {
+        return NextResponse.json({ error: 'Cannot update a completed task.' }, { status: 400 });
     }
 
     if (assigneeId) {
@@ -213,13 +245,9 @@ export async function PATCH(
         return NextResponse.json({ error: 'Forbidden: Only the assignee can complete the task.' }, { status: 403 });
       }
 
-      if (existingTask.completed_at) {
-        return await returnFullTask(existingTask);
-      }
-
       const { data: updatedTask, error: updateError } = await supabaseAdmin
         .from('tasks')
-        .update({ completed_at: new Date().toISOString() })
+        .update({ is_completed: true, completed_at: new Date().toISOString() })
         .eq('id', taskId)
         .select()
         .single();
@@ -246,10 +274,6 @@ export async function PATCH(
     }
     
     if (steps) {
-        if (existingTask.completed_at) {
-            return NextResponse.json({ error: 'Cannot update a completed task.' }, { status: 400 });
-        }
-
         if (existingTask.assigned_to !== user.id && existingTask.assigned_by !== user.id) {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
@@ -269,7 +293,7 @@ export async function PATCH(
         return await returnFullTask(updatedTask);
     }
 
-    return NextResponse.json({ error: 'Invalid request body. Missing "steps", "complete", or "assigneeId".' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid request body. Missing "steps", "complete", "assigneeId", or "reopen".' }, { status: 400 });
 
   } catch (error: any) {
     console.error('API PATCH Error:', error);
@@ -298,7 +322,7 @@ export async function DELETE(
     // Fetch the task to verify ownership and get details for notification
     const { data: task, error: taskError } = await supabaseAdmin
       .from('tasks')
-      .select('assigned_by, assigned_to, title')
+      .select('assigned_by, assigned_to, title, is_completed')
       .eq('id', taskId)
       .single();
 
@@ -315,6 +339,8 @@ export async function DELETE(
     if (task.assigned_by !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    
+    // Deleting a completed task should be allowed by the assigner.
     
     // Notify the assignee that the task was deleted
     if (task.assigned_to && task.assigned_to !== user.id) {

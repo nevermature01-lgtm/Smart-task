@@ -30,6 +30,7 @@ type Task = {
     steps: Step[];
     reassignmentChain: Profile[];
     assigned_by: string;
+    is_completed: boolean;
     completed_at: string | null;
     team_id: string | null;
 };
@@ -55,6 +56,10 @@ export default function TaskDetailsPage() {
     const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
     const [isFetchingMembers, setIsFetchingMembers] = useState(false);
     const [isReassigning, setIsReassigning] = useState(false);
+    
+    const [showReopenDialog, setShowReopenDialog] = useState(false);
+    const [isReopening, setIsReopening] = useState(false);
+
 
     const currentAssignee = useMemo(() => {
         if (!task?.reassignmentChain || task.reassignmentChain.length === 0) return null;
@@ -100,7 +105,7 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
     
-    const isTaskCompleted = !!task?.completed_at;
+    const isTaskCompleted = !!task?.is_completed;
 
     const { steps, checklist, checklistCompletion } = useMemo(() => {
         if (!task?.steps) {
@@ -231,7 +236,7 @@ export default function TaskDetailsPage() {
     };
 
     const handleOpenReassignModal = async () => {
-        if (!task) return;
+        if (!task || isTaskCompleted) return;
         if (!task.team_id) {
             toast({
                 variant: "destructive",
@@ -309,6 +314,39 @@ export default function TaskDetailsPage() {
             setShowReassignModal(false);
         }
     };
+    
+    const handleReopenTask = async () => {
+        if (!task) return;
+        setIsReopening(true);
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Authentication failed.");
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ reopen: true }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to reopen task.');
+            }
+
+            const updatedTask = await response.json();
+            setTask(updatedTask);
+            toast({ title: 'Task Reopened' });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error reopening task', description: e.message });
+        } finally {
+            setIsReopening(false);
+            setShowReopenDialog(false);
+        }
+    };
+
 
     if (isLoading) {
         return (
@@ -353,7 +391,17 @@ export default function TaskDetailsPage() {
                 <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
                 <div className="flex items-center gap-2">
                     
-                    {user && task && user.id === task.assigned_by && (
+                    {isTaskCompleted && (
+                        <button
+                            onClick={() => user?.id === task.assigned_by && setShowReopenDialog(true)}
+                            disabled={user?.id !== task.assigned_by}
+                            className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span className="material-symbols-outlined text-xl">lock</span>
+                        </button>
+                    )}
+
+                    {user && task && user.id === task.assigned_by && !isTaskCompleted && (
                         <button onClick={() => setShowDeleteDialog(true)} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
                             <span className="material-symbols-outlined text-xl">delete</span>
                         </button>
@@ -458,7 +506,7 @@ export default function TaskDetailsPage() {
                                                 "glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3",
                                                 !isTaskCompleted && "cursor-pointer"
                                             )}
-                                            onClick={() => !isTaskCompleted && handleToggleChecklist(item)}
+                                            onClick={() => handleToggleChecklist(item)}
                                         >
                                             <div className="w-5 h-5 border-2 border-white/30 rounded-md flex items-center justify-center">
                                                 {item.checked && <span className="material-symbols-outlined text-sm">check</span>}
@@ -547,6 +595,39 @@ export default function TaskDetailsPage() {
                     </div>
                 </div>
             )}
+            
+            {showReopenDialog && (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
+                    <div className="glass-modal w-full max-w-sm rounded-[3rem] p-8 flex flex-col items-center text-center">
+                        <div className="w-20 h-20 mb-6 rounded-full glass-panel flex items-center justify-center border-primary/20">
+                            <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center border border-primary/30">
+                                <span className="material-symbols-outlined text-3xl text-white font-bold">lock_open</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold mb-3 tracking-tight">Reopen Task?</h2>
+                        <p className="text-white/80 leading-relaxed mb-8 text-base">
+                           Reopening this task will mark it as incomplete.
+                        </p>
+                        <div className="w-full space-y-3">
+                            <button
+                                onClick={handleReopenTask}
+                                disabled={isReopening}
+                                className="w-full py-4 rounded-2xl bg-white text-primary font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                {isReopening ? 'Reopening...' : 'Yes, Reopen'}
+                            </button>
+                            <button
+                                onClick={() => setShowReopenDialog(false)}
+                                disabled={isReopening}
+                                className="w-full py-4 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
             {showReassignModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
