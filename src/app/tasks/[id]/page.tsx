@@ -459,7 +459,7 @@ export default function TaskDetailsPage() {
                             }}
                             onPointerDown={handlePointerDown}
                             className={cn(
-                                "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg",
+                                "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg z-10",
                                 { "cursor-grab": !isCompleted },
                                 { "cursor-grabbing": isDragging },
                                 { "bg-success/50 border-success/60 cursor-default": isCompleted },
