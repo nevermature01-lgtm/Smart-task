@@ -25,14 +25,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
             `)
             .eq('id', taskId)
             .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id}`)
-            .single();
+            .maybeSingle();
 
         if (taskError) {
             console.error('Error fetching task:', taskError);
-            if (taskError.code === 'PGRST116') { // Not found or not authorized
-                 return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-            }
             return NextResponse.json({ error: 'Error fetching task' }, { status: 500 });
+        }
+        
+        if (!task) {
+             return NextResponse.json({ error: 'Task not found or you are not authorized to view it.' }, { status: 404 });
         }
         
         let teamMembers: any[] = [];
