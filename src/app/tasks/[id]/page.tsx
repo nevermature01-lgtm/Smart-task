@@ -30,23 +30,20 @@ export default function TaskDetailsPage() {
     
     useEffect(() => {
         const fetchTask = async () => {
-            if (!taskId) return;
+            if (!taskId) {
+                setLoading(false);
+                return;
+            }
 
             setLoading(true);
             setError(null);
 
             const { data: { session } } = await supabase.auth.getSession();
 
-            if (!session) {
-                setError("You must be logged in to view this page.");
-                setLoading(false);
-                return;
-            };
-
             try {
                 const response = await fetch(`/api/tasks/${taskId}`, {
                     headers: {
-                        'Authorization': `Bearer ${session.access_token}`
+                        'Authorization': `Bearer ${session?.access_token}`
                     }
                 });
                 
@@ -71,7 +68,7 @@ export default function TaskDetailsPage() {
     const assigneeName = useMemo(() => task?.assignee?.full_name || '...', [task]);
 
     const assigneeAvatar = useMemo(() => {
-        if (!task?.assignee) return '';
+        if (!task?.assignee?.id) return '';
         return getHumanAvatarSvg(task.assignee.id);
     }, [task?.assignee]);
 
