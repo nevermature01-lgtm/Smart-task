@@ -84,9 +84,7 @@ export default function AssignTaskPage() {
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Create Task</h1>
-                <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-2xl">search</span>
-                </button>
+                <div className="w-10 h-10"></div>
             </header>
             <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
                 <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl space-y-8 bg-white/10 border-white/20">
