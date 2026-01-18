@@ -189,7 +189,7 @@ export default function TaskDetailsPage() {
                 
                 handle.style.transform = `translateX(${newTranslateX}px)`;
 
-                const trackWidthForOpacity = swipeTrackRef.current?.offsetWidth || 1;
+                const trackWidthForOpacity = swipeTrackRef.current?.offsetWidth ?? 1;
                 const opacity = Math.max(0, 1 - (newTranslateX / (trackWidthForOpacity * 0.5)));
                 const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
                 if (textElement) {
