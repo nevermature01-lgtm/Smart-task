@@ -188,7 +188,7 @@ export default function TaskDetailsPage() {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-24">
+            <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
                 <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl bg-white/10 border-white/20 flex flex-col">
                     <div className="space-y-8">
                         <section className="space-y-5">
@@ -270,6 +270,11 @@ export default function TaskDetailsPage() {
                     </div>
                 </div>
             </main>
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent">
+                <button className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10">
+                    Submit
+                </button>
+            </div>
         </>
     );
 }
