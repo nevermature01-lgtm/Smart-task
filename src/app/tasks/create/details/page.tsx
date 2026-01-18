@@ -70,10 +70,24 @@ function CreateTaskDetailsComponent() {
 
 
     useEffect(() => {
+        if (isAuthLoading) {
+            return;
+        }
+
         if (!assigneeId) {
             setIsLoadingAssignee(false);
             toast({ variant: 'destructive', title: 'No assignee selected. Redirecting...' });
             router.replace('/tasks/create');
+            return;
+        }
+
+        // Optimization for self-assignment (personal workspace) to prevent race condition
+        if (currentUser && currentUser.id === assigneeId) {
+            setAssignee({
+                id: currentUser.id,
+                full_name: currentUser.user_metadata?.full_name || "Me"
+            });
+            setIsLoadingAssignee(false);
             return;
         }
 
@@ -85,9 +99,12 @@ function CreateTaskDetailsComponent() {
                 .eq('id', assigneeId)
                 .single();
 
-            if (error || !data) {
-                console.error('Error fetching assignee:', error);
+            if (error) {
+                console.error('Error fetching assignee:', error.message);
                 toast({ variant: 'destructive', title: 'Failed to load assignee details.' });
+                setAssignee(null);
+            } else if (!data) {
+                toast({ variant: 'destructive', title: 'Assignee not found.' });
                 setAssignee(null);
             } else {
                 setAssignee(data);
@@ -96,7 +113,7 @@ function CreateTaskDetailsComponent() {
         };
 
         fetchAssignee();
-    }, [assigneeId, router, toast]);
+    }, [assigneeId, router, toast, currentUser, isAuthLoading]);
 
     const handleCreateTask = async () => {
         if (!title.trim()) {
