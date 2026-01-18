@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
         const body = await request.json();
 
-        const { title, description, priority, assigneeId, teamId, steps, checklist } = body;
+        const { title, description, priority, assigneeId, teamId, steps } = body;
 
         if (!title) {
             return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -31,12 +31,10 @@ export async function POST(request: Request) {
                 title,
                 description,
                 priority,
-                assignee_id: assigneeId,
-                creator_id: user.id,
-                team_id: teamId,
-                status: 'todo',
                 steps: steps || [],
-                checklist: checklist || [],
+                team_id: teamId,
+                assigned_to: assigneeId,
+                assigned_by: user.id,
             })
             .select()
             .single();
