@@ -19,7 +19,6 @@ export default function CreateTaskPage() {
     const { activeTeam: activeTeamId, isLoading: isTeamLoading } = useTeam();
     const [members, setMembers] = useState<Profile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [selectedAssigneeId, setSelectedAssigneeId] = useState<string | null>(null);
 
     useEffect(() => {
         if (isAuthLoading || isTeamLoading) {
@@ -36,9 +35,9 @@ export default function CreateTaskPage() {
             }
 
             if (activeTeamId === 'personal' || !activeTeamId) {
-                setMembers([]); // Don't show any members for personal workspace
-                setSelectedAssigneeId(user.id); // Assign to self by default
+                // For personal workspace, automatically assign to self and move to the next step.
                 setIsLoading(false);
+                router.push(`/tasks/create/details?assigneeId=${user.id}`);
                 return;
             }
 
@@ -84,13 +83,6 @@ export default function CreateTaskPage() {
                         .filter(member => member.id !== user.id);
                     
                     setMembers(finalProfiles);
-                    
-                    if (finalProfiles.length === 1) {
-                        setSelectedAssigneeId(finalProfiles[0].id);
-                    } else {
-                        // If there are multiple members or no other members, don't pre-select anyone.
-                        setSelectedAssigneeId(null);
-                    }
                 } else {
                     setMembers([]);
                 }
@@ -102,12 +94,11 @@ export default function CreateTaskPage() {
         };
 
         fetchMembers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user, activeTeamId, isTeamLoading, isAuthLoading]);
     
-    const handleNext = () => {
-        if (selectedAssigneeId) {
-            router.push(`/tasks/create/details?assigneeId=${selectedAssigneeId}`);
-        }
+    const handleSelectAssignee = (id: string) => {
+        router.push(`/tasks/create/details?assigneeId=${id}`);
     };
     
     const pageLoading = isLoading || isAuthLoading || isTeamLoading;
@@ -134,16 +125,10 @@ export default function CreateTaskPage() {
                             members.map((member) => (
                                 <button 
                                     key={member.id}
-                                    onClick={() => setSelectedAssigneeId(member.id)}
-                                    className={cn("w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all", {
-                                        "bg-white/20 ring-2 ring-white/50": selectedAssigneeId === member.id,
-                                        "active:bg-white/10": selectedAssigneeId !== member.id,
-                                    })}
+                                    onClick={() => handleSelectAssignee(member.id)}
+                                    className="w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all active:bg-white/10"
                                 >
-                                    <div className={cn("w-12 h-12 rounded-full border-2 overflow-hidden shrink-0 flex items-center justify-center", {
-                                        "border-primary": selectedAssigneeId === member.id,
-                                        "border-white/20": selectedAssigneeId !== member.id,
-                                    })}>
+                                    <div className="w-12 h-12 rounded-full border-2 border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
                                         <div
                                             style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden' }}
                                             dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(member.id)) }}
@@ -152,35 +137,18 @@ export default function CreateTaskPage() {
                                     <div className="flex-1 min-w-0">
                                         <h4 className="font-bold text-sm truncate">{member.full_name}</h4>
                                     </div>
-                                    {selectedAssigneeId === member.id && (
-                                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
-                                            <span className="material-symbols-outlined text-white text-sm">check</span>
-                                        </div>
-                                    )}
                                 </button>
                             ))
                         ) : (
                             <div className="glass-panel p-5 rounded-2xl text-center">
                                 <p className="text-lavender-muted">
-                                    {activeTeamId === 'personal'
-                                        ? 'Tasks in your personal workspace are assigned to you by default.'
-                                        : 'No other team members to assign tasks to.'
-                                    }
+                                    {'No other team members to assign tasks to.'}
                                 </p>
                             </div>
                         )}
                     </div>
                 </div>
             </main>
-            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
-                <button 
-                    onClick={handleNext} 
-                    disabled={!selectedAssigneeId}
-                    className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10 disabled:opacity-70 disabled:cursor-not-allowed">
-                    Next
-                    <span className="material-symbols-outlined text-xl icon-glow">arrow_forward</span>
-                </button>
-            </div>
         </div>
     );
 }
