@@ -379,7 +379,7 @@ export default function TaskDetailsPage() {
                                 )}
                             >
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span style={{ opacity: isTaskComplete ? 0 : 1 - Math.min(1, finalDragOffset / (maxDrag * 0.7) ) }}
+                                    <span style={{ opacity: isTaskComplete ? 0 : 1 - Math.min(1, maxDrag > 0 ? finalDragOffset / (maxDrag * 0.7) : 0) }}
                                         className={cn(
                                         "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
                                         isCompleting && "opacity-0"
