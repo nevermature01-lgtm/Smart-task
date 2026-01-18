@@ -240,7 +240,6 @@ export default function TaskDetailsPage() {
         if (currentOffset > maxDrag * 0.7) {
             handleCompleteTask();
         }
-        // Snap-back is handled by the useEffect watching `isDragging`
     };
     
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -415,9 +414,10 @@ export default function TaskDetailsPage() {
                                 )}
                             >
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span style={{ opacity: isTaskComplete || isDragging ? 0 : 1 }}
+                                    <span
                                         className={cn(
-                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity"
+                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
+                                        (isTaskComplete || isDragging) && "opacity-0"
                                     )}>
                                         SWIPE TO COMPLETE
                                     </span>
@@ -442,9 +442,9 @@ export default function TaskDetailsPage() {
                                     {isCompleting ? (
                                         <div className="h-5 w-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
                                     ) : isTaskComplete ? (
-                                        <span className="material-symbols-outlined text-white text-3xl">check</span>
+                                        <span className="material-symbols-outlined text-3xl">check</span>
                                     ) : (
-                                        <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
+                                        <span className="material-symbols-outlined text-2xl">keyboard_double_arrow_right</span>
                                     )}
                                 </div>
                             </div>
@@ -452,23 +452,6 @@ export default function TaskDetailsPage() {
                     </div>
                 </div>
             </main>
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/95 to-transparent z-40">
-                <button className="w-full flex items-center justify-between px-6 py-4 glass-panel rounded-2xl border-white/20 active:scale-95 transition-transform fab-glow">
-                    <div className="flex items-center gap-3">
-                        <div className="relative">
-                            <span className="material-symbols-outlined text-2xl text-white">chat_bubble</span>
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full border border-white/50"></span>
-                        </div>
-                        <span className="text-sm font-semibold tracking-wide">Team Discussion</span>
-                    </div>
-                    <div className="flex -space-x-2">
-                        <img alt="team member" className="w-6 h-6 rounded-full border border-white/20" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7P8HUUkmQKSXWyZjs2yvuNkxhSxWLhsWTJcYqUxEjInv2mZM932tu1CUiNltjsAdKK3cmKHL5au4LI9QZL_eF_dKxJLDVeT0DZVjwlH9ATGoEx2rrGremzUA0iRjrRbMfDyCZfaffzh-DfnVNoaan-0Cm-EuQioNOFL4l0lo2pGP6ZhI6Ymj7F_EsQjskvPXnLN2xtST2PZHulqIe_7twd_TQ5CdaTYlspIdOJqNVcFaQCLnImCaB7XQhXMS0LWRjNhGtVPUNGBTJ"/>
-                        <div className="w-6 h-6 rounded-full glass-panel border border-white/20 flex items-center justify-center text-[10px] font-bold">
-                            +3
-                        </div>
-                    </div>
-                </button>
-            </div>
         </>
     );
 }
