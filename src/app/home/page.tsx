@@ -31,6 +31,7 @@ export default function HomePage() {
   const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [tasksLoading, setTasksLoading] = useState(true);
+  const [assignedTasksCount, setAssignedTasksCount] = useState(0);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -73,24 +74,42 @@ export default function HomePage() {
       return;
     }
   
-    const fetchTasks = async () => {
+    const fetchTaskData = async () => {
       setTasksLoading(true);
-      const { data, error } = await supabase
+
+      const tasksPromise = supabase
         .from('tasks')
         .select('id, title, priority, due_date')
         .or(`assigned_by.eq.${user.id},assigned_to.eq.${user.id}`)
         .order('priority', { ascending: true });
-  
-      if (error) {
-        console.error("Error fetching tasks:", error);
+
+      const countPromise = supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .eq('assigned_by', user.id);
+        
+      const [tasksResult, countResult] = await Promise.all([tasksPromise, countPromise]);
+
+      const { data: tasksData, error: tasksError } = tasksResult;
+      if (tasksError) {
+        console.error("Error fetching tasks:", tasksError);
         setTasks([]);
-      } else if (data) {
-        setTasks(data);
+      } else if (tasksData) {
+        setTasks(tasksData);
       }
+
+      const { count, error: countError } = countResult;
+      if (countError) {
+          console.error("Error fetching assigned tasks count:", countError);
+          setAssignedTasksCount(0);
+      } else {
+          setAssignedTasksCount(count || 0);
+      }
+
       setTasksLoading(false);
     };
   
-    fetchTasks();
+    fetchTaskData();
   }, [user, isLoading]);
 
 
@@ -192,7 +211,7 @@ export default function HomePage() {
                 <section className="glass-panel p-6 rounded-3xl relative overflow-hidden">
                     <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/5 blur-2xl rounded-full"></div>
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
-                    <p className="text-lavender-muted mt-1 opacity-90">You have 5 tasks to complete today.</p>
+                    <p className="text-lavender-muted mt-1 opacity-90">You have {assignedTasksCount} tasks to check today.</p>
                 </section>
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
