@@ -165,11 +165,11 @@ export default function CreateTaskPage() {
                     </div>
                 </div>
             </main>
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-40">
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
                 <button 
                     onClick={handleNext} 
                     disabled={!selectedAssigneeId}
-                    className="w-full glass-panel text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full bg-white/5 backdrop-blur-2xl border border-white/20 text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     Next
                     <span className="material-symbols-outlined text-xl">arrow_forward</span>
                 </button>
