@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -31,6 +31,7 @@ type Task = {
     assignee: Profile;
     assigned_by: string;
     completed_at: string | null;
+    team_id: string | null;
 };
 
 export default function TaskDetailsPage() {
@@ -49,6 +50,11 @@ export default function TaskDetailsPage() {
     
     const [isCompleting, setIsCompleting] = useState(false);
     const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+
+    const [showReassignModal, setShowReassignModal] = useState(false);
+    const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
+    const [isFetchingMembers, setIsFetchingMembers] = useState(false);
+    const [isReassigning, setIsReassigning] = useState(false);
 
     useEffect(() => {
         if (!taskId) return;
@@ -219,6 +225,86 @@ export default function TaskDetailsPage() {
         }
     };
 
+    const handleOpenReassignModal = async () => {
+        if (!task) return;
+        if (!task.team_id) {
+            toast({
+                variant: "destructive",
+                title: "Cannot Reassign",
+                description: "This task is not part of a team and cannot be reassigned.",
+            });
+            return;
+        }
+
+        setIsFetchingMembers(true);
+        setShowReassignModal(true);
+
+        try {
+            const { data: teamMembersData, error: teamMembersError } = await supabase
+                .from('team_members')
+                .select('user_id')
+                .eq('team_id', task.team_id);
+
+            if (teamMembersError) throw teamMembersError;
+
+            const userIds = teamMembersData.map(m => m.user_id);
+
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name')
+                .in('id', userIds);
+            
+            if (usersError) throw usersError;
+
+            if (usersData) {
+                setTeamMembers(usersData.filter(member => member.id !== task.assignee.id));
+            } else {
+                setTeamMembers([]);
+            }
+
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error fetching members', description: e.message });
+            setShowReassignModal(false);
+        } finally {
+            setIsFetchingMembers(false);
+        }
+    };
+
+    const handleReassignTask = async (newAssignee: Profile) => {
+        if (!task) return;
+        
+        setIsReassigning(true);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) throw new Error("Authentication failed.");
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ assigneeId: newAssignee.id }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to reassign task.');
+            }
+            
+            const updatedTaskData = await response.json();
+            setTask(updatedTaskData);
+            toast({ title: 'Task Reassigned', description: `Task has been reassigned to ${newAssignee.full_name}.` });
+        
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Reassignment Failed', description: e.message });
+        } finally {
+            setIsReassigning(false);
+            setShowReassignModal(false);
+        }
+    };
+
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
         return getHumanAvatarSvg(task.assignee.id);
@@ -288,10 +374,12 @@ export default function TaskDetailsPage() {
                                     </div>
                                     <span className="text-sm font-medium">{task.assignee.full_name}</span>
                                 </div>
-                                <button className="flex items-center gap-1.5 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10">
-                                    <span className="material-symbols-outlined text-[16px]">person_add</span>
-                                    <span className="text-[11px] font-semibold tracking-wide">Reassign</span>
-                                </button>
+                                {user?.id === task.assigned_by && !isTaskCompleted && (
+                                    <button onClick={handleOpenReassignModal} className="flex items-center gap-1.5 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10">
+                                        <span className="material-symbols-outlined text-[16px]">person_add</span>
+                                        <span className="text-[11px] font-semibold tracking-wide">Reassign</span>
+                                    </button>
+                                )}
                             </div>
                         </section>
                         <section className="flex items-center gap-4">
@@ -430,6 +518,49 @@ export default function TaskDetailsPage() {
                                 Cancel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {showReassignModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
+                    <div className="glass-modal w-full max-w-sm rounded-[3rem] p-6 flex flex-col text-center">
+                        <h2 className="text-xl font-bold mb-4 tracking-tight">Reassign Task</h2>
+                        <div className="max-h-[60vh] overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                            {isFetchingMembers ? (
+                                <div className="flex justify-center items-center p-8">
+                                    <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                                </div>
+                            ) : teamMembers.length > 0 ? (
+                                teamMembers.map(member => (
+                                    <button
+                                        key={member.id}
+                                        onClick={() => handleReassignTask(member)}
+                                        disabled={isReassigning}
+                                        className="w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-all hover:bg-white/10 disabled:opacity-50"
+                                    >
+                                        <div className="w-10 h-10 rounded-full border-2 border-white/20 overflow-hidden shrink-0 flex items-center justify-center">
+                                            <div
+                                                style={{ width: 32, height: 32, borderRadius: '50%', overflow: 'hidden' }}
+                                                dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(member.id)) }}
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-sm truncate">{member.full_name}</h4>
+                                        </div>
+                                    </button>
+                                ))
+                            ) : (
+                                <p className="text-white/60 py-4">No other team members available.</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowReassignModal(false)}
+                            disabled={isReassigning}
+                            className="w-full mt-6 py-3 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}

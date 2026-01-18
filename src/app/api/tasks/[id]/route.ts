@@ -86,7 +86,7 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { steps, complete } = body;
+    const { steps, complete, assigneeId } = body;
 
     const returnFullTask = async (taskData: any) => {
         const { data: assignee, error: assigneeError } = await supabaseAdmin
@@ -106,22 +106,39 @@ export async function PATCH(
         });
     };
 
-    if (complete) {
-      const { data: existingTask, error: taskError } = await supabaseAdmin
+    const { data: existingTask, error: taskError } = await supabaseAdmin
         .from('tasks')
         .select('*')
         .eq('id', taskId)
         .maybeSingle();
       
-      if (taskError) {
-        console.error('Error fetching task for completion:', taskError);
+    if (taskError) {
+        console.error('Error fetching task for patch:', taskError);
         return NextResponse.json({ error: 'Error verifying task details.' }, { status: 500 });
-      }
+    }
 
-      if (!existingTask) {
+    if (!existingTask) {
         return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-      }
+    }
 
+    if (assigneeId) {
+        if (existingTask.assigned_by !== user.id) {
+            return NextResponse.json({ error: 'Forbidden: Only the task creator can reassign.' }, { status: 403 });
+        }
+        const { data: updatedTask, error: updateError } = await supabaseAdmin
+            .from('tasks')
+            .update({ assigned_to: assigneeId })
+            .eq('id', taskId)
+            .select()
+            .single();
+        if (updateError) {
+            console.error('Supabase reassignment error:', updateError);
+            return NextResponse.json({ error: updateError.message }, { status: 500 });
+        }
+        return await returnFullTask(updatedTask);
+    }
+
+    if (complete) {
       if (existingTask.assigned_to !== user.id) {
         return NextResponse.json({ error: 'Forbidden: Only the assignee can complete the task.' }, { status: 403 });
       }
@@ -146,21 +163,6 @@ export async function PATCH(
     }
     
     if (steps) {
-        const { data: existingTask, error: taskError } = await supabaseAdmin
-          .from('tasks')
-          .select('id, assigned_to, assigned_by, completed_at')
-          .eq('id', taskId)
-          .maybeSingle();
-          
-        if (taskError) {
-            console.error('Error fetching task for patch:', taskError);
-            return NextResponse.json({ error: 'Error verifying task details.' }, { status: 500 });
-        }
-
-        if (!existingTask) {
-            return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-        }
-
         if (existingTask.completed_at) {
             return NextResponse.json({ error: 'Cannot update a completed task.' }, { status: 400 });
         }
@@ -181,10 +183,10 @@ export async function PATCH(
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
         
-        return NextResponse.json(updatedTask);
+        return await returnFullTask(updatedTask);
     }
 
-    return NextResponse.json({ error: 'Invalid request body. Missing "steps" or "complete".' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid request body. Missing "steps", "complete", or "assigneeId".' }, { status: 400 });
 
   } catch (error: any) {
     console.error('API PATCH Error:', error);
