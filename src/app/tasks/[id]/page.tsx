@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -31,13 +31,19 @@ type Task = {
     teamMembers: Profile[];
 };
 
-export default function TaskDetailsPage({ params }: { params: { id: string } }) {
+export default function TaskDetailsPage() {
     const router = useRouter();
+    const { id } = useParams<{ id: string }>();
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!id) {
+            setIsLoading(false);
+            return;
+        }
+
         const fetchTask = async () => {
             setIsLoading(true);
             setError(null);
@@ -51,7 +57,7 @@ export default function TaskDetailsPage({ params }: { params: { id: string } }) 
             }
 
             try {
-                const response = await fetch(`/api/tasks/${params.id}`, {
+                const response = await fetch(`/api/tasks/${id}`, {
                     headers: {
                         'Authorization': `Bearer ${session.access_token}`,
                     },
@@ -71,10 +77,8 @@ export default function TaskDetailsPage({ params }: { params: { id: string } }) 
             }
         };
 
-        if (params.id) {
-            fetchTask();
-        }
-    }, [params.id, router]);
+        fetchTask();
+    }, [id, router]);
 
     if (isLoading) {
         return (
