@@ -172,6 +172,41 @@ export default function ManageMembersPage() {
         }
     };
 
+    const handleRemoveAdmin = async (memberId: string) => {
+        if (!activeTeamId || !currentUserIsAdmin) {
+            toast({
+                variant: 'destructive',
+                title: 'Permission Denied',
+                description: 'You do not have permission to perform this action.',
+            });
+            return;
+        }
+    
+        const { error } = await supabase
+            .from('team_members')
+            .update({ role: 'member' })
+            .match({ team_id: activeTeamId, user_id: memberId });
+    
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Demote Member',
+                description: error.message,
+            });
+        } else {
+            setMembers(prevMembers =>
+                prevMembers.map(member =>
+                    member.id === memberId ? { ...member, role: 'member' } : member
+                )
+            );
+            toast({
+                title: 'Member Demoted',
+                description: 'The user is no longer an admin.',
+            });
+        }
+    };
+
+
     return (
         <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
             <header className="pt-14 px-6 pb-6 flex items-center justify-between sticky top-0 z-30">
@@ -233,7 +268,10 @@ export default function ManageMembersPage() {
                                         Owner
                                     </button>
                                  ) : member.role === 'admin' ? (
-                                    <button disabled className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
+                                    <button 
+                                        onClick={() => handleRemoveAdmin(member.id)}
+                                        disabled={!currentUserIsAdmin || isLoading}
+                                        className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-base">shield_person</span>
                                         Remove Admin
                                     </button>
