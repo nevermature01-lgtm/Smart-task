@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -39,6 +39,15 @@ export default function TaskDetailsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
+
+    // Swipe to complete logic
+    const swipeTrackRef = useRef<HTMLDivElement>(null);
+    const swipeHandleRef = useRef<HTMLDivElement>(null);
+    const isDraggingRef = useRef(false);
+    const startXRef = useRef(0);
+    const animationFrameRef = useRef<number | null>(null);
+
+    const [isDragging, setIsDragging] = useState(false);
 
 
     useEffect(() => {
@@ -99,8 +108,167 @@ export default function TaskDetailsPage() {
         };
     }, [task]);
 
-    const handleToggleChecklist = async (itemToToggle: Step) => {
+    const isCompleted = isTaskComplete;
+
+    const handleCompleteTask = async () => {
         if (!task || isTaskComplete) return;
+
+        const originalSteps = task.steps;
+        const newSteps = originalSteps.map(step =>
+            step.type === 'checklist' ? { ...step, checked: true } : step
+        );
+        
+        const newTask = { ...task, steps: newSteps };
+        setTask(newTask);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { throw new Error("You are not authenticated."); }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: newSteps }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update task.');
+            }
+            toast({ title: "Task Completed!", description: "All checklist items have been marked as complete." });
+
+        } catch (e: any) {
+            setTask({ ...task, steps: originalSteps });
+            toast({ variant: 'destructive', title: 'Error completing task', description: e.message });
+        }
+    };
+    
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (isCompleted || isDragging) return;
+
+        const handle = e.currentTarget;
+        handle.setPointerCapture(e.pointerId);
+
+        isDraggingRef.current = true;
+        startXRef.current = e.clientX;
+        setIsDragging(true);
+
+        if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+        }
+        
+        if (swipeHandleRef.current) {
+            swipeHandleRef.current.style.transition = 'none';
+        }
+    };
+    
+    useEffect(() => {
+        const handle = swipeHandleRef.current;
+        if (!handle) return;
+    
+        const moveHandler = (e: PointerEvent) => {
+            if (!isDraggingRef.current) return;
+            e.preventDefault();
+    
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+    
+            animationFrameRef.current = requestAnimationFrame(() => {
+                const deltaX = e.clientX - startXRef.current;
+                const trackWidth = swipeTrackRef.current?.offsetWidth ?? 0;
+                const handleWidth = handle.offsetWidth;
+                const maxTranslateX = trackWidth > handleWidth ? trackWidth - handleWidth - 8 : 0;
+    
+                let newTranslateX = deltaX;
+                newTranslateX = Math.max(0, Math.min(newTranslateX, maxTranslateX));
+                
+                handle.style.transform = `translateX(${newTranslateX}px)`;
+            });
+        };
+    
+        const upHandler = (e: PointerEvent) => {
+            if (!isDraggingRef.current) return;
+    
+            window.removeEventListener('pointermove', moveHandler);
+            window.removeEventListener('pointerup', upHandler);
+            window.removeEventListener('pointercancel', upHandler);
+            
+            try {
+                handle.releasePointerCapture(e.pointerId);
+            } catch (error) {
+                // This can fail if the pointer is already released, which is fine.
+            }
+    
+            isDraggingRef.current = false;
+            setIsDragging(false);
+            
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+    
+            const trackWidth = swipeTrackRef.current?.offsetWidth ?? 0;
+            const completionThreshold = trackWidth * 0.7;
+    
+            const currentTransform = handle.style.transform;
+            const currentTranslateX = currentTransform ? parseFloat(currentTransform.replace(/[^0-9.-]/g, '')) : 0;
+
+            if (currentTranslateX >= completionThreshold) {
+                handleCompleteTask();
+            } else {
+                 handle.style.transition = 'transform 0.3s ease';
+                 handle.style.transform = `translateX(0px)`;
+                 handle.addEventListener('transitionend', () => {
+                     handle.style.transition = '';
+                 }, { once: true });
+            }
+        };
+    
+        if (isDragging) {
+            window.addEventListener('pointermove', moveHandler, { passive: false });
+            window.addEventListener('pointerup', upHandler);
+            window.addEventListener('pointercancel', upHandler);
+        }
+    
+        return () => {
+            window.removeEventListener('pointermove', moveHandler);
+            window.removeEventListener('pointerup', upHandler);
+            window.removeEventListener('pointercancel', upHandler);
+            if (animationFrameRef.current) {
+                cancelAnimationFrame(animationFrameRef.current);
+            }
+        };
+    }, [isDragging, handleCompleteTask]);
+
+
+    useEffect(() => {
+        const handle = swipeHandleRef.current;
+        if (handle) {
+            if (isCompleted) {
+                const trackWidth = swipeTrackRef.current?.offsetWidth ?? 0;
+                const handleWidth = handle.offsetWidth;
+                const maxTranslateX = trackWidth > handleWidth ? trackWidth - handleWidth - 8 : 0;
+                handle.style.transition = 'transform 0.3s ease';
+                handle.style.transform = `translateX(${maxTranslateX}px)`;
+            } else if (!isDragging) {
+                 handle.style.transition = 'transform 0.3s ease';
+                 handle.style.transform = `translateX(0px)`;
+            }
+        }
+    }, [isCompleted, isDragging]);
+
+
+    const handleToggleChecklist = async (itemToToggle: Step) => {
+        if (!task) return;
+        
+        const itemExists = task.steps.find(step => step.id === itemToToggle.id);
+        if (!itemExists) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not find the item to update.' });
+            return;
+        }
 
         const originalSteps = task.steps;
 
@@ -268,6 +436,49 @@ export default function TaskDetailsPage() {
                     </div>
                 </div>
             </main>
+
+            {checklist.length > 0 && (
+                <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
+                    <div ref={swipeTrackRef} className="relative w-full h-16 rounded-full swipe-track shadow-lg">
+                        <div
+                            ref={swipeHandleRef}
+                            style={{
+                                touchAction: 'none',
+                                willChange: 'transform',
+                            }}
+                            onPointerDown={handlePointerDown}
+                            className={cn(
+                                "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing",
+                                isCompleted && "bg-success/50 border-success/60 cursor-default",
+                            )}
+                        >
+                            <span className={cn(
+                                "material-symbols-outlined text-3xl text-white transition-opacity duration-300",
+                                isCompleted && "opacity-100"
+                            )}>
+                                {isCompleted ? 'check' : 'chevron_right'}
+                            </span>
+                        </div>
+                        <div
+                            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                        >
+                             <span className={cn(
+                                "text-sm font-bold uppercase tracking-widest text-white/50 transition-opacity",
+                                isCompleted && "opacity-0"
+                             )}>
+                                SWIPE TO COMPLETE
+                            </span>
+                        </div>
+                         {isCompleted && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-sm font-bold uppercase tracking-widest text-white">
+                                    COMPLETED
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </>
     );
 }
