@@ -139,8 +139,7 @@ export default function TaskDetailsPage() {
                 </span>
                 </div>
                 <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-full border-white/20 priority-glow bg-white/10">
-                <span className="text-xs font-bold text-white uppercase tracking-tighter">P1</span>
-                <span className="text-[10px] opacity-70">Priority</span>
+                    <span className="text-xs font-bold text-white uppercase tracking-tighter">P{task.priority}</span>
                 </div>
             </section>
             <section className="space-y-4">
