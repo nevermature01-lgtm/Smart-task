@@ -179,18 +179,25 @@ function CreateTaskDetailsComponent() {
                             </div>
                             <div className="space-y-2">
                                 {steps.map((step, index) => (
-                                    <div key={index} className="flex items-center gap-2">
-                                        <input
-                                            type="text"
-                                            value={step}
-                                            onChange={(e) => handleStepChange(index, e.target.value)}
-                                            placeholder="New step..."
-                                            disabled={isLoading}
-                                            className="w-full bg-white/5 glass-panel px-3 py-2 rounded-xl text-[12px] font-medium border-white/10 focus:ring-1 focus:ring-white/50 focus:outline-none placeholder:text-white/40"
-                                        />
-                                        <button onClick={() => handleRemoveStep(index)} disabled={isLoading} className="p-1 rounded-full hover:bg-white/10 transition-colors">
-                                            <span className="material-symbols-outlined text-sm text-white/50 hover:text-white">close</span>
-                                        </button>
+                                    <div key={index}>
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={step}
+                                                onChange={(e) => handleStepChange(index, e.target.value)}
+                                                placeholder="New step..."
+                                                disabled={isLoading}
+                                                className="w-full bg-white/5 glass-panel px-3 py-2 rounded-xl text-[12px] font-medium border-white/10 focus:ring-1 focus:ring-white/50 focus:outline-none placeholder:text-white/40"
+                                            />
+                                            <button onClick={() => handleRemoveStep(index)} disabled={isLoading} className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                                <span className="material-symbols-outlined text-sm text-white/50 hover:text-white">close</span>
+                                            </button>
+                                        </div>
+                                        {index < steps.length - 1 && (
+                                            <div className="flex justify-center py-1">
+                                                <span className="material-symbols-outlined text-white/30">arrow_downward</span>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
