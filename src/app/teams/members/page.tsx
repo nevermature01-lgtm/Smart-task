@@ -22,6 +22,9 @@ export default function ManageMembersPage() {
     
     const [members, setMembers] = useState<Member[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isSearchVisible, setIsSearchVisible] = useState(false);
+    const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
 
     useEffect(() => {
         if (isTeamLoading) return;
@@ -107,15 +110,49 @@ export default function ManageMembersPage() {
         fetchTeamData();
     }, [activeTeamId, isTeamLoading, router, toast]);
 
+    useEffect(() => {
+        if (!searchQuery) {
+            setFilteredMembers(members);
+        } else {
+            setFilteredMembers(
+                members.filter(member =>
+                    member.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+            );
+        }
+    }, [searchQuery, members]);
+
+    const toggleSearch = () => {
+        setIsSearchVisible(!isSearchVisible);
+        if (isSearchVisible) {
+            setSearchQuery('');
+        }
+    };
+
     return (
         <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
             <header className="pt-14 px-6 pb-6 flex items-center justify-between sticky top-0 z-30">
                 <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl leading-none">chevron_left</span>
                 </button>
-                <h1 className="text-xl font-bold tracking-tight text-white">Team Members</h1>
-                <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-2xl leading-none">search</span>
+                
+                {isSearchVisible ? (
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search members..."
+                        className="flex-1 mx-4 px-4 py-2 rounded-xl glass-input text-white placeholder:text-white/40 focus:outline-none focus:ring-1 focus:ring-white/40"
+                        autoFocus
+                    />
+                ) : (
+                    <h1 className="text-xl font-bold tracking-tight text-white">Team Members</h1>
+                )}
+
+                <button onClick={toggleSearch} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                    <span className="material-symbols-outlined text-2xl leading-none">
+                        {isSearchVisible ? 'close' : 'search'}
+                    </span>
                 </button>
             </header>
             <main className="flex-1 px-6 pb-24 space-y-4 overflow-y-auto custom-scrollbar">
@@ -123,12 +160,12 @@ export default function ManageMembersPage() {
                     <div className="flex justify-center items-center p-8">
                         <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     </div>
-                ) : members.length === 0 ? (
+                ) : filteredMembers.length === 0 ? (
                     <div className="glass-panel p-6 rounded-3xl text-center">
-                        <p className="text-lavender-muted">No members found for this team.</p>
+                        <p className="text-lavender-muted">{searchQuery ? 'No members found.' : 'No members found for this team.'}</p>
                     </div>
                 ) : (
-                    members.map((member) => (
+                    filteredMembers.map((member) => (
                         <div key={member.id} className="glass-panel p-5 rounded-3xl space-y-4">
                             <div className="flex items-center gap-4">
                                 <div className="w-14 h-14 rounded-full border-2 border-white/20 overflow-hidden shadow-sm flex-shrink-0">
