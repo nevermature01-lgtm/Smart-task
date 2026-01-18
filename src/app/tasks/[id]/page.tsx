@@ -7,6 +7,7 @@ import { getHumanAvatarSvg } from '@/lib/avatar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 
 type Profile = {
     id: string;
@@ -28,17 +29,22 @@ type Task = {
     due_date: string | null;
     steps: Step[];
     assignee: Profile;
+    assigned_by: string;
 };
 
 export default function TaskDetailsPage() {
     const router = useRouter();
     const params = useParams();
     const taskId = params.id as string;
+    const { user } = useSupabaseAuth();
 
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
+    
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     useEffect(() => {
         if (!taskId) return;
@@ -135,6 +141,44 @@ export default function TaskDetailsPage() {
             toast({ variant: 'destructive', title: 'Error updating checklist', description: e.message });
         }
     };
+    
+    const handleDeleteTask = async () => {
+        if (!task) return;
+
+        setIsDeleting(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            toast({ variant: 'destructive', title: 'Authentication error' });
+            setIsDeleting(false);
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete task.');
+            }
+
+            toast({ title: 'Task Deleted' });
+            router.push('/home');
+
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Error Deleting Task',
+                description: e.message,
+            });
+            setIsDeleting(false);
+            setShowDeleteDialog(false);
+        }
+    };
 
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
@@ -182,9 +226,11 @@ export default function TaskDetailsPage() {
                 <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
                 <div className="flex items-center gap-2">
                     
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
-                        <span className="material-symbols-outlined text-xl">delete</span>
-                    </button>
+                    {user && task && user.id === task.assigned_by && (
+                        <button onClick={() => setShowDeleteDialog(true)} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
+                            <span className="material-symbols-outlined text-xl">delete</span>
+                        </button>
+                    )}
                 </div>
             </header>
 
@@ -275,6 +321,38 @@ export default function TaskDetailsPage() {
                     Submit
                 </button>
             </div>
+            
+            {showDeleteDialog && (
+                 <div className="fixed inset-0 z-50 flex items-center justify-center px-6 bg-black/40 backdrop-blur-sm">
+                    <div className="glass-modal w-full max-w-sm rounded-[3rem] p-8 flex flex-col items-center text-center">
+                        <div className="w-20 h-20 mb-6 rounded-full glass-button-red flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/30">
+                                <span className="material-symbols-outlined text-3xl text-white font-bold">priority_high</span>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-bold mb-3 tracking-tight">Delete Task?</h2>
+                        <p className="text-white/80 leading-relaxed mb-8 text-base">
+                            Are you sure you want to delete this task? This action cannot be undone.
+                        </p>
+                        <div className="w-full space-y-3">
+                            <button
+                                onClick={handleDeleteTask}
+                                disabled={isDeleting}
+                                className="w-full py-4 rounded-2xl glass-button-red text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                {isDeleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                            <button
+                                onClick={() => setShowDeleteDialog(false)}
+                                disabled={isDeleting}
+                                className="w-full py-4 rounded-2xl glass-button-secondary text-white font-bold text-lg active:scale-95 transition-transform disabled:opacity-50"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }
