@@ -268,8 +268,10 @@ export default function HomePage() {
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
                     {assignedToCount > 0 ? (
                         <p className="text-lavender-muted mt-1 opacity-90">You have {assignedToCount} tasks to complete today.</p>
-                    ) : (
+                    ) : assignedByCount > 0 ? (
                         <p className="text-lavender-muted mt-1 opacity-90">You have {assignedByCount} tasks to check today.</p>
+                    ) : (
+                        <p className="text-lavender-muted mt-1 opacity-90">You have no tasks today.</p>
                     )}
                 </section>
                 <section className="space-y-4">
