@@ -169,7 +169,7 @@ export default function CreateTaskPage() {
                 <button 
                     onClick={handleNext} 
                     disabled={!selectedAssigneeId}
-                    className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10 disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="w-full glass-panel text-white font-bold py-4 rounded-2xl active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                     Next
                     <span className="material-symbols-outlined text-xl">arrow_forward</span>
                 </button>
