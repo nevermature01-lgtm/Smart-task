@@ -11,14 +11,35 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }
 
         // 1. Get the authenticated user from the token.
-        // The `user.id` here is the correct Supabase User UUID.
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+        const { data: { user: authUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
-        if (userError || !user) {
+        if (userError || !authUser) {
             return NextResponse.json({ error: userError?.message || 'Unauthorized' }, { status: 401 });
         }
+        
+        if (!authUser.email) {
+             return NextResponse.json({ error: 'User email not found in token.' }, { status: 400 });
+        }
+        
+        console.log('Authenticated user email:', authUser.email);
+        
+        // 2. Query the public 'users' table to get the internal user profile UUID using email.
+        const { data: userProfile, error: profileError } = await supabaseAdmin
+            .from('users')
+            .select('id')
+            .eq('email', authUser.email)
+            .single();
 
-        // 2. Fetch the task using the task ID and the user's Supabase UUID for authorization.
+        if (profileError || !userProfile) {
+            console.error('Error resolving Supabase user by email:', profileError?.message || 'User not found');
+            return NextResponse.json({ error: 'Could not resolve user profile in database.' }, { status: 404 });
+        }
+        
+        const userUUID = userProfile.id;
+        console.log('Resolved Supabase user UUID:', userUUID);
+        console.log('Querying for task ID:', taskId);
+
+        // 3. Fetch the task using the task ID and the user's internal UUID for authorization.
         const { data: task, error: taskError } = await supabaseAdmin
             .from('tasks')
             .select(`
@@ -27,7 +48,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 assigner:assigned_by ( id, full_name )
             `)
             .eq('id', taskId)
-            .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id}`) // Use the Supabase UUID here
+            .or(`assigned_to.eq.${userUUID},assigned_by.eq.${userUUID}`)
             .maybeSingle();
 
         if (taskError) {
@@ -39,14 +60,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
              return NextResponse.json({ error: 'Task not found or you are not authorized to view it.' }, { status: 404 });
         }
         
-        // 3. Fetch team members if the task is associated with a team.
+        // 4. Fetch team members if the task is associated with a team.
         let teamMembers: any[] = [];
         if (task.team_id) {
             const { data: members, error: membersError } = await supabaseAdmin
                 .from('team_members')
                 .select('users(id, full_name)')
                 .eq('team_id', task.team_id)
-                .neq('user_id', user.id);
+                .neq('user_id', userUUID);
 
             if (membersError) {
                 console.error("Error fetching team members for task details:", membersError);
@@ -55,7 +76,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
             }
         }
 
-        // 4. Return the complete task details.
+        // 5. Return the complete task details.
         return NextResponse.json({ ...task, teamMembers });
 
     } catch (error: any) {
