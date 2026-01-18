@@ -165,7 +165,7 @@ export default function CreateTaskPage() {
                     </div>
                 </div>
             </main>
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-40">
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
                 <button 
                     onClick={handleNext} 
                     disabled={!selectedAssigneeId}
