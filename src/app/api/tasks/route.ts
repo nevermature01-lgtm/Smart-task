@@ -4,13 +4,9 @@ import { parse, format } from 'date-fns';
 import { randomUUID } from 'crypto';
 
 // Helper function to create a notification
-async function createNotification(userId: string, message: string, link: string) {
+async function createNotification(payload: Record<string, any>) {
     try {
-        const { error } = await supabaseAdmin.from('notifications').insert({
-            user_id: userId,
-            message: message,
-            link: link,
-        });
+        const { error } = await supabaseAdmin.from('notifications').insert(payload);
         if (error) {
             console.error('Error creating notification:', error.message);
         }
@@ -119,11 +115,14 @@ export async function POST(request: Request) {
         // Create notification for assignee
         if (newTask && assigneeId !== user.id) { // Don't notify if assigning to self
             const creatorName = user.user_metadata?.full_name || 'Someone';
-            await createNotification(
-                assigneeId,
-                `${creatorName} assigned you a new task: "${newTask.title}"`,
-                `/tasks/${newTask.id}`
-            );
+            await createNotification({
+                user_id: assigneeId,
+                message: `${creatorName} assigned you a new task: "${newTask.title}"`,
+                link: `/tasks/${newTask.id}`,
+                type: 'task_assigned',
+                title: 'New Task Assigned',
+                task_id: newTask.id,
+            });
         }
 
 

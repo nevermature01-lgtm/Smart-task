@@ -3,13 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { randomUUID } from 'crypto';
 
 // Helper function to create a notification
-async function createNotification(userId: string, message: string, link: string) {
+async function createNotification(payload: Record<string, any>) {
     try {
-        const { error } = await supabaseAdmin.from('notifications').insert({
-            user_id: userId,
-            message: message,
-            link: link,
-        });
+        const { error } = await supabaseAdmin.from('notifications').insert(payload);
         if (error) {
             console.error('Error creating notification:', error.message);
         }
@@ -189,18 +185,24 @@ export async function PATCH(
         
         const assignerName = user.user_metadata?.full_name || 'Someone';
         // Notify new assignee
-        await createNotification(
-            assigneeId,
-            `${assignerName} reassigned the task "${updatedTask.title}" to you`,
-            `/tasks/${updatedTask.id}`
-        );
+        await createNotification({
+            user_id: assigneeId,
+            message: `${assignerName} reassigned the task "${updatedTask.title}" to you`,
+            link: `/tasks/${updatedTask.id}`,
+            type: 'task_assigned',
+            title: 'New Task Assigned',
+            task_id: updatedTask.id,
+        });
         // Notify old assignee
         if (existingTask.assigned_to !== user.id) { // Avoid notifying self
-            await createNotification(
-                existingTask.assigned_to,
-                `${assignerName} reassigned your task "${updatedTask.title}"`,
-                `/tasks/${updatedTask.id}`
-            );
+            await createNotification({
+                user_id: existingTask.assigned_to,
+                message: `${assignerName} reassigned your task "${updatedTask.title}"`,
+                link: `/tasks/${updatedTask.id}`,
+                type: 'task_reassigned',
+                title: 'Task Reassigned',
+                task_id: updatedTask.id,
+            });
         }
 
         return await returnFullTask(updatedTask);
@@ -230,11 +232,14 @@ export async function PATCH(
       // Notify task assigner
       if (updatedTask.assigned_by !== user.id) { // Don't notify self
         const completerName = user.user_metadata?.full_name || 'Someone';
-        await createNotification(
-            updatedTask.assigned_by,
-            `${completerName} completed the task: "${updatedTask.title}"`,
-            `/tasks/${updatedTask.id}`
-        );
+        await createNotification({
+            user_id: updatedTask.assigned_by,
+            message: `${completerName} completed the task: "${updatedTask.title}"`,
+            link: `/tasks/${updatedTask.id}`,
+            type: 'task_completed',
+            title: 'Task Completed',
+            task_id: updatedTask.id,
+        });
       }
 
       return await returnFullTask(updatedTask);
@@ -314,11 +319,13 @@ export async function DELETE(
     // Notify the assignee that the task was deleted
     if (task.assigned_to && task.assigned_to !== user.id) {
         const assignerName = user.user_metadata?.full_name || 'Someone';
-        await createNotification(
-            task.assigned_to,
-            `${assignerName} deleted the task: "${task.title}"`,
-            '/home'
-        );
+        await createNotification({
+            user_id: task.assigned_to,
+            message: `${assignerName} deleted the task: "${task.title}"`,
+            link: '/home',
+            type: 'task_deleted',
+            title: 'Task Deleted',
+        });
     }
 
 
