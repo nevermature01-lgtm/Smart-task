@@ -59,17 +59,16 @@ export default function HomePage() {
       setIsLoadingMembers(true);
       
       // Fetch Team Details
-      const { data: teamData, error: teamError } = await supabase
+      const { data: teamsData, error: teamError } = await supabase
         .from('teams')
         .select('team_name, team_code, owner_id, owner_name')
-        .eq('id', activeTeam)
-        .single();
+        .eq('id', activeTeam);
         
       if (teamError) {
         console.error("Error fetching team details:", teamError.message);
         // On error, don't wipe existing state to prevent flicker
       } else {
-        setTeamDetails(teamData);
+        setTeamDetails(teamsData?.[0] ?? null);
       }
       
       // Fetch Team Members
