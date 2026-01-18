@@ -36,12 +36,8 @@ export default function CreateTaskPage() {
             }
 
             if (activeTeamId === 'personal' || !activeTeamId) {
-                const self: Profile = {
-                    id: user.id,
-                    full_name: user.user_metadata?.full_name || 'Personal Account',
-                };
-                setMembers([self]);
-                setSelectedAssigneeId(self.id);
+                setMembers([]); // Don't show any members for personal workspace
+                setSelectedAssigneeId(user.id); // Assign to self by default
                 setIsLoading(false);
                 return;
             }
@@ -79,15 +75,21 @@ export default function CreateTaskPage() {
                 }
 
                 if (usersData) {
-                    const finalProfiles: Profile[] = usersData.map(member => ({
-                        id: member.id,
-                        full_name: member.full_name || "Team Member",
-                    }));
+                    // Filter out the logged-in user from the list of assignable members
+                    const finalProfiles: Profile[] = usersData
+                        .map(member => ({
+                            id: member.id,
+                            full_name: member.full_name || "Team Member",
+                        }))
+                        .filter(member => member.id !== user.id);
+                    
                     setMembers(finalProfiles);
-
-                    // Auto-select if there's only one member
+                    
                     if (finalProfiles.length === 1) {
                         setSelectedAssigneeId(finalProfiles[0].id);
+                    } else {
+                        // If there are multiple members or no other members, don't pre-select anyone.
+                        setSelectedAssigneeId(null);
                     }
                 } else {
                     setMembers([]);
@@ -159,7 +161,12 @@ export default function CreateTaskPage() {
                             ))
                         ) : (
                             <div className="glass-panel p-5 rounded-2xl text-center">
-                                <p className="text-lavender-muted">No members found.</p>
+                                <p className="text-lavender-muted">
+                                    {activeTeamId === 'personal'
+                                        ? 'Tasks in your personal workspace are assigned to you by default.'
+                                        : 'No other team members to assign tasks to.'
+                                    }
+                                </p>
                             </div>
                         )}
                     </div>
@@ -171,7 +178,7 @@ export default function CreateTaskPage() {
                     disabled={!selectedAssigneeId}
                     className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10 disabled:opacity-70 disabled:cursor-not-allowed">
                     Next
-                    <span className="material-symbols-outlined text-xl">arrow_forward</span>
+                    <span className="material-symbols-outlined text-xl icon-glow">arrow_forward</span>
                 </button>
             </div>
         </div>
