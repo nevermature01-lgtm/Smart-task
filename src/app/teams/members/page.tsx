@@ -2,38 +2,84 @@
 
 import { useRouter } from 'next/navigation';
 import { getHumanAvatarSvg } from '@/lib/avatar';
+import { useState, useEffect } from 'react';
+import { useTeam } from '@/context/TeamProvider';
+import { supabase } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 
-const members = [
-    {
-        id: 'alex-rivera',
-        name: 'Alex Rivera',
-        role: 'Admin',
-    },
-    {
-        id: 'sarah-chen',
-        name: 'Sarah Chen',
-        role: 'Staff',
-    },
-    {
-        id: 'jordan-smith',
-        name: 'Jordan Smith',
-        role: 'Staff',
-    },
-    {
-        id: 'elena-rodriguez',
-        name: 'Elena Rodriguez',
-        role: 'Staff',
-    },
-    {
-        id: 'marcus-thorne',
-        name: 'Marcus Thorne',
-        role: 'Staff',
-    }
-];
-
+type Member = {
+    id: string;
+    full_name: string;
+    role: string;
+};
 
 export default function ManageMembersPage() {
     const router = useRouter();
+    const { user } = useSupabaseAuth();
+    const { activeTeam: activeTeamId, isLoading: isTeamLoading } = useTeam();
+    const { toast } = useToast();
+    
+    const [members, setMembers] = useState<Member[]>([]);
+    const [teamName, setTeamName] = useState<string>('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (isTeamLoading) return;
+
+        if (!activeTeamId || activeTeamId === 'personal') {
+            toast({
+                variant: 'destructive',
+                title: 'No Team Selected',
+                description: 'You must select a team to manage its members.',
+            });
+            router.push('/teams');
+            return;
+        }
+
+        const fetchTeamData = async () => {
+            setIsLoading(true);
+
+            // Fetch team name
+            const { data: teamData, error: teamError } = await supabase
+                .from('teams')
+                .select('team_name')
+                .eq('id', activeTeamId)
+                .single();
+
+            if (teamError) {
+                console.error('Error fetching team name:', teamError);
+                toast({ variant: 'destructive', title: 'Failed to load team.' });
+                setIsLoading(false);
+                return;
+            }
+            setTeamName(teamData.team_name);
+
+            // Fetch members
+            const { data: teamMembersData, error: membersError } = await supabase
+                .from('team_members')
+                .select('role, user_id, users(id, full_name)')
+                .eq('team_id', activeTeamId);
+
+            if (membersError) {
+                console.error('Error fetching team members:', membersError);
+                toast({ variant: 'destructive', title: 'Failed to load members.' });
+                setIsLoading(false);
+                return;
+            }
+
+            const processedMembers: Member[] = teamMembersData.map((item: any) => ({
+                id: item.users.id,
+                full_name: item.users.full_name || 'Team Member',
+                role: item.role,
+            }));
+            
+            setMembers(processedMembers);
+            setIsLoading(false);
+        };
+
+        fetchTeamData();
+    }, [activeTeamId, isTeamLoading, router, toast]);
 
     return (
         <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
@@ -47,43 +93,58 @@ export default function ManageMembersPage() {
                 </button>
             </header>
             <main className="flex-1 px-6 pb-24 space-y-4 overflow-y-auto custom-scrollbar">
-                {members.map((member) => (
-                    <div key={member.id} className="glass-panel p-5 rounded-3xl space-y-4">
-                        <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 rounded-full border-2 border-white/20 overflow-hidden shadow-sm flex-shrink-0">
-                                 <div
-                                    style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}
-                                    dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(member.id) }}
-                                />
-                            </div>
-                            <div className="flex flex-col flex-1">
-                                <span className="font-bold text-lg text-white">{member.name}</span>
-                                {member.role === 'Admin' ? (
-                                     <span className="text-[10px] uppercase tracking-wider font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full w-fit">Admin</span>
-                                ) : (
-                                     <span className="text-[10px] uppercase tracking-wider font-bold bg-white/10 text-white/80 px-2 py-0.5 rounded-full w-fit">Staff</span>
-                                )}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                             {member.role === 'Admin' ? (
-                                <button className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
-                                    <span className="material-symbols-outlined text-base">shield_person</span>
-                                    Remove Admin
-                                </button>
-                             ) : (
-                                <button className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
-                                    <span className="material-symbols-outlined text-base">shield</span>
-                                    Make Admin
-                                </button>
-                             )}
-                            <button className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-red-400 py-2.5 rounded-xl glass-button-red active:scale-95 transition-all">
-                                <span className="material-symbols-outlined text-base">person_remove</span>
-                                Remove
-                            </button>
-                        </div>
+                {isLoading ? (
+                    <div className="flex justify-center items-center p-8">
+                        <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                     </div>
-                ))}
+                ) : members.length === 0 ? (
+                    <div className="glass-panel p-6 rounded-3xl text-center">
+                        <p className="text-lavender-muted">No members found for this team.</p>
+                    </div>
+                ) : (
+                    members.map((member) => (
+                        <div key={member.id} className="glass-panel p-5 rounded-3xl space-y-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-full border-2 border-white/20 overflow-hidden shadow-sm flex-shrink-0">
+                                     <div
+                                        style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden' }}
+                                        dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(member.id) }}
+                                    />
+                                </div>
+                                <div className="flex flex-col flex-1">
+                                    <span className="font-bold text-lg text-white">{member.full_name}</span>
+                                    {(member.role === 'owner' || member.role === 'admin') ? (
+                                         <span className="text-[10px] uppercase tracking-wider font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full w-fit">Admin</span>
+                                    ) : (
+                                         <span className="text-[10px] uppercase tracking-wider font-bold bg-white/10 text-white/80 px-2 py-0.5 rounded-full w-fit">Staff</span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                 {member.role === 'owner' ? (
+                                    <button disabled className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary opacity-50 cursor-not-allowed">
+                                        <span className="material-symbols-outlined text-base">shield_person</span>
+                                        Owner
+                                    </button>
+                                 ) : member.role === 'admin' ? (
+                                    <button disabled className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
+                                        <span className="material-symbols-outlined text-base">shield_person</span>
+                                        Remove Admin
+                                    </button>
+                                 ) : (
+                                    <button disabled className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
+                                        <span className="material-symbols-outlined text-base">shield</span>
+                                        Make Admin
+                                    </button>
+                                 )}
+                                <button disabled={member.role === 'owner'} className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-red-400 py-2.5 rounded-xl glass-button-red active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                                    <span className="material-symbols-outlined text-base">person_remove</span>
+                                    Remove
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/60 to-transparent pointer-events-none h-24"></div>
         </div>
