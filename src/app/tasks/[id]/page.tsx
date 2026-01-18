@@ -78,7 +78,10 @@ export default function TaskDetailsPage() {
     }, [taskId]);
 
     const handleToggleChecklist = async (itemId: string) => {
-        if (!task) return;
+        if (!task || itemId === undefined) {
+            console.warn("Attempted to toggle a checklist item without a valid ID.");
+            return;
+        }
 
         const originalSteps = task.steps;
 
@@ -229,7 +232,7 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {steps.map((step, index) => (
-                                        <div key={step.id || `step-temp-${Date.now()}-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                                        <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                             <p className="text-sm font-medium">{step.value}</p>
                                              {step.checked && <span className="material-symbols-outlined text-success text-xl">check_circle</span>}
                                         </div>
@@ -247,7 +250,7 @@ export default function TaskDetailsPage() {
                                 <div className="space-y-3">
                                     {checklist.map((item, index) => (
                                         <div 
-                                            key={item.id || `checklist-temp-${Date.now()}-${index}`} 
+                                            key={item.id || `checklist-${index}`} 
                                             className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
                                             onClick={() => handleToggleChecklist(item.id)}
                                         >
