@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -41,6 +41,12 @@ export default function TaskDetailsPage() {
     const [isCompleting, setIsCompleting] = useState(false);
     const { toast } = useToast();
 
+    // Swipe functionality state and refs
+    const swipeContainerRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragOffset, setDragOffset] = useState(0);
+    const [maxDrag, setMaxDrag] = useState(0);
+
     useEffect(() => {
         if (!taskId) return;
 
@@ -79,99 +85,7 @@ export default function TaskDetailsPage() {
 
         fetchTask();
     }, [taskId]);
-
-    const handleToggleChecklist = async (itemToToggle: Step) => {
-        if (!task) {
-            return;
-        }
-
-        const originalSteps = task.steps;
-
-        // Optimistic UI update
-        const newSteps = originalSteps.map(step =>
-            step === itemToToggle ? { ...step, checked: !step.checked } : step
-        );
-
-        const newTask = { ...task, steps: newSteps };
-        setTask(newTask);
-
-        // Persist to DB
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                setTask({ ...task, steps: originalSteps });
-                setError("You are not authenticated.");
-                return;
-            }
-
-            const response = await fetch(`/api/tasks/${taskId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ steps: newSteps }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update task.');
-            }
-
-        } catch (e: any) {
-            setTask({ ...task, steps: originalSteps });
-            setError(e.message);
-        }
-    };
-
-    const handleCompleteTask = async () => {
-        if (!task) return;
-
-        setIsCompleting(true);
-        const originalSteps = task.steps;
-
-        const newSteps = originalSteps.map(step => 
-            step.type === 'checklist' ? { ...step, checked: true } : step
-        );
-        const newTask = { ...task, steps: newSteps };
-        setTask(newTask);
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                throw new Error("You are not authenticated.");
-            }
-
-            const response = await fetch(`/api/tasks/${taskId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ steps: newSteps }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to complete task.');
-            }
-
-            toast({
-                title: "Task Completed!",
-                description: `"${task.title}" has been marked as complete.`,
-            });
-        } catch (e: any) {
-            setTask({ ...task, steps: originalSteps });
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: e.message,
-            });
-        } finally {
-            setIsCompleting(false);
-        }
-    };
-
+    
     const { steps, checklist, checklistCompletion, isTaskComplete, hasChecklist } = useMemo(() => {
         if (!task?.steps) {
             return { steps: [], checklist: [], checklistCompletion: "0/0", isTaskComplete: false, hasChecklist: false };
@@ -191,6 +105,137 @@ export default function TaskDetailsPage() {
             hasChecklist
         };
     }, [task]);
+
+    // Calculate maxDrag on mount and resize
+    useEffect(() => {
+        const calculateMaxDrag = () => {
+            if (swipeContainerRef.current) {
+                const containerWidth = swipeContainerRef.current.offsetWidth;
+                const handleWidth = 56; // w-14
+                const padding = 12; // p-1.5 on container is 6px on each side
+                setMaxDrag(containerWidth - handleWidth - padding);
+            }
+        }
+        calculateMaxDrag();
+        window.addEventListener('resize', calculateMaxDrag);
+        return () => window.removeEventListener('resize', calculateMaxDrag);
+    }, []);
+    
+    const finalDragOffset = useMemo(() => {
+        if (isTaskComplete) {
+            return maxDrag;
+        }
+        return dragOffset;
+    }, [isTaskComplete, dragOffset, maxDrag]);
+
+    const handleToggleChecklist = async (itemToToggle: Step) => {
+        if (!task || isTaskComplete) return;
+
+        const originalSteps = task.steps;
+
+        const newSteps = originalSteps.map(step =>
+            step === itemToToggle ? { ...step, checked: !step.checked } : step
+        );
+
+        const newTask = { ...task, steps: newSteps };
+        setTask(newTask);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { throw new Error("You are not authenticated."); }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: newSteps }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update task.');
+            }
+        } catch (e: any) {
+            setTask({ ...task, steps: originalSteps });
+            toast({ variant: 'destructive', title: 'Error updating checklist', description: e.message });
+        }
+    };
+
+    const handleCompleteTask = async () => {
+        if (!task || isCompleting) return;
+
+        setIsCompleting(true);
+        const originalSteps = task.steps;
+
+        const newSteps = originalSteps.map(step => 
+            step.type === 'checklist' ? { ...step, checked: true } : step
+        );
+        const newTask = { ...task, steps: newSteps };
+        setTask(newTask);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) { throw new Error("You are not authenticated."); }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: newSteps }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to complete task.');
+            }
+            toast({ title: "Task Completed!", description: `"${task.title}" has been marked as complete.` });
+        } catch (e: any) {
+            setTask({ ...task, steps: originalSteps });
+            toast({ variant: "destructive", title: "Error", description: e.message });
+        } finally {
+            setIsCompleting(false);
+        }
+    };
+    
+    const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+        if (isTaskComplete || isCompleting || !hasChecklist) return;
+        e.preventDefault();
+        
+        setIsDragging(true);
+        const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const dragOffsetAtStart = finalDragOffset;
+
+        const handleDragMove = (moveEvent: MouseEvent | TouchEvent) => {
+            const currentX = 'touches' in moveEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
+            const offsetX = currentX - startX + dragOffsetAtStart;
+            setDragOffset(Math.max(0, Math.min(offsetX, maxDrag)));
+        };
+
+        const handleDragEnd = () => {
+            window.removeEventListener('mousemove', handleDragMove);
+            window.removeEventListener('touchmove', handleDragMove);
+            window.removeEventListener('mouseup', handleDragEnd);
+            window.removeEventListener('touchend', handleDragEnd);
+
+            setIsDragging(false);
+
+            if (dragOffset > maxDrag * 0.6) {
+                handleCompleteTask();
+                setDragOffset(maxDrag);
+            } else {
+                setDragOffset(0);
+            }
+        };
+
+        window.addEventListener('mousemove', handleDragMove);
+        window.addEventListener('touchmove', handleDragMove);
+        window.addEventListener('mouseup', handleDragEnd);
+        window.addEventListener('touchend', handleDragEnd);
+    };
 
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
@@ -326,23 +371,38 @@ export default function TaskDetailsPage() {
 
                         <section className="pt-4">
                             <div
-                                onClick={hasChecklist && !isTaskComplete && !isCompleting ? handleCompleteTask : undefined}
+                                ref={swipeContainerRef}
                                 className={cn(
-                                    "relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center transition-all",
+                                    "relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center",
                                     !hasChecklist && "opacity-50 cursor-not-allowed",
-                                    (isTaskComplete || isCompleting) ? "cursor-default" : "cursor-pointer",
-                                    isTaskComplete && "bg-success/20 border-success/30"
+                                    (isTaskComplete || isCompleting) && "bg-success/20 border-success/30 transition-colors"
                                 )}
                             >
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none">
-                                        {!hasChecklist ? "NO CHECKLIST" : isCompleting ? "COMPLETING..." : isTaskComplete ? "COMPLETED" : "SWIPE TO COMPLETE"}
+                                    <span style={{ opacity: isTaskComplete ? 0 : 1 - Math.min(1, finalDragOffset / (maxDrag * 0.7) ) }}
+                                        className={cn(
+                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
+                                        isCompleting && "opacity-0"
+                                    )}>
+                                        {!hasChecklist ? "NO CHECKLIST" : "SWIPE TO COMPLETE"}
+                                    </span>
+                                     <span className={cn(
+                                        "absolute text-sm font-bold uppercase tracking-widest text-white/80 pointer-events-none transition-opacity opacity-0",
+                                        isTaskComplete && !isCompleting && "opacity-100"
+                                    )}>
+                                        COMPLETED
                                     </span>
                                 </div>
-                                <div className={cn(
-                                    "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg transition-all",
-                                    isCompleting && "animate-spin",
-                                    isTaskComplete ? "bg-success/50 border-success/60" : "bg-success/30 border-success/40"
+                                <div
+                                    onMouseDown={handleDragStart}
+                                    onTouchStart={handleDragStart}
+                                    style={{ transform: `translateX(${finalDragOffset}px)` }}
+                                    className={cn(
+                                        "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10",
+                                        !isDragging && "transition-transform duration-300 ease-out",
+                                        isTaskComplete || isCompleting ? "cursor-default" : "cursor-grab active:cursor-grabbing",
+                                        isCompleting && "animate-spin",
+                                        isTaskComplete ? "bg-success/50 border-success/60" : "bg-primary/50 border-primary/60"
                                 )}>
                                     {isCompleting ? (
                                         <div className="h-5 w-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
