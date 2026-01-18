@@ -10,16 +10,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
             return NextResponse.json({ error: 'Task ID is missing.' }, { status: 400 });
         }
 
+        // 1. Resolve User
         const token = request.headers.get('authorization')?.split(' ')[1];
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-
         const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
         if (authError || !authUser || !authUser.email) {
             return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: 401 });
         }
-        
         const { data: supabaseUser, error: userError } = await supabaseAdmin
             .from('users')
             .select('id')
@@ -35,13 +34,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }
         const userUUID = supabaseUser.id;
         
+        // 2. Fetch Task (Stage 1)
         const { data: task, error: taskError } = await supabaseAdmin
             .from('tasks')
-            .select(`
-                *,
-                assignee_profile:users!tasks_assigned_to_fkey(id, full_name),
-                team:teams(id, team_name, team_members(users(id, full_name)))
-            `)
+            .select('*')
             .eq('id', taskId)
             .maybeSingle();
 
@@ -54,13 +50,33 @@ export async function GET(request: Request, { params }: { params: { id: string }
             return NextResponse.json({ error: 'Task not found.' }, { status: 404 });
         }
 
+        // 3. Authorize (Stage 2)
         const isAssigner = task.assigned_by === userUUID;
         const isAssignee = task.assigned_to === userUUID;
         if (!isAssigner && !isAssignee) {
             return NextResponse.json({ error: 'You do not have permission to view this task.' }, { status: 403 });
         }
+
+        // 4. Fetch related data
+        let assignee_profile = null;
+        if (task.assigned_to) {
+            const { data } = await supabaseAdmin.from('users').select('id, full_name').eq('id', task.assigned_to).maybeSingle();
+            assignee_profile = data;
+        }
+
+        let team = null;
+        if (task.team_id) {
+            const { data: team_basics } = await supabaseAdmin.from('teams').select('id, team_name').eq('id', task.team_id).maybeSingle();
+            if (team_basics) {
+                const { data: team_members_data } = await supabaseAdmin.from('team_members').select('users(id, full_name)').eq('team_id', task.team_id);
+                team = {
+                    ...team_basics,
+                    team_members: team_members_data || []
+                };
+            }
+        }
         
-        // Add priority_string and format due_date
+        // 5. Format response
         let priority_string = `P${task.priority}`;
         if (task.priority <= 3) priority_string = 'Low';
         if (task.priority >= 8) priority_string = 'High';
@@ -69,6 +85,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
         return NextResponse.json({
             ...task,
+            assignee_profile,
+            team,
             priority_string,
             due_date: formattedDueDate,
         });
@@ -78,6 +96,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 });
     }
 }
+
 
 // PATCH to update task steps/checklist
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
