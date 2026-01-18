@@ -78,7 +78,7 @@ export default function HomePage() {
         .eq('team_id', activeTeam);
 
       if (membershipError || !memberships || memberships.length === 0) {
-        if(membershipError) console.error("Error fetching team members:", membershipError.message);
+        if(membershipError && membershipError.message) console.error("Error fetching team members:", membershipError.message);
         setMembers([]); // If no members, the list should be empty. This is OK.
         setIsLoadingMembers(false);
         return;
@@ -104,7 +104,7 @@ export default function HomePage() {
           id: membership.user_id,
           role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
           full_name: userData?.full_name || 'Team Member',
-          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${membership.user_id}`
+          avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${membership.user_id}&backgroundType=gradientLinear`
         };
       });
       
@@ -125,7 +125,7 @@ export default function HomePage() {
   }
   
   const displayName = user?.user_metadata?.full_name || 'User';
-  const userPhoto = user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null;
+  const userPhoto = user ? `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${user.id}&backgroundType=gradientLinear` : null;
   const firstName = user?.user_metadata?.first_name || 'User';
 
   return (

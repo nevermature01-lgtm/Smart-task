@@ -12,14 +12,6 @@ type Team = {
   team_name: string;
 };
 
-// Mock data to replicate the design from the HTML mockup
-const mockAvatars = [
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuC7P8HUUkmQKSXWyZjs2yvuNkxhSxWLhsWTJcYqUxEjInv2mZM932tu1CUiNltjsAdKK3cmKHL5au4LI9QZL_eF_dKxJLDVeT0DZVjwlH9ATGoEx2rrGremzUA0iRjrRbMfDyCZfaffzh-DfnVNoaan-0Cm-EuQioNOFL4l0lo2pGP6ZhI6Ymj7F_EsQjskvPXnLN2xtST2PZHulqIe_7twd_TQ5CdaTYlspIdOJqNVcFaQCLnImCaB7XQhXMS0LWRjNhGtVPUNGBTJ',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuDNi2_7gUa9IsYvs44fo8axPLH0hw6wzaAOY8DgP4b1sxWg4aAqEIphTlS1V7uY9DuwNSlt7ATRAOj7nVZG2BWaRTwWY9CxQU48UpIlX9p-fa4dxqeZ_EpuEGKBjiPmyHqIyqADLu3iELFLTc6cXmQbJ5sZYMzZ0OMGT5sYMNj9aIQ06skoAWHhJcFjj7-u60BLIXk0VCQaI1FBKOEygqMrC8h_pDa3_gAFmhq5oLtmvVve_TrcbkLs4QDKzsGM7rLljokvaprF7LB0',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuBVVzDTrbV2P8VqeVSFOXmK5m2SwYo6YINLkY-eILAxC6YJ9csJ1MOTYQR1XDRQ-utmlWNW9Pi-CFyT4Hz-RzXNIxLE5rGdJ5wsapqpGvZOs39xe0yzLXee0_CtN8ktFLn2RKHGhwdgbXEGeJ1vYs58nQnSzorrKf7UbbUhdU4y10NG8Fo7mHQbzqohgRpmhPYu4Ue68B2VNpURpDRVtRppaRv94v2OpDKpT0m1GQ4CIQ86wzezfsUnuz0XLt2dQvH7T-QA_nXS9pZ0',
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAMZBMTWvPeRBCYOJv8QxPzVAaxDFwJ5A4DXw_CuRv0tIkt0Cgi9dMuP8u2S25Fm1bCZwey0ILigbev8YegqgjsxeaEm51URsYfiqY4AT9Nw69p-XwXPIyxSqaiu2_CB7NeNDhLZkIns3Xno94SrDGdFyKCyLEfV6dx3K_V6Iq9Vm5EMQkRLlGIGtqlJT0wLoMpPooAgg6PmWvEwBEeJVkvb0mNaygnuhmqehHkfkHUWkRHYIOqNo6ljxrbXEpY51WTMLQ4QyjRZ5CQ'
-];
-
 const teamDetailsMock = [
     { memberCount: 12, plusCount: 4 },
     { memberCount: 10, plusCount: 8 },
@@ -131,10 +123,10 @@ export default function ManageTeamsPage() {
                                     <div className="flex items-center gap-2">
                                         <div className="flex -space-x-2">
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                                <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[index % mockAvatars.length]} width={28} height={28}/>
+                                                <Image alt="avatar" className="w-full h-full object-cover" src={`https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${team.id}-1&backgroundType=gradientLinear`} width={28} height={28}/>
                                             </div>
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                                <Image alt="avatar" className="w-full h-full object-cover" src={mockAvatars[(index + 1) % mockAvatars.length]} width={28} height={28} />
+                                                <Image alt="avatar" className="w-full h-full object-cover" src={`https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${team.id}-2&backgroundType=gradientLinear`} width={28} height={28} />
                                             </div>
                                             {teamDetailsMock[index % teamDetailsMock.length]?.plusCount > 0 && (
                                                 <div className="w-7 h-7 rounded-full border border-white/20 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">

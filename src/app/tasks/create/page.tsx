@@ -49,7 +49,7 @@ export default function CreateTaskPage() {
                 const self: Profile = {
                     id: user.id,
                     full_name: user.user_metadata?.full_name || 'Personal Account',
-                    avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+                    avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${user.id}&backgroundType=gradientLinear`,
                 };
                 setMembers([self]);
                 setSelectedAssigneeId(self.id);
@@ -117,7 +117,7 @@ export default function CreateTaskPage() {
                     .map(member => ({
                         id: member.id,
                         full_name: member.full_name || "Team Member",
-                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`,
+                        avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${member.id}&backgroundType=gradientLinear`,
                     }));
                 
                 setMembers(finalProfiles);
