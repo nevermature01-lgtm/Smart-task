@@ -44,10 +44,8 @@ export default function TaskDetailsPage() {
     // Swipe functionality state and refs
     const swipeContainerRef = useRef<HTMLDivElement>(null);
     const swipeHandleRef = useRef<HTMLDivElement>(null);
-    const dragInfoRef = useRef({ isDragging: false, startX: 0, animationFrameId: 0 });
-
+    const dragInfoRef = useRef({ isDragging: false, startX: 0, initialOffset: 0, animationFrameId: 0 });
     const [isDragging, setIsDragging] = useState(false);
-    const [dragOffset, setDragOffset] = useState(0);
     const [maxDrag, setMaxDrag] = useState(0);
 
 
@@ -125,12 +123,16 @@ export default function TaskDetailsPage() {
         return () => window.removeEventListener('resize', calculateMaxDrag);
     }, []);
     
-    const finalDragOffset = useMemo(() => {
+    // Effect to handle setting handle position based on task completion state
+    useEffect(() => {
+        if (!swipeHandleRef.current || maxDrag === 0) return;
+
         if (isTaskComplete) {
-            return maxDrag;
+            swipeHandleRef.current.style.transform = `translateX(${maxDrag}px)`;
+        } else if (!isDragging) { // Only snap back if not currently dragging
+            swipeHandleRef.current.style.transform = 'translateX(0px)';
         }
-        return dragOffset;
-    }, [isTaskComplete, dragOffset, maxDrag]);
+    }, [isTaskComplete, isDragging, maxDrag]);
 
     const handleToggleChecklist = async (itemToToggle: Step) => {
         if (!task || isTaskComplete) return;
@@ -206,12 +208,13 @@ export default function TaskDetailsPage() {
     };
     
     const handlePointerMove = (e: PointerEvent) => {
-        if (!dragInfoRef.current.isDragging) return;
+        if (!dragInfoRef.current.isDragging || !swipeHandleRef.current) return;
 
         const move = () => {
-            const newOffset = e.clientX - dragInfoRef.current.startX;
+            const delta = e.clientX - dragInfoRef.current.startX;
+            const newOffset = dragInfoRef.current.initialOffset + delta;
             const clampedOffset = Math.max(0, Math.min(newOffset, maxDrag));
-            setDragOffset(clampedOffset);
+            swipeHandleRef.current!.style.transform = `translateX(${clampedOffset}px)`;
         };
         
         cancelAnimationFrame(dragInfoRef.current.animationFrameId);
@@ -229,42 +232,44 @@ export default function TaskDetailsPage() {
 
         window.removeEventListener('pointermove', handlePointerMove);
         window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
 
-        const finalOffset = e.clientX - dragInfoRef.current.startX;
-        const clampedFinalOffset = Math.max(0, Math.min(finalOffset, maxDrag));
+        const transform = swipeHandleRef.current.style.transform;
+        const currentOffset = transform ? parseFloat(transform.replace('translateX(', '').replace('px)', '')) : 0;
 
-        if (clampedFinalOffset > maxDrag * 0.7) {
+        if (currentOffset > maxDrag * 0.7) {
             handleCompleteTask();
-        } else {
-            setDragOffset(0);
         }
+        // Snap-back is handled by the useEffect watching `isDragging`
     };
     
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (isTaskComplete || isCompleting || !hasChecklist) return;
+        if (isTaskComplete || isCompleting || !hasChecklist || maxDrag === 0) return;
         
+        e.preventDefault();
         e.currentTarget.setPointerCapture(e.pointerId);
         setIsDragging(true);
         
-        dragInfoRef.current = {
-            isDragging: true,
-            startX: e.clientX - dragOffset,
-            animationFrameId: 0,
-        };
+        dragInfoRef.current.isDragging = true;
+        dragInfoRef.current.startX = e.clientX;
+        
+        const transform = e.currentTarget.style.transform;
+        dragInfoRef.current.initialOffset = transform ? parseFloat(transform.replace('translateX(', '').replace('px)', '')) : 0;
         
         window.addEventListener('pointermove', handlePointerMove);
         window.addEventListener('pointerup', handlePointerUp);
+        window.addEventListener('pointercancel', handlePointerUp);
     };
     
     useEffect(() => {
         return () => {
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', handlePointerUp);
             if (dragInfoRef.current.animationFrameId) {
                 cancelAnimationFrame(dragInfoRef.current.animationFrameId);
             }
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
 
@@ -406,14 +411,13 @@ export default function TaskDetailsPage() {
                                 className={cn(
                                     "relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center",
                                     !hasChecklist && "opacity-50 cursor-not-allowed",
-                                    (isTaskComplete || isCompleting) && "bg-success/20 border-success/30 transition-colors"
+                                    isTaskComplete && "bg-success/20 border-success/30 transition-colors"
                                 )}
                             >
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span style={{ opacity: isTaskComplete ? 0 : 1 - Math.min(1, maxDrag > 0 ? finalDragOffset / (maxDrag * 0.7) : 0) }}
+                                    <span style={{ opacity: isTaskComplete || isDragging ? 0 : 1 }}
                                         className={cn(
-                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
-                                        isCompleting && "opacity-0"
+                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity"
                                     )}>
                                         SWIPE TO COMPLETE
                                     </span>
@@ -427,7 +431,7 @@ export default function TaskDetailsPage() {
                                 <div
                                     ref={swipeHandleRef}
                                     onPointerDown={handlePointerDown}
-                                    style={{ transform: `translateX(${finalDragOffset}px)` }}
+                                    style={{ touchAction: 'none' }}
                                     className={cn(
                                         "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10 will-change-transform",
                                         !isDragging && "transition-transform duration-300 ease-out",
