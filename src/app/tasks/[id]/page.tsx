@@ -175,12 +175,13 @@ export default function TaskDetailsPage() {
 
     return (
         <>
-            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
+            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 transparent">
                 <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
                 <div className="flex items-center gap-2">
+                    
                     <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
                         <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
@@ -217,6 +218,7 @@ export default function TaskDetailsPage() {
                             )}
                             <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-full border-white/20 priority-glow bg-white/10">
                                 <span className="text-xs font-bold text-white uppercase tracking-tighter">P{task.priority}</span>
+                                 <span className="text-[10px] opacity-70">Priority</span>
                             </div>
                         </section>
                         
@@ -227,7 +229,7 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {steps.map((step, index) => (
-                                        <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                                        <div key={step.id || `step-temp-${Date.now()}-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                             <p className="text-sm font-medium">{step.value}</p>
                                              {step.checked && <span className="material-symbols-outlined text-success text-xl">check_circle</span>}
                                         </div>
@@ -245,7 +247,7 @@ export default function TaskDetailsPage() {
                                 <div className="space-y-3">
                                     {checklist.map((item, index) => (
                                         <div 
-                                            key={item.id || `checklist-${index}`} 
+                                            key={item.id || `checklist-temp-${Date.now()}-${index}`} 
                                             className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
                                             onClick={() => handleToggleChecklist(item.id)}
                                         >
