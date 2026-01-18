@@ -47,10 +47,8 @@ export default function TaskDetailsPage() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
-                // This case is mostly handled by the auth provider, but as a fallback:
                 setError("You are not authenticated.");
                 setIsLoading(false);
-                // No router.push here to avoid render-cycle errors. The provider handles redirects.
                 return;
             }
 
@@ -138,9 +136,6 @@ export default function TaskDetailsPage() {
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
                 <div className="flex items-center gap-2">
-                    <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined text-xl">edit</span>
-                    </button>
                     <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
                         <span className="material-symbols-outlined text-xl">delete</span>
                     </button>
