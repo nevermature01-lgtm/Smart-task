@@ -187,7 +187,7 @@ export default function TaskDetailsPage() {
     };
     
     const handleCompleteTask = async () => {
-        if (!task) return;
+        if (!task || isTaskCompleted) return;
         setIsCompleting(true);
         
         try {
