@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -46,7 +46,6 @@ export default function TaskDetailsPage() {
     const isDraggingRef = useRef(false);
     const startXRef = useRef(0);
     const animationFrameRef = useRef<number | null>(null);
-
     const [isDragging, setIsDragging] = useState(false);
 
 
@@ -110,7 +109,7 @@ export default function TaskDetailsPage() {
 
     const isCompleted = isTaskComplete;
 
-    const handleCompleteTask = async () => {
+    const handleCompleteTask = useCallback(async () => {
         if (!task || isTaskComplete) return;
 
         const originalSteps = task.steps;
@@ -144,12 +143,12 @@ export default function TaskDetailsPage() {
             setTask({ ...task, steps: originalSteps });
             toast({ variant: 'destructive', title: 'Error completing task', description: e.message });
         }
-    };
+    }, [isTaskComplete, task, taskId, toast]);
     
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (isCompleted || isDraggingRef.current) return;
-
-        const handle = e.currentTarget;
+        if (isCompleted || !swipeHandleRef.current) return;
+        e.preventDefault();
+        const handle = swipeHandleRef.current;
         handle.setPointerCapture(e.pointerId);
 
         isDraggingRef.current = true;
@@ -160,9 +159,7 @@ export default function TaskDetailsPage() {
             cancelAnimationFrame(animationFrameRef.current);
         }
         
-        if (swipeHandleRef.current) {
-            swipeHandleRef.current.style.transition = 'none';
-        }
+        handle.style.transition = 'none';
         const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
         if (textElement) {
             (textElement as HTMLElement).style.transition = 'none';
@@ -171,20 +168,20 @@ export default function TaskDetailsPage() {
     
     useEffect(() => {
         const handle = swipeHandleRef.current;
-        if (!handle) return;
-    
+        if (!handle || !isDragging) return;
+
         const moveHandler = (e: PointerEvent) => {
             if (!isDraggingRef.current) return;
-            e.preventDefault();
     
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
     
             animationFrameRef.current = requestAnimationFrame(() => {
+                if (!swipeTrackRef.current || !swipeHandleRef.current) return;
                 const deltaX = e.clientX - startXRef.current;
-                const trackWidth = swipeTrackRef.current?.offsetWidth ?? 0;
-                const handleWidth = handle.offsetWidth;
+                const trackWidth = swipeTrackRef.current.offsetWidth;
+                const handleWidth = swipeHandleRef.current.offsetWidth;
                 const maxTranslateX = trackWidth > handleWidth ? trackWidth - handleWidth - 8 : 0;
     
                 let newTranslateX = deltaX;
@@ -192,22 +189,21 @@ export default function TaskDetailsPage() {
                 
                 handle.style.transform = `translateX(${newTranslateX}px)`;
 
-                const opacity = Math.max(0, 1 - (newTranslateX / (trackWidth * 0.5)));
+                const trackWidthForOpacity = swipeTrackRef.current?.offsetWidth || 1;
+                const opacity = Math.max(0, 1 - (newTranslateX / (trackWidthForOpacity * 0.5)));
                 const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
-                if (textElement && trackWidth > 0) {
+                if (textElement) {
                     (textElement as HTMLElement).style.opacity = `${opacity}`;
                 }
             });
         };
     
         const upHandler = (e: PointerEvent) => {
-            if (!isDraggingRef.current) return;
+            if (!isDraggingRef.current || !swipeHandleRef.current) return;
     
             try {
                 handle.releasePointerCapture(e.pointerId);
-            } catch (error) {
-                // This can fail if the pointer is already released, which is fine.
-            }
+            } catch (error) {}
     
             isDraggingRef.current = false;
             setIsDragging(false);
@@ -215,14 +211,14 @@ export default function TaskDetailsPage() {
             if (animationFrameRef.current) {
                 cancelAnimationFrame(animationFrameRef.current);
             }
-    
+
             const trackWidth = swipeTrackRef.current?.offsetWidth ?? 0;
             const completionThreshold = trackWidth * 0.7;
-    
+
             const currentTransform = handle.style.transform;
             const currentTranslateXMatch = currentTransform.match(/translateX\(([^px]+)px\)/);
             const currentTranslateX = currentTranslateXMatch ? parseFloat(currentTranslateXMatch[1]) : 0;
-
+            
             if (currentTranslateX >= completionThreshold) {
                 handleCompleteTask();
             } else {
@@ -233,24 +229,20 @@ export default function TaskDetailsPage() {
                      (textElement as HTMLElement).style.transition = 'opacity 0.3s ease';
                      (textElement as HTMLElement).style.opacity = '1';
                  }
-                 handle.addEventListener('transitionend', () => {
-                     if (handle) handle.style.transition = '';
+                 const transitionEnd = () => {
+                     handle.style.transition = '';
                      if (textElement) {
                          (textElement as HTMLElement).style.transition = '';
                      }
-                 }, { once: true });
+                     handle.removeEventListener('transitionend', transitionEnd);
+                 };
+                 handle.addEventListener('transitionend', transitionEnd);
             }
-
-            window.removeEventListener('pointermove', moveHandler);
-            window.removeEventListener('pointerup', upHandler);
-            window.removeEventListener('pointercancel', upHandler);
         };
     
-        if (isDragging) {
-            window.addEventListener('pointermove', moveHandler, { passive: false });
-            window.addEventListener('pointerup', upHandler);
-            window.addEventListener('pointercancel', upHandler);
-        }
+        window.addEventListener('pointermove', moveHandler);
+        window.addEventListener('pointerup', upHandler);
+        window.addEventListener('pointercancel', upHandler);
     
         return () => {
             window.removeEventListener('pointermove', moveHandler);
@@ -373,7 +365,7 @@ export default function TaskDetailsPage() {
                 </div>
             </header>
 
-            <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
+            <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-48">
                 <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl bg-white/10 border-white/20 flex flex-col">
                     <div className="space-y-8">
                         <section className="space-y-5">
@@ -456,8 +448,8 @@ export default function TaskDetailsPage() {
                 </div>
             </main>
 
-            {checklist.length > 0 && (
-                <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40 w-full space-y-3">
+                 {checklist.length > 0 && (
                     <div ref={swipeTrackRef} className="relative w-full h-16 rounded-full swipe-track shadow-lg">
                         <div
                             ref={swipeHandleRef}
@@ -468,8 +460,9 @@ export default function TaskDetailsPage() {
                             onPointerDown={handlePointerDown}
                             className={cn(
                                 "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg",
-                                isCompleted ? "bg-success/50 border-success/60 cursor-default" : "cursor-grab",
-                                isDragging && "cursor-grabbing"
+                                { "cursor-grab": !isCompleted },
+                                { "cursor-grabbing": isDragging },
+                                { "bg-success/50 border-success/60 cursor-default": isCompleted },
                             )}
                         >
                             <span className={cn(
@@ -483,7 +476,7 @@ export default function TaskDetailsPage() {
                         >
                              <span className={cn(
                                 "swipe-text text-sm font-bold uppercase tracking-widest text-white/50 transition-opacity",
-                                isCompleted && "opacity-0"
+                                { "opacity-0": isDragging || isCompleted }
                              )}>
                                 SWIPE TO COMPLETE
                             </span>
@@ -496,8 +489,12 @@ export default function TaskDetailsPage() {
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+                )}
+                 <button className="w-full flex items-center justify-center gap-2 px-6 py-4 glass-panel rounded-2xl border-white/20 active:scale-95 transition-transform fab-glow text-white font-bold">
+                    <span className="material-symbols-outlined">add_comment</span>
+                    <span>Add Comment</span>
+                </button>
+            </div>
         </>
     );
 }
