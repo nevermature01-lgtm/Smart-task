@@ -151,7 +151,7 @@ export default function CreateTaskPage() {
                 </div>
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-30">
-                <Link href="/teams/manage" className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
+                <Link href="/teams/members" className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
                     Manage team
                 </Link>
             </div>
