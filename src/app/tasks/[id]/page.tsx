@@ -147,7 +147,7 @@ export default function TaskDetailsPage() {
     };
     
     const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (isCompleted || isDragging) return;
+        if (isCompleted || isDraggingRef.current) return;
 
         const handle = e.currentTarget;
         handle.setPointerCapture(e.pointerId);
@@ -162,6 +162,10 @@ export default function TaskDetailsPage() {
         
         if (swipeHandleRef.current) {
             swipeHandleRef.current.style.transition = 'none';
+        }
+        const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
+        if (textElement) {
+            (textElement as HTMLElement).style.transition = 'none';
         }
     };
     
@@ -187,16 +191,18 @@ export default function TaskDetailsPage() {
                 newTranslateX = Math.max(0, Math.min(newTranslateX, maxTranslateX));
                 
                 handle.style.transform = `translateX(${newTranslateX}px)`;
+
+                const opacity = Math.max(0, 1 - (newTranslateX / (trackWidth * 0.5)));
+                const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
+                if (textElement && trackWidth > 0) {
+                    (textElement as HTMLElement).style.opacity = `${opacity}`;
+                }
             });
         };
     
         const upHandler = (e: PointerEvent) => {
             if (!isDraggingRef.current) return;
     
-            window.removeEventListener('pointermove', moveHandler);
-            window.removeEventListener('pointerup', upHandler);
-            window.removeEventListener('pointercancel', upHandler);
-            
             try {
                 handle.releasePointerCapture(e.pointerId);
             } catch (error) {
@@ -214,17 +220,30 @@ export default function TaskDetailsPage() {
             const completionThreshold = trackWidth * 0.7;
     
             const currentTransform = handle.style.transform;
-            const currentTranslateX = currentTransform ? parseFloat(currentTransform.replace(/[^0-9.-]/g, '')) : 0;
+            const currentTranslateXMatch = currentTransform.match(/translateX\(([^px]+)px\)/);
+            const currentTranslateX = currentTranslateXMatch ? parseFloat(currentTranslateXMatch[1]) : 0;
 
             if (currentTranslateX >= completionThreshold) {
                 handleCompleteTask();
             } else {
                  handle.style.transition = 'transform 0.3s ease';
                  handle.style.transform = `translateX(0px)`;
+                 const textElement = swipeTrackRef.current?.querySelector('span.swipe-text');
+                 if (textElement) {
+                     (textElement as HTMLElement).style.transition = 'opacity 0.3s ease';
+                     (textElement as HTMLElement).style.opacity = '1';
+                 }
                  handle.addEventListener('transitionend', () => {
-                     handle.style.transition = '';
+                     if (handle) handle.style.transition = '';
+                     if (textElement) {
+                         (textElement as HTMLElement).style.transition = '';
+                     }
                  }, { once: true });
             }
+
+            window.removeEventListener('pointermove', moveHandler);
+            window.removeEventListener('pointerup', upHandler);
+            window.removeEventListener('pointercancel', upHandler);
         };
     
         if (isDragging) {
@@ -448,13 +467,13 @@ export default function TaskDetailsPage() {
                             }}
                             onPointerDown={handlePointerDown}
                             className={cn(
-                                "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing",
-                                isCompleted && "bg-success/50 border-success/60 cursor-default",
+                                "absolute top-1/2 -translate-y-1/2 left-1 h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg",
+                                isCompleted ? "bg-success/50 border-success/60 cursor-default" : "cursor-grab",
+                                isDragging && "cursor-grabbing"
                             )}
                         >
                             <span className={cn(
                                 "material-symbols-outlined text-3xl text-white transition-opacity duration-300",
-                                isCompleted && "opacity-100"
                             )}>
                                 {isCompleted ? 'check' : 'chevron_right'}
                             </span>
@@ -463,7 +482,7 @@ export default function TaskDetailsPage() {
                             className="absolute inset-0 flex items-center justify-center pointer-events-none"
                         >
                              <span className={cn(
-                                "text-sm font-bold uppercase tracking-widest text-white/50 transition-opacity",
+                                "swipe-text text-sm font-bold uppercase tracking-widest text-white/50 transition-opacity",
                                 isCompleted && "opacity-0"
                              )}>
                                 SWIPE TO COMPLETE
