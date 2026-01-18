@@ -2,6 +2,23 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { randomUUID } from 'crypto';
 
+// Helper function to create a notification
+async function createNotification(userId: string, message: string, link: string) {
+    try {
+        const { error } = await supabaseAdmin.from('notifications').insert({
+            user_id: userId,
+            message: message,
+            link: link,
+        });
+        if (error) {
+            console.error('Error creating notification:', error.message);
+        }
+    } catch (e: any) {
+        console.error('Failed to create notification:', e.message);
+    }
+}
+
+
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -169,6 +186,23 @@ export async function PATCH(
             console.error('Supabase reassignment error:', updateError);
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
+        
+        const assignerName = user.user_metadata?.full_name || 'Someone';
+        // Notify new assignee
+        await createNotification(
+            assigneeId,
+            `${assignerName} reassigned the task "${updatedTask.title}" to you`,
+            `/tasks/${updatedTask.id}`
+        );
+        // Notify old assignee
+        if (existingTask.assigned_to !== user.id) { // Avoid notifying self
+            await createNotification(
+                existingTask.assigned_to,
+                `${assignerName} reassigned your task "${updatedTask.title}"`,
+                `/tasks/${updatedTask.id}`
+            );
+        }
+
         return await returnFullTask(updatedTask);
     }
 
@@ -191,6 +225,16 @@ export async function PATCH(
       if (updateError) {
         console.error('Supabase completion update error:', updateError);
         return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+
+      // Notify task assigner
+      if (updatedTask.assigned_by !== user.id) { // Don't notify self
+        const completerName = user.user_metadata?.full_name || 'Someone';
+        await createNotification(
+            updatedTask.assigned_by,
+            `${completerName} completed the task: "${updatedTask.title}"`,
+            `/tasks/${updatedTask.id}`
+        );
       }
 
       return await returnFullTask(updatedTask);
@@ -246,10 +290,10 @@ export async function DELETE(
       return NextResponse.json({ error: userError?.message || 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch the task to verify ownership
+    // Fetch the task to verify ownership and get details for notification
     const { data: task, error: taskError } = await supabaseAdmin
       .from('tasks')
-      .select('assigned_by')
+      .select('assigned_by, assigned_to, title')
       .eq('id', taskId)
       .single();
 
@@ -266,6 +310,17 @@ export async function DELETE(
     if (task.assigned_by !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
+    
+    // Notify the assignee that the task was deleted
+    if (task.assigned_to && task.assigned_to !== user.id) {
+        const assignerName = user.user_metadata?.full_name || 'Someone';
+        await createNotification(
+            task.assigned_to,
+            `${assignerName} deleted the task: "${task.title}"`,
+            '/home'
+        );
+    }
+
 
     // Delete the task
     const { error: deleteError } = await supabaseAdmin

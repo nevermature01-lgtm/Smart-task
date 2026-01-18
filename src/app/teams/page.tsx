@@ -24,6 +24,42 @@ export default function TeamsPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
     const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (!user) return;
+
+        const fetchUnreadCount = async () => {
+            const { count, error } = await supabase
+                .from('notifications')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('read', false);
+
+            if (error) {
+                console.error("Error fetching unread count:", error);
+            } else {
+                setUnreadCount(count || 0);
+            }
+        };
+
+        fetchUnreadCount();
+
+        const channel = supabase.channel('realtime notifications teams')
+            .on('postgres_changes', {
+                event: '*',
+                schema: 'public',
+                table: 'notifications',
+                filter: `user_id=eq.${user.id}`
+            }, () => {
+                fetchUnreadCount();
+            })
+            .subscribe();
+        
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user]);
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -86,9 +122,14 @@ export default function TeamsPage() {
                     </button>
                     <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
                 </div>
-                <button className="w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
+                 <Link href="/notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">notifications</span>
-                </button>
+                    {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white ring-2 ring-[#1a0b2e]">
+                            {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                    )}
+                </Link>
             </header>
             <main className="px-6 pt-8 space-y-8">
                 <section className="grid grid-cols-2 gap-4">
