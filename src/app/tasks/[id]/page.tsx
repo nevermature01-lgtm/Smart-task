@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type Profile = {
     id: string;
@@ -37,6 +38,8 @@ export default function TaskDetailsPage() {
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isCompleting, setIsCompleting] = useState(false);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (!taskId) return;
@@ -48,7 +51,6 @@ export default function TaskDetailsPage() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
-                // Not using toast here to avoid potential issues with rendering context
                 setError("You are not authenticated.");
                 setIsLoading(false);
                 return;
@@ -87,8 +89,6 @@ export default function TaskDetailsPage() {
 
         // Optimistic UI update
         const newSteps = originalSteps.map(step =>
-            // Use referential equality to find the exact item to update.
-            // This is safer than using an ID that might be undefined or duplicated.
             step === itemToToggle ? { ...step, checked: !step.checked } : step
         );
 
@@ -99,7 +99,6 @@ export default function TaskDetailsPage() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
-                // Revert on auth error
                 setTask({ ...task, steps: originalSteps });
                 setError("You are not authenticated.");
                 return;
@@ -120,25 +119,76 @@ export default function TaskDetailsPage() {
             }
 
         } catch (e: any) {
-            // Revert optimistic update on any error
             setTask({ ...task, steps: originalSteps });
             setError(e.message);
         }
     };
 
+    const handleCompleteTask = async () => {
+        if (!task) return;
 
-    const { steps, checklist, checklistCompletion } = useMemo(() => {
+        setIsCompleting(true);
+        const originalSteps = task.steps;
+
+        const newSteps = originalSteps.map(step => 
+            step.type === 'checklist' ? { ...step, checked: true } : step
+        );
+        const newTask = { ...task, steps: newSteps };
+        setTask(newTask);
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                throw new Error("You are not authenticated.");
+            }
+
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: newSteps }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to complete task.');
+            }
+
+            toast({
+                title: "Task Completed!",
+                description: `"${task.title}" has been marked as complete.`,
+            });
+        } catch (e: any) {
+            setTask({ ...task, steps: originalSteps });
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: e.message,
+            });
+        } finally {
+            setIsCompleting(false);
+        }
+    };
+
+    const { steps, checklist, checklistCompletion, isTaskComplete, hasChecklist } = useMemo(() => {
         if (!task?.steps) {
-            return { steps: [], checklist: [], checklistCompletion: "0/0" };
+            return { steps: [], checklist: [], checklistCompletion: "0/0", isTaskComplete: false, hasChecklist: false };
         }
         const s = task.steps.filter(item => item.type === 'step');
         const c = task.steps.filter(item => item.type === 'checklist');
         
         const completedChecklistCount = c.filter(item => item.checked).length;
+        const hasChecklist = c.length > 0;
+        const isTaskComplete = hasChecklist && completedChecklistCount === c.length; 
+
         return {
             steps: s,
             checklist: c,
-            checklistCompletion: `${completedChecklistCount}/${c.length}`
+            checklistCompletion: `${completedChecklistCount}/${c.length}`,
+            isTaskComplete,
+            hasChecklist
         };
     }, [task]);
 
@@ -275,12 +325,32 @@ export default function TaskDetailsPage() {
                         )}
 
                         <section className="pt-4">
-                            <div className="relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center">
+                            <div
+                                onClick={hasChecklist && !isTaskComplete && !isCompleting ? handleCompleteTask : undefined}
+                                className={cn(
+                                    "relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center transition-all",
+                                    !hasChecklist && "opacity-50 cursor-not-allowed",
+                                    (isTaskComplete || isCompleting) ? "cursor-default" : "cursor-pointer",
+                                    isTaskComplete && "bg-success/20 border-success/30"
+                                )}
+                            >
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-sm font-bold uppercase tracking-widest text-white/30 pointer-events-none">Swipe to Complete</span>
+                                    <span className="text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none">
+                                        {!hasChecklist ? "NO CHECKLIST" : isCompleting ? "COMPLETING..." : isTaskComplete ? "COMPLETED" : "SWIPE TO COMPLETE"}
+                                    </span>
                                 </div>
-                                <div className="h-13 w-13 aspect-square glass-panel bg-success/30 border-success/40 rounded-full flex items-center justify-center shadow-lg shadow-success/20 cursor-pointer">
-                                    <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
+                                <div className={cn(
+                                    "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg transition-all",
+                                    isCompleting && "animate-spin",
+                                    isTaskComplete ? "bg-success/50 border-success/60" : "bg-success/30 border-success/40"
+                                )}>
+                                    {isCompleting ? (
+                                        <div className="h-5 w-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
+                                    ) : isTaskComplete ? (
+                                        <span className="material-symbols-outlined text-white text-3xl">check</span>
+                                    ) : (
+                                        <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
+                                    )}
                                 </div>
                             </div>
                         </section>
