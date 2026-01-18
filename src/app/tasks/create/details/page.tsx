@@ -38,6 +38,7 @@ function CreateTaskDetailsComponent() {
     const [steps, setSteps] = useState<string[]>([]);
     const [checklist, setChecklist] = useState<{ text: string, checked: boolean }[]>([]);
     const [dueDate, setDueDate] = useState<Date | undefined>();
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
     const [isCreating, setIsCreating] = useState(false);
     const assigneeId = searchParams.get('assigneeId');
@@ -124,14 +125,19 @@ function CreateTaskDetailsComponent() {
 
         const formattedDueDate = dueDate ? format(dueDate, 'dd-MM-yyyy') : null;
 
+        const combinedItems = [
+            ...steps.filter(s => s.trim() !== '').map(s => ({type: 'step', value: s})),
+            ...checklist.filter(c => c.text.trim() !== '').map(c => ({type: 'checklist', value: c.text, checked: c.checked}))
+        ];
+
         const taskData = {
             title: title.trim(),
             description: description.trim(),
             priority: priorityString,
             assigneeId: assignee.id,
             teamId: teamId,
-            steps: steps.filter(s => s.trim() !== ''),
-            checklist: checklist.filter(c => c.text.trim() !== ''),
+            steps: combinedItems,
+            checklist: [], // This is now combined into steps
             dueDate: formattedDueDate,
         };
 
@@ -195,7 +201,7 @@ function CreateTaskDetailsComponent() {
                             ) : (
                                  <p className="text-white/50 text-sm px-1">Could not load assignee.</p>
                             )}
-                             <Popover>
+                             <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                                 <PopoverTrigger asChild>
                                     <button className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10 disabled:opacity-50" disabled={isLoading}>
                                         <CalendarIcon className="w-4 h-4 text-white/70" />
@@ -208,7 +214,10 @@ function CreateTaskDetailsComponent() {
                                     <Calendar
                                         mode="single"
                                         selected={dueDate}
-                                        onSelect={setDueDate}
+                                        onSelect={(date) => {
+                                            setDueDate(date);
+                                            setIsDatePickerOpen(false);
+                                        }}
                                         initialFocus
                                         className="bg-transparent"
                                         classNames={{
@@ -224,7 +233,13 @@ function CreateTaskDetailsComponent() {
                                         }}
                                     />
                                     <div className="p-2 border-t border-white/10">
-                                        <button onClick={() => setDueDate(undefined)} className="w-full text-center text-sm font-semibold text-red-400 p-2 rounded-lg hover:bg-white/10 transition-colors">
+                                        <button 
+                                            onClick={() => {
+                                                setDueDate(undefined);
+                                                setIsDatePickerOpen(false);
+                                            }} 
+                                            className="w-full text-center text-sm font-semibold text-red-400 p-2 rounded-lg hover:bg-white/10 transition-colors"
+                                        >
                                             Clear
                                         </button>
                                     </div>
