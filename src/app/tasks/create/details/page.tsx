@@ -26,11 +26,37 @@ function CreateTaskDetailsComponent() {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState(1);
-    const [steps] = useState(['Sketch Layout', 'Color Palette']);
-    const [checklist] = useState([{ text: 'Review Assets', checked: false }]);
+    const [steps, setSteps] = useState<string[]>([]);
+    const [checklist, setChecklist] = useState<{ text: string, checked: boolean }[]>([]);
 
     const [isCreating, setIsCreating] = useState(false);
     const assigneeId = searchParams.get('assigneeId');
+
+    const handleAddStep = () => setSteps([...steps, '']);
+    const handleStepChange = (index: number, value: string) => {
+        const newSteps = [...steps];
+        newSteps[index] = value;
+        setSteps(newSteps);
+    };
+    const handleRemoveStep = (index: number) => {
+        setSteps(steps.filter((_, i) => i !== index));
+    };
+
+    const handleAddChecklistItem = () => setChecklist([...checklist, { text: '', checked: false }]);
+    const handleChecklistTextChange = (index: number, text: string) => {
+        const newChecklist = [...checklist];
+        newChecklist[index].text = text;
+        setChecklist(newChecklist);
+    };
+    const handleChecklistCheckedChange = (index: number, checked: boolean) => {
+        const newChecklist = [...checklist];
+        newChecklist[index].checked = checked;
+        setChecklist(newChecklist);
+    };
+    const handleRemoveChecklistItem = (index: number) => {
+        setChecklist(checklist.filter((_, i) => i !== index));
+    };
+
 
     useEffect(() => {
         if (!assigneeId) {
@@ -143,32 +169,56 @@ function CreateTaskDetailsComponent() {
                             <textarea disabled={isLoading} className="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-white/20 focus:border-white focus:ring-0 text-white/90 text-sm py-2 resize-none placeholder-white/30" placeholder="Add more details about this task..." rows={2} value={description} onChange={(e) => setDescription(e.target.value)}></textarea>
                         </div>
                     </section>
-                    <section className="grid grid-cols-2 gap-4">
+                    <section className="grid grid-cols-2 gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Steps</h3>
-                                <button className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70">
+                                <button onClick={handleAddStep} disabled={isLoading} className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70 active:scale-90 transition-transform disabled:opacity-50">
                                     <span className="material-symbols-outlined text-sm">add</span>
                                 </button>
                             </div>
                             <div className="space-y-2">
                                 {steps.map((step, index) => (
-                                    <div key={index} className="glass-panel px-3 py-2 rounded-xl text-[10px] font-medium border-white/10">{step}</div>
+                                    <div key={index} className="flex items-center gap-2">
+                                        <input
+                                            type="text"
+                                            value={step}
+                                            onChange={(e) => handleStepChange(index, e.target.value)}
+                                            placeholder="New step..."
+                                            disabled={isLoading}
+                                            className="w-full bg-white/5 glass-panel px-3 py-2 rounded-xl text-[12px] font-medium border-white/10 focus:ring-1 focus:ring-white/50 focus:outline-none placeholder:text-white/40"
+                                        />
+                                        <button onClick={() => handleRemoveStep(index)} disabled={isLoading} className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                            <span className="material-symbols-outlined text-sm text-white/50 hover:text-white">close</span>
+                                        </button>
+                                    </div>
                                 ))}
                             </div>
                         </div>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Checklist</h3>
-                                <button className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70">
+                                <button onClick={handleAddChecklistItem} disabled={isLoading} className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70 active:scale-90 transition-transform disabled:opacity-50">
                                     <span className="material-symbols-outlined text-sm">add</span>
                                 </button>
                             </div>
                             <div className="space-y-2">
                                 {checklist.map((item, index) => (
-                                    <div key={index} className="glass-panel px-3 py-2 rounded-xl text-[10px] font-medium border-white/10 flex items-center gap-2">
-                                        <div className="w-3 h-3 border border-white/40 rounded-sm"></div>
-                                        <span>{item.text}</span>
+                                    <div key={index} className="flex items-center gap-2">
+                                        <button onClick={() => handleChecklistCheckedChange(index, !item.checked)} disabled={isLoading} className="w-4 h-4 border-2 border-white/40 rounded-sm flex items-center justify-center shrink-0">
+                                            {item.checked && <span className="material-symbols-outlined text-xs text-white">check</span>}
+                                        </button>
+                                        <input
+                                            type="text"
+                                            value={item.text}
+                                            onChange={(e) => handleChecklistTextChange(index, e.target.value)}
+                                            placeholder="New item..."
+                                            disabled={isLoading}
+                                            className="w-full bg-transparent text-[12px] font-medium focus:outline-none placeholder:text-white/40"
+                                        />
+                                        <button onClick={() => handleRemoveChecklistItem(index)} disabled={isLoading} className="p-1 rounded-full hover:bg-white/10 transition-colors">
+                                             <span className="material-symbols-outlined text-sm text-white/50 hover:text-white">close</span>
+                                        </button>
                                     </div>
                                 ))}
                             </div>
