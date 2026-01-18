@@ -12,7 +12,7 @@ type TaskDetails = {
     description: string | null;
     due_date: string | null;
     priority: number;
-    steps: any[];
+    steps: { id: string; type: string; value: string; checked: boolean }[];
     assignee: {
         id: string;
         full_name: string | null;
@@ -93,6 +93,10 @@ export default function TaskDetailsPage() {
     const assigneeName = task.assignee?.full_name || '...';
     const assigneeAvatar = task.assignee ? getHumanAvatarSvg(task.assignee.id) : '';
     
+    const steps = Array.isArray(task.steps) ? task.steps.filter(item => item.type === 'step') : [];
+    const checklist = Array.isArray(task.steps) ? task.steps.filter(item => item.type === 'checklist') : [];
+    const checklistCompleted = checklist.filter(item => item.checked).length;
+    
   return (
     <>
       <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 bg-[#1a0b2e]/40 backdrop-blur-md">
@@ -147,26 +151,44 @@ export default function TaskDetailsPage() {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Steps</h3>
                 </div>
                 <div className="space-y-3">
-                <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
-                    <span className="text-sm font-medium">Sketch Layout</span>
-                    <span className="material-symbols-outlined text-success text-xl">check_circle</span>
-                </div>
-                <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
-                    <span className="text-sm font-medium">Color Palette</span>
-                    <span className="material-symbols-outlined text-success text-xl">check_circle</span>
-                </div>
+                {steps.length > 0 ? (
+                    steps.map((step) => (
+                        <div key={step.id} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                            <span className="text-sm font-medium">{step.value}</span>
+                            {step.checked && (
+                                <span className="material-symbols-outlined text-success text-xl">check_circle</span>
+                            )}
+                        </div>
+                    ))
+                ) : (
+                     <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 text-center">
+                        <span className="text-sm font-medium text-white/50">No steps for this task.</span>
+                    </div>
+                )}
                 </div>
             </section>
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Checklist</h3>
-                <span className="text-xs font-medium text-white/50">0/1 Complete</span>
+                {checklist.length > 0 &&
+                    <span className="text-xs font-medium text-white/50">{checklistCompleted}/{checklist.length} Complete</span>
+                }
                 </div>
                 <div className="space-y-3">
-                <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white/30 rounded-md"></div>
-                    <span className="text-sm font-medium">Review Assets</span>
-                </div>
+                {checklist.length > 0 ? (
+                    checklist.map(item => (
+                        <div key={item.id} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3">
+                            <div className={`w-5 h-5 border-2 ${item.checked ? 'bg-success border-success' : 'border-white/30'} rounded-md flex items-center justify-center`}>
+                               {item.checked && <span className="material-symbols-outlined text-white text-sm">check</span>}
+                            </div>
+                            <span className="text-sm font-medium">{item.value}</span>
+                        </div>
+                    ))
+                ) : (
+                    <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 text-center">
+                        <span className="text-sm font-medium text-white/50">No checklist items for this task.</span>
+                    </div>
+                )}
                 </div>
             </section>
             <section className="pt-4">
@@ -202,3 +224,5 @@ export default function TaskDetailsPage() {
     </>
   );
 }
+
+    
