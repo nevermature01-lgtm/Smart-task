@@ -180,7 +180,7 @@ export default function TaskDetailsPage() {
                             </div>
                             <div className="space-y-3">
                                 {steps.map((step) => (
-                                    <div key={step.id} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                                    <div key={`step-${step.id}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                         <p className="text-sm font-medium">{step.value}</p>
                                     </div>
                                 ))}
@@ -197,7 +197,7 @@ export default function TaskDetailsPage() {
                             </div>
                              <div className="space-y-3">
                                 {checklist.map((item) => (
-                                    <div key={item.id} className="flex items-center gap-3">
+                                    <div key={`checklist-${item.id}`} className="flex items-center gap-3">
                                         <div className="w-5 h-5 border-2 border-white/40 rounded-md flex items-center justify-center shrink-0">
                                             {item.checked && <span className="material-symbols-outlined text-sm text-white">check</span>}
                                         </div>
