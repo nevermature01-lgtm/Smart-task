@@ -39,88 +39,81 @@ export default function HomePage() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   useEffect(() => {
-    // Guard to prevent fetching if no team is active
-    if (isTeamLoading || !activeTeam || activeTeam === 'personal') {
+    // This effect handles fetching team details and members when the active team changes.
+    
+    // Wait for team context to be ready
+    if (isTeamLoading) {
+      return;
+    }
+
+    if (!activeTeam || activeTeam === 'personal') {
+      // User is in personal workspace, no team data to show.
       setTeamDetails(null);
+      setMembers([]);
+      setIsLoadingMembers(false);
       return;
     }
     
-    const fetchTeamDetails = async () => {
-      const { data, error } = await supabase
+    // We have a team ID, so fetch data.
+    const fetchTeamData = async () => {
+      setIsLoadingMembers(true);
+      
+      // Fetch Team Details
+      const { data: teamData, error: teamError } = await supabase
         .from('teams')
         .select('team_name, team_code, owner_id, owner_name')
         .eq('id', activeTeam)
         .single();
-
-      if (error) {
-        // Silently fail as requested
-        setTeamDetails(null);
+        
+      if (teamError) {
+        console.error("Error fetching team details:", teamError.message);
+        // On error, don't wipe existing state to prevent flicker
       } else {
-        setTeamDetails(data);
+        setTeamDetails(teamData);
       }
-    };
+      
+      // Fetch Team Members
+      const { data: memberships, error: membershipError } = await supabase
+        .from('team_members')
+        .select('user_id, role')
+        .eq('team_id', activeTeam);
 
-    fetchTeamDetails();
-  }, [activeTeam, isTeamLoading]);
-
-  useEffect(() => {
-    if (isTeamLoading || !activeTeam || activeTeam === 'personal') {
-        setMembers([]);
-        return;
-    }
-
-    const fetchMembers = async () => {
-        setIsLoadingMembers(true);
-        
-        // 1. Fetch team_members for the active team
-        const { data: memberships, error: membershipError } = await supabase
-            .from('team_members')
-            .select('user_id, role')
-            .eq('team_id', activeTeam);
-
-        if (membershipError) {
-            setMembers([]);
-            setIsLoadingMembers(false);
-            return;
-        }
-
-        if (!memberships || memberships.length === 0) {
-            setMembers([]);
-            setIsLoadingMembers(false);
-            return;
-        }
-
-        // 2. Collect user IDs
-        const userIds = memberships.map(m => m.user_id);
-
-        // 3. Fetch users from public.users table
-        const { data: usersData, error: usersError } = await supabase
-            .from('users')
-            .select('id, full_name')
-            .in('id', userIds);
-
-        if (usersError) {
-            setMembers([]);
-            setIsLoadingMembers(false);
-            return;
-        }
-
-        // 4. Join data in memory
-        const processedMembers = memberships.map(membership => {
-            const userData = usersData.find(u => u.id === membership.user_id);
-            return {
-                id: membership.user_id,
-                role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
-                full_name: userData?.full_name || 'Team Member',
-                avatar_url: `https://i.pravatar.cc/150?u=${membership.user_id}`
-            };
-        });
-        
-        setMembers(processedMembers);
+      if (membershipError || !memberships || memberships.length === 0) {
+        if(membershipError) console.error("Error fetching team members:", membershipError.message);
+        setMembers([]); // If no members, the list should be empty. This is OK.
         setIsLoadingMembers(false);
+        return;
+      }
+
+      const userIds = memberships.map(m => m.user_id);
+      const { data: usersData, error: usersError } = await supabase
+        .from('users')
+        .select('id, full_name')
+        .in('id', userIds);
+
+      if (usersError) {
+        console.error("Error fetching users for team:", usersError.message);
+        // Do not clear state on error.
+        setIsLoadingMembers(false);
+        return;
+      }
+
+      // Join data in memory
+      const processedMembers = memberships.map(membership => {
+        const userData = usersData.find(u => u.id === membership.user_id);
+        return {
+          id: membership.user_id,
+          role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
+          full_name: userData?.full_name || 'Team Member',
+          avatar_url: `https://i.pravatar.cc/150?u=${membership.user_id}`
+        };
+      });
+      
+      setMembers(processedMembers);
+      setIsLoadingMembers(false);
     };
 
-    fetchMembers();
+    fetchTeamData();
   }, [activeTeam, isTeamLoading]);
 
 
@@ -327,5 +320,3 @@ export default function HomePage() {
     </>
   );
 }
-
-    
