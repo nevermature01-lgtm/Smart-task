@@ -59,11 +59,13 @@ export async function POST(request: Request) {
 
         if (checklist && Array.isArray(checklist)) {
             checklist.forEach((item: any) => {
-                if (typeof item === 'object' && item !== null && typeof item.text === 'string' && item.text.trim() !== '') {
+                if (item && typeof item.text === 'string' && item.text.trim() !== '') {
                     combinedSteps.push({ type: 'checklist', value: item.text.trim(), checked: !!item.checked });
                 }
             });
         }
+
+        console.log('Final steps payload for DB:', JSON.stringify(combinedSteps, null, 2));
         
         let formattedDueDateForDb: string | null = null;
         if (dueDate) {

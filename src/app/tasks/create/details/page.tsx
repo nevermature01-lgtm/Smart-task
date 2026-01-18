@@ -125,19 +125,14 @@ function CreateTaskDetailsComponent() {
 
         const formattedDueDate = dueDate ? format(dueDate, 'dd-MM-yyyy') : null;
 
-        const combinedItems = [
-            ...steps.filter(s => s.trim() !== '').map(s => ({type: 'step', value: s})),
-            ...checklist.filter(c => c.text.trim() !== '').map(c => ({type: 'checklist', value: c.text, checked: c.checked}))
-        ];
-
         const taskData = {
             title: title.trim(),
             description: description.trim(),
             priority: priorityString,
             assigneeId: assignee.id,
             teamId: teamId,
-            steps: combinedItems,
-            checklist: [], // This is now combined into steps
+            steps: steps.filter(s => s.trim() !== ''),
+            checklist: checklist.filter(c => c.text.trim() !== ''),
             dueDate: formattedDueDate,
         };
 
