@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { parse, format } from 'date-fns';
+import { randomUUID } from 'crypto';
 
 export async function POST(request: Request) {
     try {
@@ -47,12 +48,12 @@ export async function POST(request: Request) {
             numericPriority = 5;
         }
 
-        const combinedSteps: { type: string; value: string; checked?: boolean }[] = [];
+        const combinedSteps: { id: string; type: string; value: string; checked: boolean }[] = [];
 
         if (steps && Array.isArray(steps)) {
             steps.forEach((step: unknown) => {
                 if (typeof step === 'string' && step.trim() !== '') {
-                    combinedSteps.push({ type: 'step', value: step.trim() });
+                    combinedSteps.push({ id: randomUUID(), type: 'step', value: step.trim(), checked: false });
                 }
             });
         }
@@ -60,12 +61,10 @@ export async function POST(request: Request) {
         if (checklist && Array.isArray(checklist)) {
             checklist.forEach((item: any) => {
                 if (item && typeof item.text === 'string' && item.text.trim() !== '') {
-                    combinedSteps.push({ type: 'checklist', value: item.text.trim(), checked: !!item.checked });
+                    combinedSteps.push({ id: randomUUID(), type: 'checklist', value: item.text.trim(), checked: !!item.checked });
                 }
             });
         }
-
-        console.log('Final steps payload for DB:', JSON.stringify(combinedSteps, null, 2));
         
         let formattedDueDateForDb: string | null = null;
         if (dueDate) {
