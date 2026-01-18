@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { getHumanAvatarSvg } from '@/lib/avatar';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTeam } from '@/context/TeamProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,80 @@ export default function ManageMembersPage() {
     const [isSearchVisible, setIsSearchVisible] = useState(false);
     const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
     const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
+    const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+
+    const fetchTeamData = useCallback(async () => {
+        if (!activeTeamId || activeTeamId === 'personal' || !user) return;
+
+        setIsLoading(true);
+
+        const { data: teamData, error: teamError } = await supabase
+            .from('teams')
+            .select('owner_id')
+            .eq('id', activeTeamId)
+            .single();
+
+        if (teamError) {
+            console.error('Error fetching team data:', teamError);
+            toast({ variant: 'destructive', title: 'Failed to load team.' });
+            setIsLoading(false);
+            return;
+        }
+
+        const { data: teamMembersData, error: membersError } = await supabase
+            .from('team_members')
+            .select('user_id, role')
+            .eq('team_id', activeTeamId);
+
+        if (membersError) {
+            console.error('Error fetching team members:', membersError.message || membersError);
+            toast({ variant: 'destructive', title: 'Failed to load members.' });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!teamMembersData || teamMembersData.length === 0) {
+            setMembers([]);
+            setIsLoading(false);
+            return;
+        }
+
+        if (user.id === teamData.owner_id) {
+            setCurrentUserIsAdmin(true);
+        } else {
+            const currentUserMembership = teamMembersData.find(m => m.user_id === user.id);
+            setCurrentUserIsAdmin(currentUserMembership?.role === 'admin');
+        }
+        
+        const memberUserIds = teamMembersData.map(m => m.user_id);
+        const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name')
+            .in('id', memberUserIds);
+
+        if (usersError) {
+            console.error('Error fetching user details:', usersError);
+            toast({ variant: 'destructive', title: 'Failed to load member details.' });
+            setIsLoading(false);
+            return;
+        }
+
+        if (usersData) {
+            const processedMembers: Member[] = teamMembersData.map((membership) => {
+                const userProfile = usersData.find((u) => u.id === membership.user_id);
+                return {
+                    id: membership.user_id,
+                    full_name: userProfile?.full_name || 'Team Member',
+                    role: membership.user_id === teamData.owner_id ? 'owner' : membership.role,
+                };
+            });
+            
+            setMembers(processedMembers);
+        } else {
+            setMembers([]);
+        }
+        setIsLoading(false);
+    }, [activeTeamId, user, toast]);
 
     useEffect(() => {
         if (isTeamLoading || !user) return;
@@ -40,84 +114,8 @@ export default function ManageMembersPage() {
             return;
         }
 
-        const fetchTeamData = async () => {
-            setIsLoading(true);
-
-            // Fetch team owner
-            const { data: teamData, error: teamError } = await supabase
-                .from('teams')
-                .select('owner_id')
-                .eq('id', activeTeamId)
-                .single();
-
-            if (teamError) {
-                console.error('Error fetching team data:', teamError);
-                toast({ variant: 'destructive', title: 'Failed to load team.' });
-                setIsLoading(false);
-                return;
-            }
-
-            // STEP 1: Fetch team members from team_members table
-            const { data: teamMembersData, error: membersError } = await supabase
-                .from('team_members')
-                .select('user_id, role')
-                .eq('team_id', activeTeamId);
-
-            if (membersError) {
-                console.error('Error fetching team members:', membersError.message || membersError);
-                toast({ variant: 'destructive', title: 'Failed to load members.' });
-                setIsLoading(false);
-                return;
-            }
-
-            if (!teamMembersData || teamMembersData.length === 0) {
-                setMembers([]);
-                setIsLoading(false);
-                return;
-            }
-
-            // Check current user's role
-            if (user.id === teamData.owner_id) {
-                setCurrentUserIsAdmin(true);
-            } else {
-                const currentUserMembership = teamMembersData.find(m => m.user_id === user.id);
-                setCurrentUserIsAdmin(currentUserMembership?.role === 'admin');
-            }
-            
-            // STEP 2: Extract user IDs and fetch users
-            const memberUserIds = teamMembersData.map(m => m.user_id);
-            const { data: usersData, error: usersError } = await supabase
-                .from('users')
-                .select('id, full_name')
-                .in('id', memberUserIds);
-
-            if (usersError) {
-                console.error('Error fetching user details:', usersError);
-                toast({ variant: 'destructive', title: 'Failed to load member details.' });
-                setIsLoading(false);
-                return;
-            }
-
-            // STEP 3: Merge results in memory
-            if (usersData) {
-                const processedMembers: Member[] = teamMembersData.map((membership) => {
-                    const userProfile = usersData.find((u) => u.id === membership.user_id);
-                    return {
-                        id: membership.user_id,
-                        full_name: userProfile?.full_name || 'Team Member',
-                        role: membership.user_id === teamData.owner_id ? 'owner' : membership.role,
-                    };
-                });
-                
-                setMembers(processedMembers);
-            } else {
-                setMembers([]);
-            }
-            setIsLoading(false);
-        };
-
         fetchTeamData();
-    }, [activeTeamId, isTeamLoading, router, toast, user]);
+    }, [activeTeamId, isTeamLoading, router, toast, user, fetchTeamData]);
 
     useEffect(() => {
         if (!searchQuery) {
@@ -147,28 +145,38 @@ export default function ManageMembersPage() {
             });
             return;
         }
+        setIsUpdatingRole(true);
+        
+        const { data: { session } } = await supabase.auth.getSession();
 
-        const { error } = await supabase
-            .from('team_members')
-            .update({ role: 'admin' })
-            .match({ team_id: activeTeamId, user_id: memberId });
-
-        if (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Failed to Promote Member',
-                description: error.message,
+        try {
+            const response = await fetch('/api/team/make-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({ teamId: activeTeamId, targetUserId: memberId }),
             });
-        } else {
-            setMembers(prevMembers =>
-                prevMembers.map(member =>
-                    member.id === memberId ? { ...member, role: 'admin' } : member
-                )
-            );
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to promote member.');
+            }
+
             toast({
                 title: 'Member Promoted',
                 description: 'The user has been promoted to admin.',
             });
+            await fetchTeamData();
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Promote Member',
+                description: e.message,
+            });
+        } finally {
+            setIsUpdatingRole(false);
         }
     };
 
@@ -181,28 +189,38 @@ export default function ManageMembersPage() {
             });
             return;
         }
-    
-        const { error } = await supabase
-            .from('team_members')
-            .update({ role: 'member' })
-            .match({ team_id: activeTeamId, user_id: memberId });
-    
-        if (error) {
-            toast({
-                variant: 'destructive',
-                title: 'Failed to Demote Member',
-                description: error.message,
+        setIsUpdatingRole(true);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        try {
+            const response = await fetch('/api/team/remove-admin', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({ teamId: activeTeamId, targetUserId: memberId }),
             });
-        } else {
-            setMembers(prevMembers =>
-                prevMembers.map(member =>
-                    member.id === memberId ? { ...member, role: 'member' } : member
-                )
-            );
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to demote member.');
+            }
+
             toast({
                 title: 'Member Demoted',
                 description: 'The user is no longer an admin.',
             });
+            await fetchTeamData();
+        } catch (e: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Demote Member',
+                description: e.message,
+            });
+        } finally {
+            setIsUpdatingRole(false);
         }
     };
 
@@ -270,7 +288,7 @@ export default function ManageMembersPage() {
                                  ) : member.role === 'admin' ? (
                                     <button 
                                         onClick={() => handleRemoveAdmin(member.id)}
-                                        disabled={!currentUserIsAdmin || isLoading}
+                                        disabled={!currentUserIsAdmin || isLoading || isUpdatingRole}
                                         className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-base">shield_person</span>
                                         Remove Admin
@@ -278,7 +296,7 @@ export default function ManageMembersPage() {
                                  ) : (
                                     <button 
                                         onClick={() => handleMakeAdmin(member.id)}
-                                        disabled={!currentUserIsAdmin || isLoading}
+                                        disabled={!currentUserIsAdmin || isLoading || isUpdatingRole}
                                         className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-base">shield</span>
                                         Make Admin
