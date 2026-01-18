@@ -27,82 +27,74 @@ export default function CreateTaskPage() {
 
     useEffect(() => {
         const fetchMembers = async () => {
-            if (isTeamLoading || !user) return;
+            // Wait for auth and team context to be ready.
+            if (isAuthLoading || isTeamLoading || !user) {
+                // If we're not loading but have no user, it's safe to stop.
+                if (!isAuthLoading && !isTeamLoading) {
+                    setIsLoading(false);
+                }
+                return;
+            }
             
             setIsLoading(true);
             let finalProfiles: Profile[] = [];
 
-            if (activeTeam === 'personal') {
-                if (user) {
-                    finalProfiles = [{
-                        id: user.id,
-                        full_name: user.user_metadata?.full_name || 'Personal Account',
-                        avatar_url: user.user_metadata?.avatar_url || null,
-                    }];
-                }
-            } else if (activeTeam) {
+            // Case 1: Personal workspace
+            if (activeTeam === 'personal' || !activeTeam) {
+                finalProfiles = [{
+                    id: user.id,
+                    full_name: user.user_metadata?.full_name || 'Personal Account',
+                    avatar_url: user.user_metadata?.avatar_url || null,
+                }];
+            } 
+            // Case 2: Team workspace
+            else {
+                // Step 1: Get the team's owner ID to exclude them later.
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
                     .eq('id', activeTeam)
                     .single();
 
-                const ownerId = teamData?.owner_id;
+                if (teamError) {
+                    // Silently fail and show no members if team info can't be fetched.
+                    setMembers([]);
+                    setIsLoading(false);
+                    return;
+                }
+                const ownerId = teamData.owner_id;
 
+                // Step 2: Fetch team members and their user details in a single query.
                 const { data: membersData, error: membersError } = await supabase
                     .from('team_members')
-                    .select('user_id, role')
+                    .select('users(id, full_name)') // This performs a join
                     .eq('team_id', activeTeam);
 
                 if (membersError) {
-                    if (membersError.message && !membersError.message.includes("schema cache")) {
-                        console.error("Error fetching team members:", membersError.message);
-                    }
+                    // Silently fail if members can't be fetched.
                     setMembers([]);
                 } else if (membersData) {
-                    
-                    const assignableMemberIds = membersData
-                        .filter(member => {
-                            const isOwner = member.user_id === ownerId;
-                            const isSelf = member.user_id === user.id;
-                            return !isOwner && !isSelf;
-                        })
-                        .map(m => m.user_id);
-                    
-                    if (assignableMemberIds.length > 0) {
-                        const { data: profilesData, error: profilesError } = await supabase
-                            .from('profiles')
-                            .select('id, full_name, avatar_url')
-                            .in('id', assignableMemberIds);
-
-                        if (profilesError) {
-                            console.error("Error fetching profiles:", profilesError);
-                            finalProfiles = [];
-                        } else if (profilesData) {
-                            finalProfiles = profilesData.map(profile => ({
-                                id: profile.id,
-                                full_name: profile.full_name || "Team Member",
-                                avatar_url: profile.avatar_url || `https://i.pravatar.cc/150?u=${profile.id}`
-                            }));
-                        }
-                    }
-
-                    // ** DEFENSIVE GUARD **
-                    if (finalProfiles.some(p => p.id === user.id)) {
-                       console.error("FATAL: Current user is still in the assignable list after filtering! Aborting render.");
-                       finalProfiles = []; // Do not render list with current user
-                    }
+                    finalProfiles = membersData
+                        .map(m => m.users) // The join returns nested user objects.
+                        .filter((u): u is { id: string; full_name: string | null } => !!u) // Filter out any null/undefined results from the join.
+                        .filter(member => member.id !== user.id && member.id !== ownerId) // Exclude the current user and the team owner.
+                        .map(member => ({
+                            id: member.id,
+                            full_name: member.full_name || "Team Member",
+                            avatar_url: null, // Don't use avatar_url from the DB. Fallback will be used.
+                        }));
                 }
             }
             
             setMembers(finalProfiles);
 
-            // Update selection based on the new list of members
+            // Update selection logic
             setSelectedAssigneeId(prevId => {
                 const isSelectionStillValid = prevId && finalProfiles.some(p => p.id === prevId);
                 if (isSelectionStillValid) {
                     return prevId;
                 }
+                // Auto-select if only one member is available
                 if (finalProfiles.length === 1) {
                     return finalProfiles[0].id;
                 }
@@ -112,11 +104,7 @@ export default function CreateTaskPage() {
             setIsLoading(false);
         };
 
-        if (user) {
-            fetchMembers();
-        } else if (!isAuthLoading) {
-            setIsLoading(false);
-        }
+        fetchMembers();
     }, [user, activeTeam, isTeamLoading, isAuthLoading]);
 
     useEffect(() => {
@@ -202,6 +190,8 @@ export default function CreateTaskPage() {
                 ) : (
                     <div className="text-center text-lavender-muted pt-16">
                         <p>No other members found to assign.</p>
+                        {activeTeam !== 'personal' && !searchTerm && <p className="text-sm mt-2">You can only assign tasks to yourself or the owner.</p>}
+                        {activeTeam === 'personal' && <p className="text-sm mt-2">Create or join a team to assign tasks to others.</p>}
                         {searchTerm && <p className="text-sm mt-2">Try adjusting your search.</p>}
                     </div>
                 )}

@@ -64,7 +64,6 @@ export default function HomePage() {
   }, [activeTeam, isTeamLoading]);
 
   useEffect(() => {
-    // Guard to prevent fetching if no team is active
     if (isTeamLoading || !activeTeam || activeTeam === 'personal') {
         setMembers([]);
         return;
@@ -72,43 +71,58 @@ export default function HomePage() {
 
     const fetchMembers = async () => {
         setIsLoadingMembers(true);
-        // Use a single query with a join as requested
-        const { data: membersData, error } = await supabase
+        
+        // 1. Fetch team_members for the active team
+        const { data: memberships, error: membershipError } = await supabase
             .from('team_members')
-            .select(`
-                role,
-                users ( id, full_name, avatar_url )
-            `)
+            .select('user_id, role')
             .eq('team_id', activeTeam);
 
-        if (error) {
-            // Silently set to empty array on error as instructed
+        if (membershipError) {
             setMembers([]);
-        } else if (membersData) {
-            const processedMembers = membersData
-                .map(member => {
-                    // member.users should be an object from the join
-                    if (!member.users) {
-                        return null;
-                    }
-                    return {
-                        id: member.users.id,
-                        role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                        full_name: member.users.full_name || 'Team Member',
-                        avatar_url: member.users.avatar_url || `https://i.pravatar.cc/150?u=${member.users.id}`
-                    };
-                })
-                .filter((member): member is TeamMember => member !== null);
-            setMembers(processedMembers);
-        } else {
-            // Also set to empty if data is null/empty
-            setMembers([]);
+            setIsLoadingMembers(false);
+            return;
         }
+
+        if (!memberships || memberships.length === 0) {
+            setMembers([]);
+            setIsLoadingMembers(false);
+            return;
+        }
+
+        // 2. Collect user IDs
+        const userIds = memberships.map(m => m.user_id);
+
+        // 3. Fetch users from public.users table
+        const { data: usersData, error: usersError } = await supabase
+            .from('users')
+            .select('id, full_name')
+            .in('id', userIds);
+
+        if (usersError) {
+            setMembers([]);
+            setIsLoadingMembers(false);
+            return;
+        }
+
+        // 4. Join data in memory
+        const processedMembers = memberships.map(membership => {
+            const userData = usersData.find(u => u.id === membership.user_id);
+            return {
+                id: membership.user_id,
+                role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
+                full_name: userData?.full_name || 'Team Member',
+                avatar_url: `https://i.pravatar.cc/150?u=${membership.user_id}`
+            };
+        });
+        
+        setMembers(processedMembers);
         setIsLoadingMembers(false);
     };
 
     fetchMembers();
   }, [activeTeam, isTeamLoading]);
+
 
   if (isLoading || isTeamLoading) {
     return (
@@ -313,3 +327,5 @@ export default function HomePage() {
     </>
   );
 }
+
+    
