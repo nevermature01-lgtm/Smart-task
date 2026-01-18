@@ -25,9 +25,10 @@ export default function ManageMembersPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [isSearchVisible, setIsSearchVisible] = useState(false);
     const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
+    const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
 
     useEffect(() => {
-        if (isTeamLoading) return;
+        if (isTeamLoading || !user) return;
 
         if (!activeTeamId || activeTeamId === 'personal') {
             toast({
@@ -74,6 +75,14 @@ export default function ManageMembersPage() {
                 setIsLoading(false);
                 return;
             }
+
+            // Check current user's role
+            if (user.id === teamData.owner_id) {
+                setCurrentUserIsAdmin(true);
+            } else {
+                const currentUserMembership = teamMembersData.find(m => m.user_id === user.id);
+                setCurrentUserIsAdmin(currentUserMembership?.role === 'admin');
+            }
             
             // STEP 2: Extract user IDs and fetch users
             const memberUserIds = teamMembersData.map(m => m.user_id);
@@ -108,7 +117,7 @@ export default function ManageMembersPage() {
         };
 
         fetchTeamData();
-    }, [activeTeamId, isTeamLoading, router, toast]);
+    }, [activeTeamId, isTeamLoading, router, toast, user]);
 
     useEffect(() => {
         if (!searchQuery) {
@@ -126,6 +135,40 @@ export default function ManageMembersPage() {
         setIsSearchVisible(!isSearchVisible);
         if (isSearchVisible) {
             setSearchQuery('');
+        }
+    };
+
+    const handleMakeAdmin = async (memberId: string) => {
+        if (!activeTeamId || !currentUserIsAdmin) {
+            toast({
+                variant: 'destructive',
+                title: 'Permission Denied',
+                description: 'You do not have permission to perform this action.',
+            });
+            return;
+        }
+
+        const { error } = await supabase
+            .from('team_members')
+            .update({ role: 'admin' })
+            .match({ team_id: activeTeamId, user_id: memberId });
+
+        if (error) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Promote Member',
+                description: error.message,
+            });
+        } else {
+            setMembers(prevMembers =>
+                prevMembers.map(member =>
+                    member.id === memberId ? { ...member, role: 'admin' } : member
+                )
+            );
+            toast({
+                title: 'Member Promoted',
+                description: 'The user has been promoted to admin.',
+            });
         }
     };
 
@@ -195,7 +238,10 @@ export default function ManageMembersPage() {
                                         Remove Admin
                                     </button>
                                  ) : (
-                                    <button disabled className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all">
+                                    <button 
+                                        onClick={() => handleMakeAdmin(member.id)}
+                                        disabled={!currentUserIsAdmin || isLoading}
+                                        className="flex-1 flex items-center justify-center gap-2 text-xs font-bold text-white py-2.5 rounded-xl glass-button-secondary active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span className="material-symbols-outlined text-base">shield</span>
                                         Make Admin
                                     </button>
