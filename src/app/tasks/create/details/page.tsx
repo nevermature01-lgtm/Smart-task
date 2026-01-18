@@ -1,182 +1,115 @@
 'use client';
 
-import { Suspense, useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
-import { useTeam } from '@/context/TeamProvider';
-import { supabase } from '@/lib/supabase/client';
-import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-
-function CreateTaskDetailsContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const { toast } = useToast();
-    
-    const assigneeId = searchParams.get('assigneeId');
-    const { user, isLoading: isAuthLoading } = useSupabaseAuth();
-    const { activeTeam, isLoading: isTeamLoading } = useTeam();
-
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [priority, setPriority] = useState('medium');
-    const [dueDate, setDueDate] = useState('');
-    const [isCreating, setIsCreating] = useState(false);
-    const [assigneeName, setAssigneeName] = useState('...');
-
-    useEffect(() => {
-        if (!assigneeId) {
-            toast({ variant: 'destructive', title: 'No assignee selected.' });
-            router.replace('/tasks/create');
-            return;
-        }
-
-        const fetchAssignee = async () => {
-            const { data, error } = await supabase
-                .from('users')
-                .select('full_name')
-                .eq('id', assigneeId)
-                .single();
-            
-            if (error || !data) {
-                console.error("Error fetching assignee name:", error);
-                toast({ variant: 'destructive', title: 'Could not find assignee.' });
-                router.replace('/tasks/create');
-            } else {
-                setAssigneeName(data.full_name || 'Unknown User');
-            }
-        };
-
-        fetchAssignee();
-
-    }, [assigneeId, router, toast]);
-
-    const handleCreateTask = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!title.trim()) {
-            toast({ variant: 'destructive', title: 'Task title is required.' });
-            return;
-        }
-        if (!user || !assigneeId) {
-             toast({ variant: 'destructive', title: 'Authentication or assignee error.' });
-             return;
-        }
-        
-        setIsCreating(true);
-        const teamId = activeTeam === 'personal' ? null : activeTeam;
-
-        const { error } = await supabase.from('tasks').insert({
-            title: title.trim(),
-            description: description.trim(),
-            priority,
-            due_date: dueDate || null,
-            assignee_id: assigneeId,
-            creator_id: user.id,
-            team_id: teamId,
-            status: 'todo' // default status
-        });
-
-        setIsCreating(false);
-
-        if (error) {
-            console.error("Error creating task:", error);
-            toast({ variant: 'destructive', title: 'Failed to create task', description: error.message });
-        } else {
-            toast({ title: 'Task Created!', description: `"${title.trim()}" has been assigned.` });
-            router.push('/home');
-        }
-    };
-    
-    const isLoading = isAuthLoading || isTeamLoading || isCreating;
-
+export default function CreateTaskDetailsPage() {
     return (
-        <div className="mesh-background min-h-screen flex flex-col">
-             <header className="pt-14 px-6 pb-4 flex items-center justify-center sticky top-0 z-30">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
-                    <span className="material-symbols-outlined text-2xl">chevron_left</span>
+        <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
+            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 bg-[#1a0b2e]/40 backdrop-blur-md">
+                <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                    <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
-                <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
+                <h1 className="text-xl font-bold tracking-tight">Create Task</h1>
+                <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                    <span className="material-symbols-outlined text-2xl">search</span>
+                </button>
             </header>
-
-            <main className="flex-1 px-6 pb-32 space-y-6 overflow-y-auto custom-scrollbar">
-                <div className="glass-panel p-6 rounded-3xl">
-                    <p className="text-sm text-lavender-muted">Assigning To</p>
-                    <p className="text-lg font-bold text-white mt-1">{assigneeName}</p>
+            <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
+                <div className="glass-panel rounded-[2.5rem] p-6 shadow-2xl space-y-8 bg-white/10 border-white/20">
+                    <section className="space-y-3">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Assign To</h3>
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/30">
+                            <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
+                                <img alt="avatar" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7P8HUUkmQKSXWyZjs2yvuNkxhSxWLhsWTJcYqUxEjInv2mZM932tu1CUiNltjsAdKK3cmKHL5au4LI9QZL_eF_dKxJLDVeT0DZVjwlH9ATGoEx2rrGremzUA0iRjrRbMfDyCZfaffzh-DfnVNoaan-0Cm-EuQioNOFL4l0lo2pGP6ZhI6Ymj7F_EsQjskvPXnLN2xtST2PZHulqIe_7twd_TQ5CdaTYlspIdOJqNVcFaQCLnImCaB7XQhXMS0LWRjNhGtVPUNGBTJ"/>
+                            </div>
+                            <span className="text-sm font-medium">Alex Rivera</span>
+                            <span className="material-symbols-outlined text-xs text-white/60">close</span>
+                        </div>
+                    </section>
+                    <section className="space-y-6">
+                        <div className="relative group">
+                            <label className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Task Name</label>
+                            <input className="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-white/20 focus:border-white focus:ring-0 text-white font-semibold text-lg py-2 placeholder-white/30" placeholder="Enter task name..." type="text" defaultValue="Redesign Mobile App"/>
+                        </div>
+                        <div className="relative group">
+                            <label className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Description</label>
+                            <textarea className="w-full bg-transparent border-t-0 border-l-0 border-r-0 border-b-2 border-white/20 focus:border-white focus:ring-0 text-white/90 text-sm py-2 resize-none placeholder-white/30" placeholder="Add more details about this task..." rows={2} defaultValue="Establish a new visual language for the task creation flow using glassmorphism effects."></textarea>
+                        </div>
+                    </section>
+                    <section className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Steps</h3>
+                                <button className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70">
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="glass-panel px-3 py-2 rounded-xl text-[10px] font-medium border-white/10">Sketch Layout</div>
+                                <div className="glass-panel px-3 py-2 rounded-xl text-[10px] font-medium border-white/10">Color Palette</div>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Checklist</h3>
+                                <button className="w-6 h-6 flex items-center justify-center rounded-full glass-panel text-white/70">
+                                    <span className="material-symbols-outlined text-sm">add</span>
+                                </button>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="glass-panel px-3 py-2 rounded-xl text-[10px] font-medium border-white/10 flex items-center gap-2">
+                                    <div className="w-3 h-3 border border-white/40 rounded-sm"></div>
+                                    <span>Review Assets</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                    <section className="space-y-4">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-white/50 px-1">Priority</h3>
+                        <div className="flex justify-center py-2">
+                            <div className="relative flex items-center glass-panel h-20 w-full rounded-full p-2 border-white/10">
+                                <div className="flex items-center gap-4 px-4 overflow-x-auto hide-scrollbar w-full snap-x snap-mandatory">
+                                    <div className="flex-shrink-0 snap-center relative flex items-center justify-center w-14 h-14">
+                                        <div className="absolute inset-0 priority-oval bg-white/30 rounded-full border border-white/40 shadow-inner"></div>
+                                        <span className="relative z-10 text-xl font-bold">1</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">2</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">3</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">4</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">5</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">6</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">7</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">8</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">9</span>
+                                    </div>
+                                    <div className="flex-shrink-0 snap-center flex items-center justify-center w-14 h-14 opacity-40">
+                                        <span className="text-xl font-bold">10</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
-
-                <form onSubmit={handleCreateTask} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-bold text-lavender-muted ml-1">Title</label>
-                        <input
-                            className="w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40 glass-input"
-                            placeholder="e.g., Finalize Q3 report"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                            disabled={isLoading}
-                        />
-                    </div>
-                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-lavender-muted ml-1">Description (Optional)</label>
-                        <Textarea
-                            className="w-full px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40 glass-input min-h-[100px] resize-none"
-                            placeholder="Add more details about the task..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            disabled={isLoading}
-                        />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-bold text-lavender-muted ml-1">Priority</label>
-                             <Select onValueChange={setPriority} defaultValue="medium" disabled={isLoading}>
-                                <SelectTrigger className="w-full h-[46px] rounded-xl text-white glass-input focus:ring-1 focus:ring-white/40">
-                                    <SelectValue placeholder="Select priority" />
-                                </SelectTrigger>
-                                <SelectContent className="glass-panel text-white border-white/20">
-                                    <SelectItem value="low" className="focus:bg-white/10">Low</SelectItem>
-                                    <SelectItem value="medium" className="focus:bg-white/10">Medium</SelectItem>
-                                    <SelectItem value="high" className="focus:bg-white/10">High</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="space-y-2">
-                            <label className="text-sm font-bold text-lavender-muted ml-1">Due Date (Optional)</label>
-                            <input
-                                type="date"
-                                className="w-full h-[46px] px-4 py-3.5 rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/40 glass-input"
-                                value={dueDate}
-                                onChange={(e) => setDueDate(e.target.value)}
-                                disabled={isLoading}
-                            />
-                        </div>
-                    </div>
-                </form>
             </main>
-
-             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent shrink-0">
-                <button 
-                    onClick={handleCreateTask}
-                    disabled={isLoading || !title}
-                    className="w-full bg-white text-primary font-bold py-4 rounded-2xl shadow-lg active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed">
-                    {isCreating ? "Creating..." : "Create Task"}
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-40">
+                <button className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10">
+                    Create Task
+                    <span className="material-symbols-outlined text-xl">done_all</span>
                 </button>
             </div>
         </div>
-    );
-}
-
-
-export default function CreateTaskDetailsPage() {
-    return (
-        <Suspense fallback={
-            <div className="mesh-background min-h-screen flex items-center justify-center">
-                <div className="w-8 h-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-            </div>
-        }>
-            <CreateTaskDetailsContent />
-        </Suspense>
     );
 }
