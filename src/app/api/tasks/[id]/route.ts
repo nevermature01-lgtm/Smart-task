@@ -19,12 +19,10 @@ export async function GET(
       return NextResponse.json({ error: userError?.message || 'Unauthorized' }, { status: 401 });
     }
 
+    // Step 1: Fetch the task by ID
     const { data: task, error: taskError } = await supabaseAdmin
       .from('tasks')
-      .select(`
-        *,
-        assignee:assigned_to ( id, full_name )
-      `)
+      .select('*')
       .eq('id', taskId)
       .maybeSingle();
       
@@ -33,16 +31,35 @@ export async function GET(
       return NextResponse.json({ error: 'Error fetching task details.' }, { status: 500 });
     }
 
+    // Step 2: If task not found, return 404
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
-
-    // Authorization check
+    
+    // Step 4: Authorization check
     if (task.assigned_to !== user.id && task.assigned_by !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    return NextResponse.json(task);
+    // Step 5: Fetch assignee details separately
+    const { data: assignee, error: assigneeError } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name')
+      .eq('id', task.assigned_to)
+      .single();
+    
+    if (assigneeError) {
+        console.error('Error fetching assignee details:', assigneeError);
+        return NextResponse.json({ error: 'Error fetching assignee details.' }, { status: 500 });
+    }
+    
+    // Combine task with assignee details
+    const taskWithAssignee = {
+      ...task,
+      assignee,
+    };
+
+    return NextResponse.json(taskWithAssignee);
 
   } catch (error: any) {
     console.error('API Error:', error);
