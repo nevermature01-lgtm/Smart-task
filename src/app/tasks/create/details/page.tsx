@@ -218,6 +218,7 @@ function CreateTaskDetailsComponent() {
                                             setDueDate(date);
                                             setIsDatePickerOpen(false);
                                         }}
+                                        disabled={{ before: new Date() }}
                                         initialFocus
                                         className="bg-transparent"
                                         classNames={{
