@@ -3,7 +3,7 @@
 export default function CreateTaskDetailsPage() {
     return (
         <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
-            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 bg-[#1a0b2e]/40 backdrop-blur-md">
+            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
                 <button className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
