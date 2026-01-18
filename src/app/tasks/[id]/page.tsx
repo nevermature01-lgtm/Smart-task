@@ -12,7 +12,6 @@ export default function TaskDetailsPage({ params }: { params: { id: string } }) 
     };
     const teamMembers = [
         { avatarSeed: params.id + '-member-1' },
-        { avatarSeed: params.id + '-member-2' },
     ];
 
     return (
@@ -94,7 +93,7 @@ export default function TaskDetailsPage({ params }: { params: { id: string } }) 
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className="text-sm font-bold uppercase tracking-widest text-white/30 pointer-events-none">Swipe to Complete</span>
                                 </div>
-                                <div className="h-[52px] w-[52px] aspect-square glass-panel bg-success/30 border-white/20 rounded-full flex items-center justify-center shadow-lg cursor-pointer">
+                                <div className="h-[52px] w-[52px] aspect-square glass-panel bg-success/30 border-success/40 rounded-full flex items-center justify-center shadow-lg shadow-success/20 cursor-pointer">
                                     <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
                                 </div>
                             </div>
@@ -112,14 +111,12 @@ export default function TaskDetailsPage({ params }: { params: { id: string } }) 
                         <span className="text-sm font-semibold tracking-wide">Team Discussion</span>
                     </div>
                     <div className="flex -space-x-2">
-                        {teamMembers.map((member, index) => (
-                             <div key={index} className="w-6 h-6 rounded-full border border-white/20 overflow-hidden">
-                                <div
-                                    style={{ width: 24, height: 24, borderRadius: '50%' }}
-                                    dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(member.avatarSeed) }}
-                                />
-                            </div>
-                        ))}
+                        <div className="w-6 h-6 rounded-full border border-white/20 overflow-hidden">
+                           <div
+                                style={{ width: 24, height: 24, borderRadius: '50%' }}
+                                dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(teamMembers[0].avatarSeed) }}
+                            />
+                        </div>
                         <div className="w-6 h-6 rounded-full glass-panel border border-white/20 flex items-center justify-center text-[10px] font-bold">
                             +3
                         </div>
