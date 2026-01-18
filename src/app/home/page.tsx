@@ -246,7 +246,7 @@ export default function HomePage() {
                                 <Link href={`/tasks/${task.id}`} key={task.id} className="block mb-8">
                                     <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-transform">
                                         <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10">
-                                            <span className="material-symbols-outlined text-primary leading-none">task</span>
+                                            <span className="material-symbols-outlined text-white leading-none">task</span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="font-bold text-sm truncate">{task.title}</h4>
