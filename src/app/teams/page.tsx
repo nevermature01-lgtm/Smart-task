@@ -4,7 +4,7 @@ import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import Avatar from 'boring-avatars';
 import { useTeam } from '@/context/TeamProvider';
 
 type Team = {
@@ -30,7 +30,6 @@ export default function TeamsPage() {
             if (user) {
                 setIsLoadingTeams(true);
                 
-                // Fetch team memberships and the associated team data.
                 const { data: memberships, error: membershipError } = await supabase
                     .from('team_members')
                     .select('role, teams(*)')
@@ -76,8 +75,6 @@ export default function TeamsPage() {
     }
 
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
-    const userPhoto = user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null;
-    
     const isLoading = isLoadingTeams || isTeamLoading;
 
     return (
@@ -121,9 +118,14 @@ export default function TeamsPage() {
                         ) : (
                             <>
                                 <button onClick={() => handleSwitchTeam('personal')} className="w-full text-left glass-panel p-4 rounded-2xl flex items-center gap-4 active:bg-white/10 transition-colors">
-                                    <div className="w-12 h-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/40 to-transparent shrink-0 p-1">
-                                         {userPhoto ? (
-                                            <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={48} height={48} />
+                                    <div className="w-12 h-12 rounded-full border-2 border-primary/30 flex items-center justify-center bg-gradient-to-br from-primary/40 to-transparent shrink-0 p-1 overflow-hidden">
+                                         {user ? (
+                                            <Avatar
+                                                size={40}
+                                                name={user.id}
+                                                variant="beam"
+                                                colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                            />
                                         ) : (
                                             <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
                                                 <span className="text-xl font-bold text-white">{displayName.charAt(0)}</span>

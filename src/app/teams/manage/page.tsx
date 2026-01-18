@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import Avatar from 'boring-avatars';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -62,7 +62,6 @@ export default function ManageTeamsPage() {
     const handleDeleteTeam = async () => {
         if (!teamToDelete) return;
 
-        // Use { count: 'exact' } to get the number of deleted rows.
         const { error, count } = await supabase
             .from('teams')
             .delete({ count: 'exact' })
@@ -76,7 +75,6 @@ export default function ManageTeamsPage() {
                 description: error.message,
             });
         } else if (count === 0) {
-            // If count is 0, the delete didn't happen, likely due to RLS.
             console.error('Delete failed: No rows were deleted. Check RLS policies.');
             toast({
                 variant: 'destructive',
@@ -85,7 +83,6 @@ export default function ManageTeamsPage() {
             });
         }
         else {
-            // Only update the UI if the delete was successful in the database.
             setTeams(teams.filter(team => team.id !== teamToDelete.id));
             toast({
                 title: 'Team Deleted',
@@ -123,10 +120,10 @@ export default function ManageTeamsPage() {
                                     <div className="flex items-center gap-2">
                                         <div className="flex -space-x-2">
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                                <Image alt="avatar" className="w-full h-full object-cover" src={`https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${team.id}-1&backgroundType=gradientLinear`} width={28} height={28}/>
+                                                <Avatar size={28} name={`${team.id}-1`} variant="beam" colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]} />
                                             </div>
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden">
-                                                <Image alt="avatar" className="w-full h-full object-cover" src={`https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${team.id}-2&backgroundType=gradientLinear`} width={28} height={28} />
+                                                 <Avatar size={28} name={`${team.id}-2`} variant="beam" colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]} />
                                             </div>
                                             {teamDetailsMock[index % teamDetailsMock.length]?.plusCount > 0 && (
                                                 <div className="w-7 h-7 rounded-full border border-white/20 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">

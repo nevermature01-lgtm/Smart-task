@@ -3,10 +3,10 @@ import { useState, useEffect } from 'react';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTeam } from '@/context/TeamProvider';
+import Avatar from 'boring-avatars';
 
 type TeamDetails = {
   team_name: string;
@@ -19,7 +19,6 @@ type TeamMember = {
   id: string;
   role: string;
   full_name: string | null;
-  avatar_url: string;
 }
 
 export default function HomePage() {
@@ -39,26 +38,20 @@ export default function HomePage() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   useEffect(() => {
-    // This effect handles fetching team details and members when the active team changes.
-    
-    // Wait for team context to be ready
     if (isTeamLoading) {
       return;
     }
 
     if (!activeTeam || activeTeam === 'personal') {
-      // User is in personal workspace, no team data to show.
       setTeamDetails(null);
       setMembers([]);
       setIsLoadingMembers(false);
       return;
     }
     
-    // We have a team ID, so fetch data.
     const fetchTeamData = async () => {
       setIsLoadingMembers(true);
       
-      // Fetch Team Details
       const { data: teamsData, error: teamError } = await supabase
         .from('teams')
         .select('team_name, team_code, owner_id, owner_name')
@@ -66,12 +59,10 @@ export default function HomePage() {
         
       if (teamError) {
         console.error("Error fetching team details:", teamError.message);
-        // On error, don't wipe existing state to prevent flicker
       } else {
         setTeamDetails(teamsData?.[0] ?? null);
       }
       
-      // Fetch Team Members
       const { data: memberships, error: membershipError } = await supabase
         .from('team_members')
         .select('user_id, role')
@@ -79,7 +70,7 @@ export default function HomePage() {
 
       if (membershipError || !memberships || memberships.length === 0) {
         if(membershipError && membershipError.message) console.error("Error fetching team members:", membershipError.message);
-        setMembers([]); // If no members, the list should be empty. This is OK.
+        setMembers([]);
         setIsLoadingMembers(false);
         return;
       }
@@ -92,19 +83,16 @@ export default function HomePage() {
 
       if (usersError) {
         console.error("Error fetching users for team:", usersError.message);
-        // Do not clear state on error.
         setIsLoadingMembers(false);
         return;
       }
 
-      // Join data in memory
       const processedMembers = memberships.map(membership => {
         const userData = usersData.find(u => u.id === membership.user_id);
         return {
           id: membership.user_id,
           role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
           full_name: userData?.full_name || 'Team Member',
-          avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${membership.user_id}&backgroundType=gradientLinear`
         };
       });
       
@@ -125,7 +113,6 @@ export default function HomePage() {
   }
   
   const displayName = user?.user_metadata?.full_name || 'User';
-  const userPhoto = user ? `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${user.id}&backgroundType=gradientLinear` : null;
   const firstName = user?.user_metadata?.first_name || 'User';
 
   return (
@@ -137,9 +124,14 @@ export default function HomePage() {
                         <span className="material-symbols-outlined text-xl text-white">close</span>
                     </button>
                     <div className="pt-20 px-8 pb-10">
-                        <div className="w-16 h-16 rounded-full border-2 border-primary/60 p-1 mb-4 shadow-lg shadow-black/20">
-                            {userPhoto ? (
-                                <Image alt={displayName} className="w-full h-full rounded-full object-cover" src={userPhoto} width={64} height={64} />
+                        <div className="w-16 h-16 rounded-full border-2 border-primary/60 p-1 mb-4 shadow-lg shadow-black/20 overflow-hidden">
+                            {user ? (
+                                <Avatar
+                                    size={56}
+                                    name={user.id}
+                                    variant="beam"
+                                    colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                />
                             ) : (
                                 <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
                                     <span className="text-2xl font-bold text-white">{displayName.charAt(0)}</span>
@@ -294,7 +286,12 @@ export default function HomePage() {
                                 {members.length > 0 ? members.map(member => (
                                     <div key={member.id} className="glass-panel p-4 rounded-2xl flex items-center gap-4">
                                         <div className="w-12 h-12 rounded-full border-2 border-white/10 overflow-hidden shrink-0">
-                                            <Image alt={member.full_name || 'avatar'} className="w-full h-full object-cover" src={member.avatar_url} width={48} height={48}/>
+                                            <Avatar
+                                                size={40}
+                                                name={member.id}
+                                                variant="beam"
+                                                colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                            />
                                         </div>
                                         <div className="flex-1">
                                             <h4 className="font-bold text-sm">{member.full_name}</h4>

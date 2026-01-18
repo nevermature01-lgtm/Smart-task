@@ -5,13 +5,12 @@ import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useTeam } from '@/context/TeamProvider';
-import Image from 'next/image';
+import Avatar from 'boring-avatars';
 import { cn } from '@/lib/utils';
 
 type Profile = {
     id: string;
     full_name: string | null;
-    avatar_url: string;
 }
 
 export default function CreateTaskPage() {
@@ -26,10 +25,6 @@ export default function CreateTaskPage() {
     const searchInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        // This effect is responsible for fetching the list of assignable members
-        // based on the active workspace (personal or team).
-        
-        // Wait for auth and team information to be fully loaded.
         if (isAuthLoading || isTeamLoading) {
             return;
         }
@@ -37,19 +32,16 @@ export default function CreateTaskPage() {
         const fetchMembers = async () => {
             setIsLoading(true);
 
-            // If there's no logged-in user, we can't proceed.
             if (!user) {
                 setMembers([]);
                 setIsLoading(false);
                 return;
             }
 
-            // Case 1: Personal workspace. The only assignable member is the user themselves.
             if (activeTeam === 'personal' || !activeTeam) {
                 const self: Profile = {
                     id: user.id,
                     full_name: user.user_metadata?.full_name || 'Personal Account',
-                    avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${user.id}&backgroundType=gradientLinear`,
                 };
                 setMembers([self]);
                 setSelectedAssigneeId(self.id);
@@ -57,9 +49,7 @@ export default function CreateTaskPage() {
                 return;
             }
 
-            // Case 2: Team workspace. Fetch assignable members.
             try {
-                // Step 1: Fetch all member IDs from the active team.
                 const { data: teamMembersData, error: teamMembersError } = await supabase
                     .from('team_members')
                     .select('user_id')
@@ -68,7 +58,7 @@ export default function CreateTaskPage() {
                 if (teamMembersError) {
                     console.error("Error fetching team members:", teamMembersError);
                     setIsLoading(false);
-                    return; // Do not clear members on error
+                    return;
                 }
                 
                 if (!teamMembersData || teamMembersData.length === 0) {
@@ -79,7 +69,6 @@ export default function CreateTaskPage() {
                 
                 const userIds = teamMembersData.map(m => m.user_id);
 
-                // Step 2: Fetch user details for all members.
                 const { data: usersData, error: usersError } = await supabase
                     .from('users')
                     .select('id, full_name')
@@ -88,7 +77,7 @@ export default function CreateTaskPage() {
                 if (usersError) {
                     console.error("Error fetching user details:", usersError);
                     setIsLoading(false);
-                    return; // Do not clear members on error
+                    return;
                 }
 
                 if (!usersData) {
@@ -97,7 +86,6 @@ export default function CreateTaskPage() {
                     return;
                 }
 
-                // Step 3: Get the team's owner ID to exclude them.
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
@@ -106,29 +94,24 @@ export default function CreateTaskPage() {
                 
                 if (teamError) {
                     console.error("Error fetching team owner:", teamError.message);
-                    // Proceed without owner exclusion if this fails, but log it.
                 }
 
                 const ownerId = teamData?.owner_id;
 
-                // Step 4: Merge data and filter out the current user and the owner.
                 const finalProfiles: Profile[] = usersData
                     .filter(member => member.id !== user.id && member.id !== ownerId)
                     .map(member => ({
                         id: member.id,
                         full_name: member.full_name || "Team Member",
-                        avatar_url: `https://api.dicebear.com/7.x/adventurer-neutral/svg?seed=${member.id}&backgroundType=gradientLinear`,
                     }));
                 
                 setMembers(finalProfiles);
 
-                // Update selection logic
                 setSelectedAssigneeId(prevId => {
                     const isSelectionStillValid = prevId && finalProfiles.some(p => p.id === prevId);
                     if (isSelectionStillValid) {
                         return prevId;
                     }
-                    // Auto-select if only one member is available
                     if (finalProfiles.length === 1) {
                         return finalProfiles[0].id;
                     }
@@ -213,7 +196,12 @@ export default function CreateTaskPage() {
                                     "border-primary": selectedAssigneeId === member.id,
                                     "border-white/20": selectedAssigneeId !== member.id,
                                 })}>
-                                    <Image alt={member.full_name || 'avatar'} className="w-full h-full object-cover" src={member.avatar_url} width={48} height={48}/>
+                                    <Avatar
+                                        size={40}
+                                        name={member.id}
+                                        variant="beam"
+                                        colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
+                                    />
                                 </div>
                                 <span className={cn("font-bold text-base", { "text-white": selectedAssigneeId === member.id, "text-white/90": selectedAssigneeId !== member.id})}>{member.full_name}</span>
                             </div>
