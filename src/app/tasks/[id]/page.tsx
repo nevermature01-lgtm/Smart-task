@@ -47,8 +47,10 @@ export default function TaskDetailsPage() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
+                // This case is mostly handled by the auth provider, but as a fallback:
                 setError("You are not authenticated.");
                 setIsLoading(false);
+                // No router.push here to avoid render-cycle errors. The provider handles redirects.
                 return;
             }
 
@@ -76,18 +78,17 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
 
-    const { steps, checklist, stepsCompletion, checklistCompletion } = useMemo(() => {
+    const { steps, checklist, checklistCompletion } = useMemo(() => {
         if (!task?.steps) {
-            return { steps: [], checklist: [], stepsCompletion: "0/0", checklistCompletion: "0/0" };
+            return { steps: [], checklist: [], checklistCompletion: "0/0" };
         }
         const s = task.steps.filter(item => item.type === 'step');
         const c = task.steps.filter(item => item.type === 'checklist');
-        const completedStepsCount = s.filter(item => item.checked).length;
+        
         const completedChecklistCount = c.filter(item => item.checked).length;
         return {
             steps: s,
             checklist: c,
-            stepsCompletion: `${completedStepsCount}/${s.length}`,
             checklistCompletion: `${completedChecklistCount}/${c.length}`
         };
     }, [task]);
@@ -131,7 +132,7 @@ export default function TaskDetailsPage() {
 
     return (
         <>
-            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 bg-[#1a0b2e]/40 backdrop-blur-md">
+            <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
                 <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
@@ -176,7 +177,6 @@ export default function TaskDetailsPage() {
                             )}
                             <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-full border-white/20 priority-glow bg-white/10">
                                 <span className="text-xs font-bold text-white uppercase tracking-tighter">P{task.priority}</span>
-                                <span className="text-[10px] opacity-70">Priority</span>
                             </div>
                         </section>
                         
@@ -184,13 +184,11 @@ export default function TaskDetailsPage() {
                             <section className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Steps</h3>
-                                    <span className="text-xs font-medium text-white/50">{stepsCompletion} Complete</span>
                                 </div>
                                 <div className="space-y-3">
                                     {steps.map((step, index) => (
                                         <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
-                                            <span className="text-sm font-medium">{step.value}</span>
-                                            {step.checked && <span className="material-symbols-outlined text-success text-xl">check_circle</span>}
+                                            <p className="text-sm font-medium">{step.value}</p>
                                         </div>
                                     ))}
                                 </div>
