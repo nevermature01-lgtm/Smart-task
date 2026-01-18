@@ -85,26 +85,28 @@ export default function HomePage() {
         
         if (teamMembersData && teamMembersData.length > 0) {
             const memberIds = teamMembersData.map(m => m.user_id);
-            const { data: profilesData, error: profilesError } = await supabase
-                .from('profiles')
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
                 .select('id, full_name, avatar_url')
                 .in('id', memberIds);
 
-            if (profilesError) {
-                console.error('Error fetching member profiles:', profilesError);
+            if (usersError) {
+                console.error('Error fetching member profiles:', usersError);
                 setMembers([]);
-            } else {
-                const profilesMap = new Map(profilesData.map(p => [p.id, p]));
+            } else if (usersData) {
+                const usersMap = new Map(usersData.map(p => [p.id, p]));
                 const processedMembers = teamMembersData.map(member => {
-                    const profile = profilesMap.get(member.user_id);
+                    const userProfile = usersMap.get(member.user_id);
                     return {
                         id: member.user_id,
                         role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                        full_name: profile?.full_name || 'Team Member',
-                        avatar_url: profile?.avatar_url || `https://i.pravatar.cc/150?u=${member.user_id}`
+                        full_name: userProfile?.full_name || 'Team Member',
+                        avatar_url: userProfile?.avatar_url || `https://i.pravatar.cc/150?u=${member.user_id}`
                     };
                 });
                 setMembers(processedMembers);
+            } else {
+                 setMembers([]);
             }
         } else {
             setMembers([]);
