@@ -6,6 +6,8 @@ import { useState, useEffect } from 'react';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { useTeam } from '@/context/TeamProvider';
+
 
 type Team = {
   id: string;
@@ -24,6 +26,7 @@ export default function ManageTeamsPage() {
     const router = useRouter();
     const { user } = useSupabaseAuth();
     const { toast } = useToast();
+    const { setActiveTeam } = useTeam();
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
@@ -92,6 +95,11 @@ export default function ManageTeamsPage() {
         setTeamToDelete(null);
     };
 
+    const handleManageMembers = (teamId: string) => {
+        setActiveTeam(teamId);
+        router.push('/teams/members');
+    };
+
     return (
         <div className="mesh-background min-h-screen text-white font-display relative overflow-hidden">
             <div className={cn("min-h-screen transition-all", { "deep-blur opacity-50 pointer-events-none": teamToDelete })}>
@@ -141,9 +149,14 @@ export default function ManageTeamsPage() {
                                     </div>
                                 </div>
 
-                                <button onClick={() => setTeamToDelete(team)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-red-400 active:scale-90 transition-transform">
-                                    <span className="material-symbols-outlined text-xl">delete</span>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => handleManageMembers(team.id)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white active:scale-90 transition-transform">
+                                        <span className="material-symbols-outlined text-xl">groups</span>
+                                    </button>
+                                    <button onClick={() => setTeamToDelete(team)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-red-400 active:scale-90 transition-transform">
+                                        <span className="material-symbols-outlined text-xl">delete</span>
+                                    </button>
+                                </div>
                             </div>
                         ))
                     )}
