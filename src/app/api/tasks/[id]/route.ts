@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { randomUUID } from 'crypto';
 
 export async function GET(
   request: Request,
@@ -41,25 +42,34 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Step 5: Fetch assignee details separately
-    const { data: assignee, error: assigneeError } = await supabaseAdmin
-      .from('users')
-      .select('id, full_name')
-      .eq('id', task.assigned_to)
-      .single();
-    
-    if (assigneeError) {
-        console.error('Error fetching assignee details:', assigneeError);
+    // Step 5: Build reassignment chain
+    const previousAssigneeIds = (task.steps || [])
+        .filter((step: any) => step.type === 'reassignment')
+        .map((step: any) => step.value);
+
+    const allAssigneeIds = [...new Set([...previousAssigneeIds, task.assigned_to])];
+
+    const { data: assignees, error: assigneesError } = await supabaseAdmin
+        .from('users')
+        .select('id, full_name')
+        .in('id', allAssigneeIds);
+
+    if (assigneesError) {
+        console.error('Error fetching assignee chain:', assigneesError);
         return NextResponse.json({ error: 'Error fetching assignee details.' }, { status: 500 });
     }
+
+    const assigneesById = new Map((assignees || []).map(a => [a.id, a]));
+    const reassignmentChain = [...previousAssigneeIds, task.assigned_to]
+        .map(id => assigneesById.get(id))
+        .filter(Boolean as <T>(x: T | undefined) => x is T);
     
-    // Combine task with assignee details
-    const taskWithAssignee = {
-      ...task,
-      assignee,
+    const taskWithChain = {
+        ...task,
+        reassignmentChain,
     };
 
-    return NextResponse.json(taskWithAssignee);
+    return NextResponse.json(taskWithChain);
 
   } catch (error: any) {
     console.error('API Error:', error);
@@ -89,20 +99,30 @@ export async function PATCH(
     const { steps, complete, assigneeId } = body;
 
     const returnFullTask = async (taskData: any) => {
-        const { data: assignee, error: assigneeError } = await supabaseAdmin
+        const previousAssigneeIds = (taskData.steps || [])
+            .filter((step: any) => step.type === 'reassignment')
+            .map((step: any) => step.value);
+        
+        const allAssigneeIds = [...new Set([...previousAssigneeIds, taskData.assigned_to])];
+
+        const { data: assignees, error: assigneesError } = await supabaseAdmin
             .from('users')
             .select('id, full_name')
-            .eq('id', taskData.assigned_to)
-            .single();
+            .in('id', allAssigneeIds);
         
-        if (assigneeError) {
-            console.error('Error fetching assignee for PATCH response:', assigneeError);
-            return NextResponse.json(taskData);
+        if (assigneesError) {
+            console.error('Error fetching assignee chain for PATCH response:', assigneesError);
+            return NextResponse.json({ error: 'Error fetching assignee chain details.' }, { status: 500 });
         }
         
+        const assigneesById = new Map((assignees || []).map(a => [a.id, a]));
+        const reassignmentChain = [...previousAssigneeIds, taskData.assigned_to]
+            .map(id => assigneesById.get(id))
+            .filter(Boolean as <T>(x: T | undefined) => x is T);
+
         return NextResponse.json({
             ...taskData,
-            assignee,
+            reassignmentChain,
         });
     };
 
@@ -125,12 +145,26 @@ export async function PATCH(
         if (existingTask.assigned_by !== user.id) {
             return NextResponse.json({ error: 'Forbidden: Only the task creator can reassign.' }, { status: 403 });
         }
+
+        const reassignmentStep = {
+            id: randomUUID(),
+            type: 'reassignment',
+            value: existingTask.assigned_to,
+            checked: false,
+        };
+
+        const newSteps = [...(existingTask.steps || []), reassignmentStep];
+
         const { data: updatedTask, error: updateError } = await supabaseAdmin
             .from('tasks')
-            .update({ assigned_to: assigneeId })
+            .update({ 
+                assigned_to: assigneeId,
+                steps: newSteps
+             })
             .eq('id', taskId)
             .select()
             .single();
+
         if (updateError) {
             console.error('Supabase reassignment error:', updateError);
             return NextResponse.json({ error: updateError.message }, { status: 500 });

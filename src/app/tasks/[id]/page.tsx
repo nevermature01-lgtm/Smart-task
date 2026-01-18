@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -16,7 +16,7 @@ type Profile = {
 
 type Step = {
     id: string;
-    type: 'step' | 'checklist';
+    type: 'step' | 'checklist' | 'reassignment';
     value: string;
     checked: boolean;
 };
@@ -28,7 +28,7 @@ type Task = {
     priority: number;
     due_date: string | null;
     steps: Step[];
-    assignee: Profile;
+    reassignmentChain: Profile[];
     assigned_by: string;
     completed_at: string | null;
     team_id: string | null;
@@ -55,6 +55,11 @@ export default function TaskDetailsPage() {
     const [teamMembers, setTeamMembers] = useState<Profile[]>([]);
     const [isFetchingMembers, setIsFetchingMembers] = useState(false);
     const [isReassigning, setIsReassigning] = useState(false);
+
+    const currentAssignee = useMemo(() => {
+        if (!task?.reassignmentChain || task.reassignmentChain.length === 0) return null;
+        return task.reassignmentChain[task.reassignmentChain.length - 1];
+    }, [task]);
 
     useEffect(() => {
         if (!taskId) return;
@@ -257,7 +262,7 @@ export default function TaskDetailsPage() {
             if (usersError) throw usersError;
 
             if (usersData) {
-                setTeamMembers(usersData.filter(member => member.id !== task.assignee.id));
+                setTeamMembers(usersData.filter(member => member.id !== currentAssignee?.id));
             } else {
                 setTeamMembers([]);
             }
@@ -305,11 +310,6 @@ export default function TaskDetailsPage() {
         }
     };
 
-    const assigneeAvatar = useMemo(() => {
-        if (!task?.assignee?.id) return '';
-        return getHumanAvatarSvg(task.assignee.id);
-    }, [task]);
-
     if (isLoading) {
         return (
             <div className="flex h-screen w-full items-center justify-center mesh-background">
@@ -342,7 +342,7 @@ export default function TaskDetailsPage() {
         );
     }
 
-    const canCompleteTask = user?.id === task.assignee.id;
+    const canCompleteTask = user?.id === currentAssignee?.id;
 
     return (
         <>
@@ -368,11 +368,28 @@ export default function TaskDetailsPage() {
                              <h2 className="text-2xl font-bold tracking-tight">{task.title}</h2>
                             {task.description && <p className="text-lavender-muted text-sm leading-relaxed">{task.description}</p>}
                             <div className="flex items-center gap-3">
-                                <div className="inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/30">
-                                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
-                                        <div style={{ width: 24, height: 24 }} dangerouslySetInnerHTML={{ __html: assigneeAvatar }} />
-                                    </div>
-                                    <span className="text-sm font-medium">{task.assignee.full_name}</span>
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {(task.reassignmentChain || []).map((assignee, index, arr) => (
+                                        <React.Fragment key={assignee.id}>
+                                            {index > 0 && <span className="material-symbols-outlined text-white/50">arrow_forward</span>}
+                                            <div
+                                                className={cn(
+                                                    "inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/20",
+                                                    index < arr.length - 1 && "opacity-60"
+                                                )}
+                                            >
+                                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
+                                                    <div style={{ width: 24, height: 24 }} dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(assignee.id) }} />
+                                                </div>
+                                                <span className={cn(
+                                                    "text-sm font-medium",
+                                                    index < arr.length - 1 && "line-through"
+                                                )}>
+                                                    {assignee.full_name}
+                                                </span>
+                                            </div>
+                                        </React.Fragment>
+                                    ))}
                                 </div>
                                 {user?.id === task.assigned_by && !isTaskCompleted && (
                                     <button onClick={handleOpenReassignModal} className="flex items-center gap-1.5 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10">
