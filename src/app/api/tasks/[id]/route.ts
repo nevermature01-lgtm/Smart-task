@@ -24,18 +24,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 assigner:assigned_by ( id, full_name )
             `)
             .eq('id', taskId)
+            .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id}`)
             .single();
 
         if (taskError) {
             console.error('Error fetching task:', taskError);
-            if (taskError.code === 'PGRST116') { // Not found
+            if (taskError.code === 'PGRST116') { // Not found or not authorized
                  return NextResponse.json({ error: 'Task not found' }, { status: 404 });
             }
             return NextResponse.json({ error: 'Error fetching task' }, { status: 500 });
-        }
-
-        if (task.assigned_to !== user.id && task.assigned_by !== user.id) {
-             return NextResponse.json({ error: 'You are not authorized to view this task.' }, { status: 403 });
         }
         
         let teamMembers: any[] = [];
