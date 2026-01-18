@@ -53,17 +53,10 @@ export default function ManageMembersPage() {
                 return;
             }
 
-            // Fetch members
+            // STEP 1: Fetch team members from team_members table
             const { data: teamMembersData, error: membersError } = await supabase
                 .from('team_members')
-                .select(`
-                    user_id,
-                    role,
-                    users!team_members_user_id_fkey (
-                      id,
-                      full_name
-                    )
-                `)
+                .select('user_id, role')
                 .eq('team_id', activeTeamId);
 
             if (membersError) {
@@ -73,12 +66,36 @@ export default function ManageMembersPage() {
                 return;
             }
 
-            if (teamMembersData) {
-                const processedMembers: Member[] = teamMembersData.map((item: any) => ({
-                    id: item.user_id,
-                    full_name: item.users?.full_name || 'Team Member',
-                    role: item.user_id === teamData.owner_id ? 'owner' : item.role,
-                }));
+            if (!teamMembersData || teamMembersData.length === 0) {
+                setMembers([]);
+                setIsLoading(false);
+                return;
+            }
+            
+            // STEP 2: Extract user IDs and fetch users
+            const memberUserIds = teamMembersData.map(m => m.user_id);
+            const { data: usersData, error: usersError } = await supabase
+                .from('users')
+                .select('id, full_name')
+                .in('id', memberUserIds);
+
+            if (usersError) {
+                console.error('Error fetching user details:', usersError);
+                toast({ variant: 'destructive', title: 'Failed to load member details.' });
+                setIsLoading(false);
+                return;
+            }
+
+            // STEP 3: Merge results in memory
+            if (usersData) {
+                const processedMembers: Member[] = teamMembersData.map((membership) => {
+                    const userProfile = usersData.find((u) => u.id === membership.user_id);
+                    return {
+                        id: membership.user_id,
+                        full_name: userProfile?.full_name || 'Team Member',
+                        role: membership.user_id === teamData.owner_id ? 'owner' : membership.role,
+                    };
+                });
                 
                 setMembers(processedMembers);
             } else {
