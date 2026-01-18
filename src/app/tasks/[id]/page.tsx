@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
+import { format, parse } from 'date-fns';
 
 type TaskDetails = {
     id: string;
@@ -131,7 +132,11 @@ export default function TaskDetailsPage() {
             <section className="flex items-center gap-4">
                 <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-2xl border-white/10">
                 <span className="material-symbols-outlined text-lavender-muted text-lg">calendar_today</span>
-                <span className="text-sm font-medium">Jan 24, 2026</span>
+                <span className="text-sm font-medium">
+                    {task.due_date
+                        ? format(parse(task.due_date, 'yyyy-MM-dd', new Date()), 'dd-MM-yyyy')
+                        : 'No Due Date'}
+                </span>
                 </div>
                 <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-full border-white/20 priority-glow bg-white/10">
                 <span className="text-xs font-bold text-white uppercase tracking-tighter">P1</span>
