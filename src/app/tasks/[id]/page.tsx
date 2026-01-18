@@ -145,7 +145,6 @@ export default function TaskDetailsPage() {
             <section className="space-y-4">
                 <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Steps</h3>
-                <span className="text-xs font-medium text-white/50">2/2 Complete</span>
                 </div>
                 <div className="space-y-3">
                 <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
