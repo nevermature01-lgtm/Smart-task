@@ -34,7 +34,7 @@ export default function TeamsPage() {
                 .from('notifications')
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
-                .eq('read', false);
+                .eq('is_read', false);
 
             if (error) {
                 console.error("Error fetching unread count:", error);

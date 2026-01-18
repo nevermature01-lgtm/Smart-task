@@ -13,7 +13,7 @@ type Notification = {
   created_at: string;
   message: string;
   link: string;
-  read: boolean;
+  is_read: boolean;
 };
 
 export default function NotificationsPage() {
@@ -31,9 +31,9 @@ export default function NotificationsPage() {
         const markAsRead = async () => {
             const { error } = await supabase
                 .from('notifications')
-                .update({ read: true })
+                .update({ is_read: true })
                 .eq('user_id', user.id)
-                .eq('read', false);
+                .eq('is_read', false);
             if (error) {
                 console.error("Failed to mark notifications as read:", error);
             }
@@ -86,12 +86,12 @@ export default function NotificationsPage() {
                             <Link href={notification.link} key={notification.id} className="block">
                                 <div className={cn(
                                     "glass-panel p-4 rounded-2xl flex items-start gap-4 transition-all border",
-                                    !notification.read ? "border-primary/30 bg-primary/10" : "border-white/10"
+                                    !notification.is_read ? "border-primary/30 bg-primary/10" : "border-white/10"
                                 )}>
-                                    {!notification.read && (
+                                    {!notification.is_read && (
                                         <div className="w-2 h-2 mt-1.5 rounded-full bg-primary flex-shrink-0"></div>
                                     )}
-                                    <div className={cn("flex-1", notification.read && "ml-4")}>
+                                    <div className={cn("flex-1", notification.is_read && "ml-4")}>
                                         <p className="text-sm text-white/90 leading-snug">{notification.message}</p>
                                         <p className="text-xs text-lavender-muted mt-2">
                                             {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
