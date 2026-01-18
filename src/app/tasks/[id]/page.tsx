@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { format, parse } from 'date-fns';
+import { supabase } from '@/lib/supabase/client';
 
 type TaskDetails = {
     id: string;
@@ -23,7 +23,6 @@ export default function TaskDetailsPage() {
     const params = useParams();
     const router = useRouter();
     const taskId = params.id as string;
-    const { session, isLoading: isAuthLoading } = useSupabaseAuth();
 
     const [task, setTask] = useState<TaskDetails | null>(null);
     const [loading, setLoading] = useState(true);
@@ -31,15 +30,18 @@ export default function TaskDetailsPage() {
     
     useEffect(() => {
         const fetchTask = async () => {
-            if (!taskId || !session) {
-                if (!isAuthLoading && !session) {
-                    setError("You must be logged in to view this page.");
-                    setLoading(false);
-                }
-                return;
-            };
+            if (!taskId) return;
 
             setLoading(true);
+            setError(null);
+
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                setError("You must be logged in to view this page.");
+                setLoading(false);
+                return;
+            };
 
             try {
                 const response = await fetch(`/api/tasks/${taskId}`, {
@@ -63,10 +65,8 @@ export default function TaskDetailsPage() {
             }
         };
 
-        if (!isAuthLoading) {
-            fetchTask();
-        }
-    }, [taskId, session, isAuthLoading]);
+        fetchTask();
+    }, [taskId]);
 
     const assigneeName = useMemo(() => task?.assignee?.full_name || '...', [task]);
 
@@ -168,7 +168,7 @@ export default function TaskDetailsPage() {
                         <div key={step.id} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                             <span className="text-sm font-medium">{step.value}</span>
                             {step.checked && (
-                                <span className="material-symbols-outlined text-success text-xl">check_circle</span>
+                                <span className="material-symbols-outlined text-green-400 text-xl">check_circle</span>
                             )}
                         </div>
                     ))
@@ -190,7 +190,7 @@ export default function TaskDetailsPage() {
                 {checklist.length > 0 ? (
                     checklist.map(item => (
                         <div key={item.id} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3">
-                            <div className={`w-5 h-5 border-2 ${item.checked ? 'bg-success border-success' : 'border-white/30'} rounded-md flex items-center justify-center`}>
+                            <div className={`w-5 h-5 border-2 ${item.checked ? 'bg-green-500 border-green-500' : 'border-white/30'} rounded-md flex items-center justify-center`}>
                                {item.checked && <span className="material-symbols-outlined text-white text-sm">check</span>}
                             </div>
                             <span className="text-sm font-medium">{item.value}</span>
@@ -208,7 +208,7 @@ export default function TaskDetailsPage() {
                 <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-sm font-bold uppercase tracking-widest text-white/30 pointer-events-none">Swipe to Complete</span>
                 </div>
-                <div className="h-13 w-13 aspect-square glass-panel bg-success/30 border-success/40 rounded-full flex items-center justify-center shadow-lg shadow-success/20 cursor-pointer">
+                <div className="h-13 w-13 aspect-square glass-panel bg-green-500/30 border-green-500/40 rounded-full flex items-center justify-center shadow-lg shadow-green-500/20 cursor-pointer">
                     <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
                 </div>
                 </div>
