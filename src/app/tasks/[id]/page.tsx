@@ -388,7 +388,7 @@ export default function TaskDetailsPage() {
                                         "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
                                         isCompleting && "opacity-0"
                                     )}>
-                                        {!hasChecklist ? "NO CHECKLIST" : "SWIPE TO COMPLETE"}
+                                        SWIPE TO COMPLETE
                                     </span>
                                      <span className={cn(
                                         "absolute text-sm font-bold uppercase tracking-widest text-white/80 pointer-events-none transition-opacity opacity-0",
