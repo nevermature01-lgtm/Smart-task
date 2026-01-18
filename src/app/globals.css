@@ -193,4 +193,19 @@
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
     }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 0px;
+        height: 0px;
+        background: transparent;
+    }
+    .priority-oval {
+        box-shadow: 0 0 20px rgba(124, 58, 237, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
 }
