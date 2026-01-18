@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTeam } from '@/context/TeamProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
+import { format, parse } from 'date-fns';
 
 type TeamDetails = {
   team_name: string;
@@ -15,12 +16,21 @@ type TeamDetails = {
   owner_name: string | null;
 };
 
+type Task = {
+  id: string;
+  title: string;
+  priority: number;
+  due_date: string | null;
+};
+
 export default function HomePage() {
   const { user, isLoading } = useSupabaseAuth();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { activeTeam: activeTeamId, isTeamLoading } = useTeam();
   const [teamDetails, setTeamDetails] = useState<TeamDetails | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -53,7 +63,35 @@ export default function HomePage() {
     };
 
     fetchTeamData();
-  }, [activeTeamId, isTeamLoading, isLoading, supabase]);
+  }, [activeTeamId, isTeamLoading, isLoading]);
+
+  useEffect(() => {
+    if (isLoading || !user) {
+      if (!isLoading) {
+        setTasksLoading(false);
+      }
+      return;
+    }
+  
+    const fetchTasks = async () => {
+      setTasksLoading(true);
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, title, priority, due_date')
+        .or(`assigned_by.eq.${user.id},assigned_to.eq.${user.id}`)
+        .order('priority', { ascending: true });
+  
+      if (error) {
+        console.error("Error fetching tasks:", error);
+        setTasks([]);
+      } else if (data) {
+        setTasks(data);
+      }
+      setTasksLoading(false);
+    };
+  
+    fetchTasks();
+  }, [user, isLoading]);
 
 
   if (isLoading || isTeamLoading) {
@@ -201,34 +239,41 @@ export default function HomePage() {
                         <h3 className="font-bold text-lg">Ongoing Tasks</h3>
                         <button className="text-sm text-lavender-muted font-medium">View All</button>
                     </div>
-                    <div className="space-y-3">
-                        <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10">
-                                <span className="material-symbols-outlined text-primary leading-none">palette</span>
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold text-sm">Design System Update</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">High Priority</p>
-                            </div>
-                            <div className="px-3 py-1.5 rounded-full glass-panel bg-primary/30 border-primary/20">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-white">In Progress</span>
-                            </div>
+                    {tasksLoading ? (
+                        <div className="flex justify-center items-center p-8">
+                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                         </div>
-                         <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-orange-500/10 flex items-center justify-center border border-white/10">
-                                <span className="material-symbols-outlined text-orange-400 leading-none">api</span>
-                            </div>
-                            <div className="flex-1">
-                                <h4 className="font-bold text-sm">Revenue Analytics API</h4>
-                                <p className="text-xs text-lavender-muted opacity-80 mt-0.5">Team Priority</p>
-                            </div>
-                            <div className="px-3 py-1.5 rounded-full glass-panel bg-orange-500/20 border-orange-500/20">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-orange-200">Pending</span>
-                            </div>
+                    ) : tasks.length > 0 ? (
+                        <div className="space-y-3">
+                            {tasks.map((task) => (
+                                <Link href={`/tasks/${task.id}`} key={task.id}>
+                                    <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-transform">
+                                        <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-white/10">
+                                            <span className="material-symbols-outlined text-primary leading-none">task</span>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-sm truncate">{task.title}</h4>
+                                            <p className="text-xs text-lavender-muted opacity-80 mt-0.5">
+                                                Priority: P{task.priority}
+                                            </p>
+                                        </div>
+                                        <div className="px-3 py-1.5 rounded-full glass-panel bg-white/10 border-white/20">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-white whitespace-nowrap">
+                                                {task.due_date
+                                                    ? format(parse(task.due_date, 'yyyy-MM-dd', new Date()), 'dd-MM-yyyy')
+                                                    : 'No Due Date'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="glass-panel p-6 rounded-2xl text-center">
+                            <p className="text-lavender-muted">No ongoing tasks found.</p>
+                        </div>
+                    )}
                 </section>
-
             </main>
             <Link href="/tasks/create" className="fixed bottom-10 right-6 w-14 h-14 bg-primary rounded-full shadow-[0_8px_24px_rgba(86,29,201,0.5)] flex items-center justify-center text-white active:scale-90 transition-transform z-30">
                 <span className="material-symbols-outlined text-3xl">add</span>
