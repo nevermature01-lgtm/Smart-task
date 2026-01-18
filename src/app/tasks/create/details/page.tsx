@@ -250,7 +250,7 @@ function CreateTaskDetailsComponent() {
                     </section>
                 </div>
             </main>
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-40">
+            <div className="fixed bottom-0 left-0 right-0 p-6 z-40">
                 <button onClick={handleCreateTask} disabled={isLoading} className="w-full bg-primary text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/40 active:scale-95 transition-transform flex items-center justify-center gap-2 border border-white/10 disabled:opacity-70">
                     {isCreating ? "Creating..." : "Create Task"}
                     <span className="material-symbols-outlined text-xl">done_all</span>
