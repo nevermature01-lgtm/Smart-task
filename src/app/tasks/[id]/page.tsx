@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -38,15 +38,7 @@ export default function TaskDetailsPage() {
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [isCompleting, setIsCompleting] = useState(false);
     const { toast } = useToast();
-
-    // Swipe functionality state and refs
-    const swipeContainerRef = useRef<HTMLDivElement>(null);
-    const swipeHandleRef = useRef<HTMLDivElement>(null);
-    const dragInfoRef = useRef({ isDragging: false, startX: 0, initialOffset: 0, animationFrameId: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [maxDrag, setMaxDrag] = useState(0);
 
 
     useEffect(() => {
@@ -88,7 +80,7 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
     
-    const { steps, checklist, checklistCompletion, isTaskComplete, hasChecklist } = useMemo(() => {
+    const { steps, checklist, checklistCompletion, isTaskComplete } = useMemo(() => {
         if (!task?.steps) {
             return { steps: [], checklist: [], checklistCompletion: "0/0", isTaskComplete: false, hasChecklist: false };
         }
@@ -104,35 +96,8 @@ export default function TaskDetailsPage() {
             checklist: c,
             checklistCompletion: `${completedChecklistCount}/${c.length}`,
             isTaskComplete,
-            hasChecklist
         };
     }, [task]);
-
-    // Calculate maxDrag on mount and resize
-    useEffect(() => {
-        const calculateMaxDrag = () => {
-            if (swipeContainerRef.current) {
-                const containerWidth = swipeContainerRef.current.offsetWidth;
-                const handleWidth = 56; // w-14
-                const padding = 12; // p-1.5 on container is 6px on each side
-                setMaxDrag(containerWidth - handleWidth - padding);
-            }
-        }
-        calculateMaxDrag();
-        window.addEventListener('resize', calculateMaxDrag);
-        return () => window.removeEventListener('resize', calculateMaxDrag);
-    }, []);
-    
-    // Effect to handle setting handle position based on task completion state
-    useEffect(() => {
-        if (!swipeHandleRef.current || maxDrag === 0) return;
-
-        if (isTaskComplete) {
-            swipeHandleRef.current.style.transform = `translateX(${maxDrag}px)`;
-        } else if (!isDragging) { // Only snap back if not currently dragging
-            swipeHandleRef.current.style.transform = 'translateX(0px)';
-        }
-    }, [isTaskComplete, isDragging, maxDrag]);
 
     const handleToggleChecklist = async (itemToToggle: Step) => {
         if (!task || isTaskComplete) return;
@@ -140,7 +105,7 @@ export default function TaskDetailsPage() {
         const originalSteps = task.steps;
 
         const newSteps = originalSteps.map(step =>
-            step === itemToToggle ? { ...step, checked: !step.checked } : step
+            step.id === itemToToggle.id ? { ...step, checked: !step.checked } : step
         );
 
         const newTask = { ...task, steps: newSteps };
@@ -168,109 +133,6 @@ export default function TaskDetailsPage() {
             toast({ variant: 'destructive', title: 'Error updating checklist', description: e.message });
         }
     };
-
-    const handleCompleteTask = async () => {
-        if (!task || isCompleting) return;
-
-        setIsCompleting(true);
-        const originalSteps = task.steps;
-
-        const newSteps = originalSteps.map(step => 
-            step.type === 'checklist' ? { ...step, checked: true } : step
-        );
-        const newTask = { ...task, steps: newSteps };
-        setTask(newTask);
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) { throw new Error("You are not authenticated."); }
-
-            const response = await fetch(`/api/tasks/${taskId}`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`,
-                },
-                body: JSON.stringify({ steps: newSteps }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to complete task.');
-            }
-            toast({ title: "Task Completed!", description: `"${task.title}" has been marked as complete.` });
-        } catch (e: any) {
-            setTask({ ...task, steps: originalSteps });
-            toast({ variant: "destructive", title: "Error", description: e.message });
-        } finally {
-            setIsCompleting(false);
-        }
-    };
-    
-    const handlePointerMove = (e: PointerEvent) => {
-        if (!dragInfoRef.current.isDragging || !swipeHandleRef.current) return;
-
-        const move = () => {
-            const delta = e.clientX - dragInfoRef.current.startX;
-            const newOffset = dragInfoRef.current.initialOffset + delta;
-            const clampedOffset = Math.max(0, Math.min(newOffset, maxDrag));
-            swipeHandleRef.current!.style.transform = `translateX(${clampedOffset}px)`;
-        };
-        
-        cancelAnimationFrame(dragInfoRef.current.animationFrameId);
-        dragInfoRef.current.animationFrameId = requestAnimationFrame(move);
-    };
-
-    const handlePointerUp = (e: PointerEvent) => {
-        if (!dragInfoRef.current.isDragging || !swipeHandleRef.current) return;
-        
-        swipeHandleRef.current.releasePointerCapture(e.pointerId);
-        
-        cancelAnimationFrame(dragInfoRef.current.animationFrameId);
-        dragInfoRef.current.isDragging = false;
-        setIsDragging(false);
-
-        window.removeEventListener('pointermove', handlePointerMove);
-        window.removeEventListener('pointerup', handlePointerUp);
-        window.removeEventListener('pointercancel', handlePointerUp);
-
-        const transform = swipeHandleRef.current.style.transform;
-        const currentOffset = transform ? parseFloat(transform.replace('translateX(', '').replace('px)', '')) : 0;
-
-        if (currentOffset > maxDrag * 0.7) {
-            handleCompleteTask();
-        }
-    };
-    
-    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-        if (isTaskComplete || isCompleting || !hasChecklist || maxDrag === 0) return;
-        
-        e.preventDefault();
-        e.currentTarget.setPointerCapture(e.pointerId);
-        setIsDragging(true);
-        
-        dragInfoRef.current.isDragging = true;
-        dragInfoRef.current.startX = e.clientX;
-        
-        const transform = e.currentTarget.style.transform;
-        dragInfoRef.current.initialOffset = transform ? parseFloat(transform.replace('translateX(', '').replace('px)', '')) : 0;
-        
-        window.addEventListener('pointermove', handlePointerMove);
-        window.addEventListener('pointerup', handlePointerUp);
-        window.addEventListener('pointercancel', handlePointerUp);
-    };
-    
-    useEffect(() => {
-        return () => {
-            window.removeEventListener('pointermove', handlePointerMove);
-            window.removeEventListener('pointerup', handlePointerUp);
-            window.removeEventListener('pointercancel', handlePointerUp);
-            if (dragInfoRef.current.animationFrameId) {
-                cancelAnimationFrame(dragInfoRef.current.animationFrameId);
-            }
-        };
-    }, []);
-
 
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
@@ -403,52 +265,6 @@ export default function TaskDetailsPage() {
                                 </div>
                             </section>
                         )}
-
-                        <section className="pt-4">
-                            <div
-                                ref={swipeContainerRef}
-                                className={cn(
-                                    "relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center",
-                                    !hasChecklist && "opacity-50 cursor-not-allowed",
-                                    isTaskComplete && "bg-success/20 border-success/30 transition-colors"
-                                )}
-                            >
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span
-                                        className={cn(
-                                        "text-sm font-bold uppercase tracking-widest text-white/50 pointer-events-none transition-opacity",
-                                        (isTaskComplete || isDragging) && "opacity-0"
-                                    )}>
-                                        SWIPE TO COMPLETE
-                                    </span>
-                                     <span className={cn(
-                                        "absolute text-sm font-bold uppercase tracking-widest text-white/80 pointer-events-none transition-opacity opacity-0",
-                                        isTaskComplete && !isCompleting && "opacity-100"
-                                    )}>
-                                        COMPLETED
-                                    </span>
-                                </div>
-                                <div
-                                    ref={swipeHandleRef}
-                                    onPointerDown={handlePointerDown}
-                                    style={{ touchAction: 'none' }}
-                                    className={cn(
-                                        "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10 will-change-transform",
-                                        !isDragging && "transition-transform duration-300 ease-out",
-                                        isTaskComplete || isCompleting ? "cursor-default" : "cursor-grab active:cursor-grabbing",
-                                        isCompleting && "animate-spin",
-                                        isTaskComplete ? "bg-success/50 border-success/60" : "bg-primary/50 border-primary/60"
-                                )}>
-                                    {isCompleting ? (
-                                        <div className="h-5 w-5 border-2 border-white/50 border-t-white rounded-full animate-spin"></div>
-                                    ) : isTaskComplete ? (
-                                        <span className="material-symbols-outlined text-3xl">check</span>
-                                    ) : (
-                                        <span className="material-symbols-outlined text-2xl">keyboard_double_arrow_right</span>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
                     </div>
                 </div>
             </main>
