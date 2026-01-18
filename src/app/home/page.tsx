@@ -194,46 +194,6 @@ export default function HomePage() {
                     <h2 className="text-2xl font-bold">Hello, {firstName}!</h2>
                     <p className="text-lavender-muted mt-1 opacity-90">You have 5 tasks to complete today.</p>
                 </section>
-
-                <section>
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold text-lg">Tasks Analytics</h3>
-                        <div className="flex items-center gap-1 text-sm text-lavender-muted">
-                            <span>This Week</span>
-                            <span className="material-symbols-outlined text-sm leading-none">expand_more</span>
-                        </div>
-                    </div>
-                    <div className="glass-panel p-6 rounded-3xl h-48 flex items-end justify-between gap-2">
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-12"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Mon</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-24"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Tue</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-16"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Wed</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar-active rounded-t-lg h-32 shadow-[0_0_15px_rgba(86,29,201,0.3)]"></div>
-                            <span className="text-[10px] text-white uppercase font-bold">Thu</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-20"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Fri</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1">
-                            <div className="w-full chart-bar rounded-t-lg h-14"></div>
-                            <span className="text-[10px] text-lavender-muted uppercase font-bold">Sat</span>
-                        </div>
-                        <div className="flex flex-col items-center gap-3 flex-1 opacity-40">
-                          <div className="w-full chart-bar rounded-t-lg h-10"></div>
-                          <span className="text-[10px] text-lavender-muted uppercase font-bold">Sun</span>
-                        </div>
-                    </div>
-                </section>
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold text-lg">Ongoing Tasks</h3>
