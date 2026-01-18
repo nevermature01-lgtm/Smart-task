@@ -88,11 +88,28 @@ export async function PATCH(
     const body = await request.json();
     const { steps, complete } = body;
 
-    // Logic for completing a task
+    const returnFullTask = async (taskData: any) => {
+        const { data: assignee, error: assigneeError } = await supabaseAdmin
+            .from('users')
+            .select('id, full_name')
+            .eq('id', taskData.assigned_to)
+            .single();
+        
+        if (assigneeError) {
+            console.error('Error fetching assignee for PATCH response:', assigneeError);
+            return NextResponse.json(taskData);
+        }
+        
+        return NextResponse.json({
+            ...taskData,
+            assignee,
+        });
+    };
+
     if (complete) {
       const { data: existingTask, error: taskError } = await supabaseAdmin
         .from('tasks')
-        .select('id, assigned_to, completed_at')
+        .select('*')
         .eq('id', taskId)
         .maybeSingle();
       
@@ -110,16 +127,7 @@ export async function PATCH(
       }
 
       if (existingTask.completed_at) {
-        // Task is already complete, return the full task object to avoid breaking client
-        const { data: fullTask, error: fetchError } = await supabaseAdmin
-            .from('tasks')
-            .select('*')
-            .eq('id', taskId)
-            .single();
-        if(fetchError) {
-            return NextResponse.json({ error: 'Failed to fetch completed task details.' }, { status: 500 });
-        }
-        return NextResponse.json(fullTask);
+        return await returnFullTask(existingTask);
       }
 
       const { data: updatedTask, error: updateError } = await supabaseAdmin
@@ -134,10 +142,9 @@ export async function PATCH(
         return NextResponse.json({ error: updateError.message }, { status: 500 });
       }
 
-      return NextResponse.json(updatedTask);
+      return await returnFullTask(updatedTask);
     }
     
-    // Logic for updating steps
     if (steps) {
         const { data: existingTask, error: taskError } = await supabaseAdmin
           .from('tasks')
