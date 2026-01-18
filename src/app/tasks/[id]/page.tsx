@@ -59,6 +59,7 @@ export default function TaskDetailsPage() {
     
     const [showReopenDialog, setShowReopenDialog] = useState(false);
     const [isReopening, setIsReopening] = useState(false);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
 
     const currentAssignee = useMemo(() => {
@@ -67,9 +68,9 @@ export default function TaskDetailsPage() {
     }, [task]);
 
     useEffect(() => {
-        if (!taskId) return;
+        if (!taskId || !user) return;
 
-        const fetchTask = async () => {
+        const fetchTaskAndRole = async () => {
             setIsLoading(true);
             setError(null);
 
@@ -95,6 +96,18 @@ export default function TaskDetailsPage() {
 
                 const data = await response.json();
                 setTask(data);
+
+                if (data.team_id && user) {
+                    const { data: memberData } = await supabase
+                        .from('team_members')
+                        .select('role')
+                        .eq('team_id', data.team_id)
+                        .eq('user_id', user.id)
+                        .single();
+                    if (memberData) {
+                        setUserRole(memberData.role);
+                    }
+                }
             } catch (e: any) {
                 setError(e.message);
             } finally {
@@ -102,8 +115,8 @@ export default function TaskDetailsPage() {
             }
         };
 
-        fetchTask();
-    }, [taskId]);
+        fetchTaskAndRole();
+    }, [taskId, user]);
     
     const isTaskCompleted = !!task?.is_completed;
 
@@ -381,6 +394,7 @@ export default function TaskDetailsPage() {
     }
 
     const canCompleteTask = user?.id === currentAssignee?.id;
+    const canManageTask = userRole === 'owner' || userRole === 'admin' || (task?.assigned_by === user?.id);
 
     return (
         <>
@@ -393,15 +407,15 @@ export default function TaskDetailsPage() {
                     
                     {isTaskCompleted && (
                         <button
-                            onClick={() => user?.id === task.assigned_by && setShowReopenDialog(true)}
-                            disabled={user?.id !== task.assigned_by}
+                            onClick={() => canManageTask && setShowReopenDialog(true)}
+                            disabled={!canManageTask}
                             className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <span className="material-symbols-outlined text-xl">lock</span>
                         </button>
                     )}
 
-                    {user && task && user.id === task.assigned_by && !isTaskCompleted && (
+                    {canManageTask && !isTaskCompleted && (
                         <button onClick={() => setShowDeleteDialog(true)} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-red-400 active:scale-95 transition-transform border-red-500/20">
                             <span className="material-symbols-outlined text-xl">delete</span>
                         </button>
@@ -420,7 +434,7 @@ export default function TaskDetailsPage() {
                         <section className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Assignment History</h3>
-                                {user?.id === task.assigned_by && !isTaskCompleted && (
+                                {canManageTask && !isTaskCompleted && (
                                     <button onClick={handleOpenReassignModal} className="flex items-center gap-1.5 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10">
                                         <span className="material-symbols-outlined text-[16px]">person_add</span>
                                         <span className="text-[11px] font-semibold tracking-wide">Reassign</span>

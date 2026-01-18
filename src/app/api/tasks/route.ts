@@ -33,6 +33,24 @@ export async function POST(request: Request) {
 
         const { title, description, priority, assigneeId, teamId, steps, checklist, dueDate } = body;
 
+        if (teamId) {
+            const { data: membership, error: membershipError } = await supabaseAdmin
+                .from('team_members')
+                .select('role')
+                .eq('team_id', teamId)
+                .eq('user_id', user.id)
+                .single();
+            
+            if (membershipError || !membership) {
+                return NextResponse.json({ error: 'You are not a member of this team.' }, { status: 403 });
+            }
+
+            if (membership.role !== 'owner' && membership.role !== 'admin') {
+                return NextResponse.json({ error: 'You do not have permission to assign tasks in this team.' }, { status: 403 });
+            }
+        }
+
+
         if (!title) {
             return NextResponse.json({ error: 'Title is required' }, { status: 400 });
         }

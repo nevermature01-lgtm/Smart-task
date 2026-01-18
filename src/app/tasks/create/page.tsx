@@ -8,6 +8,7 @@ import { useTeam } from '@/context/TeamProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 type Profile = {
     id: string;
@@ -20,6 +21,7 @@ export default function CreateTaskPage() {
     const { activeTeam: activeTeamId, isLoading: isTeamLoading } = useTeam();
     const [members, setMembers] = useState<Profile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const { toast } = useToast();
 
     useEffect(() => {
         if (isAuthLoading || isTeamLoading) {
@@ -39,6 +41,25 @@ export default function CreateTaskPage() {
                 // For personal workspace, automatically assign to self and move to the next step.
                 setIsLoading(false);
                 router.push(`/tasks/create/details?assigneeId=${user.id}`);
+                return;
+            }
+
+            // Check user role before fetching members
+            const { data: membership, error: roleError } = await supabase
+                .from('team_members')
+                .select('role')
+                .eq('team_id', activeTeamId)
+                .eq('user_id', user.id)
+                .single();
+
+            if (roleError || !membership || (membership.role !== 'owner' && membership.role !== 'admin')) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Permission Denied',
+                    description: 'You do not have permission to assign tasks in this team.'
+                });
+                router.push('/home');
+                setIsLoading(false);
                 return;
             }
 
@@ -95,8 +116,7 @@ export default function CreateTaskPage() {
         };
 
         fetchMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [user, activeTeamId, isTeamLoading, isAuthLoading]);
+    }, [user, activeTeamId, isTeamLoading, isAuthLoading, router, toast]);
     
     const handleSelectAssignee = (id: string) => {
         router.push(`/tasks/create/details?assigneeId=${id}`);

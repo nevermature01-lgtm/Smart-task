@@ -155,9 +155,26 @@ export async function PATCH(
     }
 
     if (reopen) {
-        if (existingTask.assigned_by !== user.id) {
-            return NextResponse.json({ error: 'Forbidden: Only the task creator can reopen.' }, { status: 403 });
+        let isAuthorizedToReopen = false;
+        if (user.id === existingTask.assigned_by) {
+            isAuthorizedToReopen = true;
+        } else if (existingTask.team_id) {
+             const { data: memberData } = await supabaseAdmin
+                .from('team_members')
+                .select('role')
+                .eq('user_id', user.id)
+                .eq('team_id', existingTask.team_id)
+                .single();
+
+            if (memberData && (memberData.role === 'owner' || memberData.role === 'admin')) {
+                isAuthorizedToReopen = true;
+            }
         }
+        
+        if (!isAuthorizedToReopen) {
+            return NextResponse.json({ error: 'Forbidden: You do not have permission to reopen this task.' }, { status: 403 });
+        }
+
         const { data: updatedTask, error: updateError } = await supabaseAdmin
             .from('tasks')
             .update({ is_completed: false, completed_at: null })
@@ -187,9 +204,25 @@ export async function PATCH(
     }
 
     if (assigneeId) {
-        if (existingTask.assigned_by !== user.id) {
-            return NextResponse.json({ error: 'Forbidden: Only the task creator can reassign.' }, { status: 403 });
+        if (!existingTask.team_id) {
+            return NextResponse.json({ error: 'This task does not belong to a team and cannot be reassigned.' }, { status: 400 });
         }
+
+        const { data: member, error: memberError } = await supabaseAdmin
+            .from('team_members')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('team_id', existingTask.team_id)
+            .single();
+
+        if (memberError || !member) {
+            return NextResponse.json({ error: 'Forbidden: You are not a member of this team.' }, { status: 403 });
+        }
+
+        if (member.role !== 'owner' && member.role !== 'admin' && user.id !== existingTask.assigned_by) {
+            return NextResponse.json({ error: 'Forbidden: You do not have permission to reassign tasks.' }, { status: 403 });
+        }
+
 
         const reassignmentStep = {
             id: randomUUID(),
