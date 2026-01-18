@@ -43,9 +43,13 @@ export default function TaskDetailsPage() {
 
     // Swipe functionality state and refs
     const swipeContainerRef = useRef<HTMLDivElement>(null);
+    const swipeHandleRef = useRef<HTMLDivElement>(null);
+    const dragInfoRef = useRef({ isDragging: false, startX: 0, animationFrameId: 0 });
+
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState(0);
     const [maxDrag, setMaxDrag] = useState(0);
+
 
     useEffect(() => {
         if (!taskId) return;
@@ -134,7 +138,7 @@ export default function TaskDetailsPage() {
         const originalSteps = task.steps;
 
         const newSteps = originalSteps.map(step =>
-            step.id === itemToToggle.id ? { ...step, checked: !step.checked } : step
+            step === itemToToggle ? { ...step, checked: !step.checked } : step
         );
 
         const newTask = { ...task, steps: newSteps };
@@ -201,45 +205,68 @@ export default function TaskDetailsPage() {
         }
     };
     
-    const handleDragStart = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
-        if (isTaskComplete || isCompleting || !hasChecklist) return;
-        e.preventDefault();
-        
-        setIsDragging(true);
-        const startX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-        const dragOffsetAtStart = finalDragOffset;
+    const handlePointerMove = (e: PointerEvent) => {
+        if (!dragInfoRef.current.isDragging) return;
 
-        const handleDragMove = (moveEvent: MouseEvent | TouchEvent) => {
-            const currentX = 'touches' in moveEvent ? moveEvent.touches[0].clientX : moveEvent.clientX;
-            const offsetX = currentX - startX + dragOffsetAtStart;
-            setDragOffset(Math.max(0, Math.min(offsetX, maxDrag)));
+        const move = () => {
+            const newOffset = e.clientX - dragInfoRef.current.startX;
+            const clampedOffset = Math.max(0, Math.min(newOffset, maxDrag));
+            setDragOffset(clampedOffset);
         };
+        
+        cancelAnimationFrame(dragInfoRef.current.animationFrameId);
+        dragInfoRef.current.animationFrameId = requestAnimationFrame(move);
+    };
 
-        const handleDragEnd = (endEvent: MouseEvent | TouchEvent) => {
-            window.removeEventListener('mousemove', handleDragMove);
-            window.removeEventListener('touchmove', handleDragMove);
-            window.removeEventListener('mouseup', handleDragEnd);
-            window.removeEventListener('touchend', handleDragEnd);
+    const handlePointerUp = (e: PointerEvent) => {
+        if (!dragInfoRef.current.isDragging || !swipeHandleRef.current) return;
+        
+        swipeHandleRef.current.releasePointerCapture(e.pointerId);
+        
+        cancelAnimationFrame(dragInfoRef.current.animationFrameId);
+        dragInfoRef.current.isDragging = false;
+        setIsDragging(false);
 
-            setIsDragging(false);
-            
-            // Recalculate final offset from the event to avoid state lag.
-            const finalX = 'changedTouches' in endEvent ? endEvent.changedTouches[0].clientX : endEvent.clientX;
-            const finalOffset = finalX - startX + dragOffsetAtStart;
-            const clampedFinalOffset = Math.max(0, Math.min(finalOffset, maxDrag));
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
 
-            if (clampedFinalOffset > maxDrag * 0.6) {
-                handleCompleteTask();
-            } else {
-                setDragOffset(0);
+        const finalOffset = e.clientX - dragInfoRef.current.startX;
+        const clampedFinalOffset = Math.max(0, Math.min(finalOffset, maxDrag));
+
+        if (clampedFinalOffset > maxDrag * 0.7) {
+            handleCompleteTask();
+        } else {
+            setDragOffset(0);
+        }
+    };
+    
+    const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (isTaskComplete || isCompleting || !hasChecklist) return;
+        
+        e.currentTarget.setPointerCapture(e.pointerId);
+        setIsDragging(true);
+        
+        dragInfoRef.current = {
+            isDragging: true,
+            startX: e.clientX - dragOffset,
+            animationFrameId: 0,
+        };
+        
+        window.addEventListener('pointermove', handlePointerMove);
+        window.addEventListener('pointerup', handlePointerUp);
+    };
+    
+    useEffect(() => {
+        return () => {
+            window.removeEventListener('pointermove', handlePointerMove);
+            window.removeEventListener('pointerup', handlePointerUp);
+            if (dragInfoRef.current.animationFrameId) {
+                cancelAnimationFrame(dragInfoRef.current.animationFrameId);
             }
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-        window.addEventListener('mousemove', handleDragMove);
-        window.addEventListener('touchmove', handleDragMove);
-        window.addEventListener('mouseup', handleDragEnd);
-        window.addEventListener('touchend', handleDragEnd);
-    };
 
     const assigneeAvatar = useMemo(() => {
         if (!task?.assignee?.id) return '';
@@ -357,7 +384,7 @@ export default function TaskDetailsPage() {
                                 <div className="space-y-3">
                                     {checklist.map((item, index) => (
                                         <div 
-                                            key={item.id || `checklist-${index}`} 
+                                            key={item.id || `checklist-temp-${index}`} 
                                             className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
                                             onClick={() => handleToggleChecklist(item)}
                                         >
@@ -398,8 +425,8 @@ export default function TaskDetailsPage() {
                                     </span>
                                 </div>
                                 <div
-                                    onMouseDown={handleDragStart}
-                                    onTouchStart={handleDragStart}
+                                    ref={swipeHandleRef}
+                                    onPointerDown={handlePointerDown}
                                     style={{ transform: `translateX(${finalDragOffset}px)` }}
                                     className={cn(
                                         "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10 will-change-transform",
