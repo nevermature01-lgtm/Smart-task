@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useTeam } from '@/context/TeamProvider';
-import Avatar from 'boring-avatars';
+import { getHumanAvatarSvg } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 
 type Profile = {
@@ -196,14 +196,15 @@ export default function CreateTaskPage() {
                                     "border-primary": selectedAssigneeId === member.id,
                                     "border-white/20": selectedAssigneeId !== member.id,
                                 })}>
-                                    <div style={{ width: 40, height: 40, borderRadius: '50%', overflow: 'hidden' }}>
-                                        <Avatar
-                                            size={40}
-                                            name={String(member.id)}
-                                            variant="beam"
-                                            colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]}
-                                        />
-                                    </div>
+                                    <div
+                                        style={{
+                                            width: 40,
+                                            height: 40,
+                                            borderRadius: '50%',
+                                            overflow: 'hidden',
+                                        }}
+                                        dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(member.id)) }}
+                                    />
                                 </div>
                                 <span className={cn("font-bold text-base", { "text-white": selectedAssigneeId === member.id, "text-white/90": selectedAssigneeId !== member.id})}>{member.full_name}</span>
                             </div>

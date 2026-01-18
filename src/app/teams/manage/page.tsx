@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useState, useEffect } from 'react';
-import Avatar from 'boring-avatars';
+import { getHumanAvatarSvg } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 
@@ -120,14 +120,16 @@ export default function ManageTeamsPage() {
                                     <div className="flex items-center gap-2">
                                         <div className="flex -space-x-2">
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden flex items-center justify-center">
-                                                <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden' }}>
-                                                    <Avatar size={28} name={String(`${team.id}-1`)} variant="beam" colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]} />
-                                                </div>
+                                                <div
+                                                    style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden' }}
+                                                    dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(`${team.id}-1`)) }}
+                                                />
                                             </div>
                                             <div className="w-7 h-7 rounded-full border border-white/20 overflow-hidden flex items-center justify-center">
-                                                 <div style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden' }}>
-                                                    <Avatar size={28} name={String(`${team.id}-2`)} variant="beam" colors={["#6D28D9", "#7C3AED", "#8B5CF6", "#A78BFA", "#C4B5FD"]} />
-                                                 </div>
+                                                 <div
+                                                    style={{ width: 28, height: 28, borderRadius: '50%', overflow: 'hidden' }}
+                                                    dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(String(`${team.id}-2`)) }}
+                                                 />
                                             </div>
                                             {teamDetailsMock[index % teamDetailsMock.length]?.plusCount > 0 && (
                                                 <div className="w-7 h-7 rounded-full border border-white/20 bg-white/20 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold">
