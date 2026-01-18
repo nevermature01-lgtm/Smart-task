@@ -91,7 +91,7 @@ export async function PATCH(
     // Step 1: Fetch the task to verify ownership and current state
     const { data: existingTask, error: taskError } = await supabaseAdmin
       .from('tasks')
-      .select('assigned_to, assigned_by, completed_at')
+      .select('*')
       .eq('id', taskId)
       .maybeSingle();
       
@@ -111,11 +111,7 @@ export async function PATCH(
       }
 
       if (existingTask.completed_at) {
-        const { data: fullTask, error: fullTaskError } = await supabaseAdmin.from('tasks').select('*').eq('id', taskId).single();
-        if (fullTaskError) {
-           return NextResponse.json({ error: 'Failed to retrieve completed task.' }, { status: 500 });
-        }
-        return NextResponse.json(fullTask);
+        return NextResponse.json(existingTask);
       }
 
       const { data: updatedTask, error: updateError } = await supabaseAdmin
