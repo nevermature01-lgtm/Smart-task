@@ -39,37 +39,38 @@ export default function HomePage() {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   useEffect(() => {
+    // Guard to prevent fetching if no team is active
+    if (isTeamLoading || !activeTeam || activeTeam === 'personal') {
+      setTeamDetails(null);
+      return;
+    }
+    
     const fetchTeamDetails = async () => {
-      if (activeTeam && activeTeam !== 'personal') {
-        const { data, error } = await supabase
-          .from('teams')
-          .select('team_name, team_code, owner_id, owner_name')
-          .eq('id', activeTeam)
-          .single();
+      const { data, error } = await supabase
+        .from('teams')
+        .select('team_name, team_code, owner_id, owner_name')
+        .eq('id', activeTeam)
+        .single();
 
-        if (error) {
-          console.error('Error fetching team details:', error);
-          setTeamDetails(null);
-        } else {
-          setTeamDetails(data);
-        }
-      } else {
+      if (error) {
+        // Silently fail as requested
         setTeamDetails(null);
+      } else {
+        setTeamDetails(data);
       }
     };
 
-    if (!isTeamLoading) {
-        fetchTeamDetails();
-    }
+    fetchTeamDetails();
   }, [activeTeam, isTeamLoading]);
 
   useEffect(() => {
-    const fetchMembers = async () => {
-        if (!activeTeam || activeTeam === 'personal') {
-            setMembers([]);
-            return;
-        }
+    // Guard to prevent fetching if no team is active
+    if (isTeamLoading || !activeTeam || activeTeam === 'personal') {
+        setMembers([]);
+        return;
+    }
 
+    const fetchMembers = async () => {
         setIsLoadingMembers(true);
         // Use a single query with a join as requested
         const { data: membersData, error } = await supabase
@@ -106,9 +107,7 @@ export default function HomePage() {
         setIsLoadingMembers(false);
     };
 
-    if (!isTeamLoading) {
-        fetchMembers();
-    }
+    fetchMembers();
   }, [activeTeam, isTeamLoading]);
 
   if (isLoading || isTeamLoading) {
