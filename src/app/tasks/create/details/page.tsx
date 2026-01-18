@@ -133,7 +133,7 @@ function CreateTaskDetailsComponent() {
                 <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
-                <h1 className="text-xl font-bold tracking-tight">Create Task</h1>
+                <h1 className="text-xl font-bold tracking-tight">Assign Task</h1>
                 <div className="w-10 h-10"></div>
             </header>
             <main className="flex-1 px-4 py-4 overflow-y-auto custom-scrollbar pb-32">
