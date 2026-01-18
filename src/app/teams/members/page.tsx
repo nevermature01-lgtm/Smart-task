@@ -58,23 +58,27 @@ export default function ManageMembersPage() {
             // Fetch members
             const { data: teamMembersData, error: membersError } = await supabase
                 .from('team_members')
-                .select('role, user_id, users(id, full_name)')
+                .select('user_id, role, users(full_name)')
                 .eq('team_id', activeTeamId);
 
             if (membersError) {
-                console.error('Error fetching team members:', membersError);
+                console.error('Error fetching team members:', membersError.message || membersError);
                 toast({ variant: 'destructive', title: 'Failed to load members.' });
                 setIsLoading(false);
                 return;
             }
 
-            const processedMembers: Member[] = teamMembersData.map((item: any) => ({
-                id: item.users.id,
-                full_name: item.users.full_name || 'Team Member',
-                role: item.role,
-            }));
-            
-            setMembers(processedMembers);
+            if (teamMembersData) {
+                const processedMembers: Member[] = teamMembersData.map((item: any) => ({
+                    id: item.user_id,
+                    full_name: item.users?.full_name || 'Team Member',
+                    role: item.role,
+                }));
+                
+                setMembers(processedMembers);
+            } else {
+                setMembers([]);
+            }
             setIsLoading(false);
         };
 
