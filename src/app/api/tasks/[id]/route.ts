@@ -3,20 +3,19 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { format, parseISO } from 'date-fns';
 
 // Helper function to get Supabase user UUID from email
-async function getUserUUIDByEmail(email: string) {
+async function getUserUUIDByEmail(email: string): Promise<string | null> {
     const { data: user, error } = await supabaseAdmin
         .from('users')
         .select('id')
         .eq('email', email)
-        .single();
+        .maybeSingle(); // Use maybeSingle to prevent error if user not found
     
-    // Do not throw an error if user is not found, just return null.
-    if (error && error.code !== 'PGRST116') {
-         console.error("Error fetching user by email:", error);
-         return null;
-    };
+    if (error) {
+        console.error("Error fetching user by email:", error);
+        return null;
+    }
     
-    return user?.id;
+    return user?.id ?? null;
 }
 
 
@@ -35,6 +34,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         
         const userUUID = await getUserUUIDByEmail(authUser.email);
         if (!userUUID) {
+            // This happens if the user exists in auth but not in the public.users table.
             return NextResponse.json({ error: 'User profile not found in database.' }, { status: 404 });
         }
 
@@ -138,7 +138,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
             .update({ steps: steps })
             .eq('id', taskId)
             .select()
-            .single();
+            .maybeSingle();
 
         if (updateError) {
             console.error('Error updating task:', updateError);
