@@ -255,7 +255,7 @@ export default function ManageMembersPage() {
                                 <div className="flex flex-col flex-1">
                                     <span className="font-bold text-lg text-white">{member.full_name}</span>
                                     {(member.role === 'owner' || member.role === 'admin') ? (
-                                         <span className="text-[10px] uppercase tracking-wider font-bold bg-primary/20 text-primary px-2 py-0.5 rounded-full w-fit">Admin</span>
+                                         <span className="text-[10px] uppercase tracking-wider font-bold bg-amber-400/20 text-amber-400 px-2 py-0.5 rounded-full w-fit">Admin</span>
                                     ) : (
                                          <span className="text-[10px] uppercase tracking-wider font-bold bg-white/10 text-white/80 px-2 py-0.5 rounded-full w-fit">Staff</span>
                                     )}
