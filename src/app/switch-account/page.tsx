@@ -76,7 +76,7 @@ export default function SwitchAccountPage() {
     }
 
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
-    const userPhoto = user?.user_metadata?.avatar_url;
+    const userPhoto = user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null;
 
     const isLoading = isLoadingTeams || isTeamLoading;
 

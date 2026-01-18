@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 type Profile = {
     id: string;
     full_name: string | null;
-    avatar_url: string | null;
+    avatar_url: string;
 }
 
 export default function CreateTaskPage() {
@@ -46,10 +46,10 @@ export default function CreateTaskPage() {
 
             // Case 1: Personal workspace. The only assignable member is the user themselves.
             if (activeTeam === 'personal' || !activeTeam) {
-                const self = {
+                const self: Profile = {
                     id: user.id,
                     full_name: user.user_metadata?.full_name || 'Personal Account',
-                    avatar_url: `https://i.pravatar.cc/150?u=${user.id}`,
+                    avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
                 };
                 setMembers([self]);
                 setSelectedAssigneeId(self.id);
@@ -112,12 +112,12 @@ export default function CreateTaskPage() {
                 const ownerId = teamData?.owner_id;
 
                 // Step 4: Merge data and filter out the current user and the owner.
-                const finalProfiles = usersData
+                const finalProfiles: Profile[] = usersData
                     .filter(member => member.id !== user.id && member.id !== ownerId)
                     .map(member => ({
                         id: member.id,
                         full_name: member.full_name || "Team Member",
-                        avatar_url: `https://i.pravatar.cc/150?u=${member.id}`,
+                        avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${member.id}`,
                     }));
                 
                 setMembers(finalProfiles);
@@ -213,7 +213,7 @@ export default function CreateTaskPage() {
                                     "border-primary": selectedAssigneeId === member.id,
                                     "border-white/20": selectedAssigneeId !== member.id,
                                 })}>
-                                    <Image alt={member.full_name || 'avatar'} className="w-full h-full object-cover" src={member.avatar_url || `https://i.pravatar.cc/150?u=${member.id}`} width={48} height={48}/>
+                                    <Image alt={member.full_name || 'avatar'} className="w-full h-full object-cover" src={member.avatar_url} width={48} height={48}/>
                                 </div>
                                 <span className={cn("font-bold text-base", { "text-white": selectedAssigneeId === member.id, "text-white/90": selectedAssigneeId !== member.id})}>{member.full_name}</span>
                             </div>

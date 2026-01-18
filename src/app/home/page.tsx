@@ -104,7 +104,7 @@ export default function HomePage() {
           id: membership.user_id,
           role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
           full_name: userData?.full_name || 'Team Member',
-          avatar_url: `https://i.pravatar.cc/150?u=${membership.user_id}`
+          avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${membership.user_id}`
         };
       });
       
@@ -125,7 +125,7 @@ export default function HomePage() {
   }
   
   const displayName = user?.user_metadata?.full_name || 'User';
-  const userPhoto = user?.user_metadata?.avatar_url;
+  const userPhoto = user ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}` : null;
   const firstName = user?.user_metadata?.first_name || 'User';
 
   return (
