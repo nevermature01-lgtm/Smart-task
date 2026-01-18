@@ -25,12 +25,33 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Assignee is required' }, { status: 400 });
         }
         
+        let numericPriority: number;
+        if (typeof priority === 'string') {
+            switch (priority.toLowerCase()) {
+                case 'low':
+                    numericPriority = 1;
+                    break;
+                case 'medium':
+                    numericPriority = 5;
+                    break;
+                case 'high':
+                    numericPriority = 10;
+                    break;
+                default:
+                    numericPriority = parseInt(priority, 10) || 5; 
+            }
+        } else if (typeof priority === 'number') {
+            numericPriority = priority;
+        } else {
+            numericPriority = 5;
+        }
+
         const { data: newTask, error: insertError } = await supabaseAdmin
             .from('tasks')
             .insert({
                 title,
                 description,
-                priority,
+                priority: numericPriority,
                 steps: steps || [],
                 team_id: teamId,
                 assigned_to: assigneeId,
