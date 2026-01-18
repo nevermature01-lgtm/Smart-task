@@ -179,8 +179,8 @@ export default function TaskDetailsPage() {
                                 <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Steps</h3>
                             </div>
                             <div className="space-y-3">
-                                {steps.map((step) => (
-                                    <div key={`step-${step.id}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                                {steps.map((step, index) => (
+                                    <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
                                         <p className="text-sm font-medium">{step.value}</p>
                                     </div>
                                 ))}
@@ -196,8 +196,8 @@ export default function TaskDetailsPage() {
                                 <span className="text-xs font-medium text-white/50">{checklistCompletion} Complete</span>
                             </div>
                              <div className="space-y-3">
-                                {checklist.map((item) => (
-                                    <div key={`checklist-${item.id}`} className="flex items-center gap-3">
+                                {checklist.map((item, index) => (
+                                    <div key={item.id || `checklist-${index}`} className="flex items-center gap-3">
                                         <div className="w-5 h-5 border-2 border-white/40 rounded-md flex items-center justify-center shrink-0">
                                             {item.checked && <span className="material-symbols-outlined text-sm text-white">check</span>}
                                         </div>
