@@ -8,7 +8,7 @@ async function getUserUUIDByEmail(email: string): Promise<string | null> {
         .from('users')
         .select('id')
         .eq('email', email)
-        .maybeSingle(); // Use maybeSingle to prevent error if user not found
+        .maybeSingle();
     
     if (error) {
         console.error("Error fetching user by email:", error);
@@ -22,6 +22,7 @@ async function getUserUUIDByEmail(email: string): Promise<string | null> {
 // GET a single task by ID
 export async function GET(request: Request, { params }: { params: { id: string } }) {
     try {
+        // 1. Authenticate user
         const token = request.headers.get('authorization')?.split(' ')[1];
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -32,14 +33,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
             return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: 401 });
         }
         
+        // 2. Resolve Supabase user ID
         const userUUID = await getUserUUIDByEmail(authUser.email);
         if (!userUUID) {
-            // This happens if the user exists in auth but not in the public.users table.
             return NextResponse.json({ error: 'User profile not found in database.' }, { status: 404 });
         }
 
         const taskId = params.id;
         
+        // 3. Fetch task by ID only
         const { data: task, error: taskError } = await supabaseAdmin
             .from('tasks')
             .select(`
@@ -54,7 +56,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
                 )
             `)
             .eq('id', taskId)
-            .or(`assigned_to.eq.${userUUID},assigned_by.eq.${userUUID}`)
             .maybeSingle();
 
         if (taskError) {
@@ -63,21 +64,26 @@ export async function GET(request: Request, { params }: { params: { id: string }
         }
 
         if (!task) {
-            return NextResponse.json({ error: 'Task not found or you do not have permission to view it.' }, { status: 404 });
+            return NextResponse.json({ error: 'Task not found.' }, { status: 404 });
         }
 
-        // Format date if it exists
+        // 4. Authorization check
+        const isAssigner = task.assigned_by === userUUID;
+        const isAssignee = task.assigned_to === userUUID;
+        if (!isAssigner && !isAssignee) {
+            return NextResponse.json({ error: 'You do not have permission to view this task.' }, { status: 403 });
+        }
+
+
+        // 5. Format and return
         if (task.due_date) {
             try {
-                // Supabase returns 'YYYY-MM-DD'
                 task.due_date = format(parseISO(task.due_date), 'MMM dd, yyyy');
             } catch (e) {
                 console.error('Error formatting date:', e);
-                // leave date as is if formatting fails
             }
         }
 
-        // Convert numeric priority to string P{number}
         task.priority_string = `P${task.priority}`;
 
         return NextResponse.json(task);
@@ -92,6 +98,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 // PATCH to update task steps/checklist
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
     try {
+        // 1. Authenticate user
         const token = request.headers.get('authorization')?.split(' ')[1];
         if (!token) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -102,6 +109,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
             return NextResponse.json({ error: authError?.message || 'Unauthorized' }, { status: 401 });
         }
 
+        // 2. Resolve Supabase user ID
         const userUUID = await getUserUUIDByEmail(authUser.email);
         if (!userUUID) {
             return NextResponse.json({ error: 'User profile not found in database.' }, { status: 404 });
@@ -115,12 +123,11 @@ export async function PATCH(request: Request, { params }: { params: { id: string
             return NextResponse.json({ error: 'Invalid payload: steps array is required.' }, { status: 400 });
         }
 
-        // Authorization check: ensure user is assigner or assignee before updating
+        // 3. Fetch task for authorization check
         const { data: existingTask, error: authCheckError } = await supabaseAdmin
             .from('tasks')
-            .select('id')
+            .select('id, assigned_by, assigned_to')
             .eq('id', taskId)
-            .or(`assigned_to.eq.${userUUID},assigned_by.eq.${userUUID}`)
             .maybeSingle();
         
         if (authCheckError) {
@@ -129,10 +136,17 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         }
 
         if (!existingTask) {
-            return NextResponse.json({ error: 'Task not found or you do not have permission to update it.' }, { status: 403 });
+            return NextResponse.json({ error: 'Task not found.' }, { status: 404 });
+        }
+        
+        // 4. Authorization check
+        const isAssigner = existingTask.assigned_by === userUUID;
+        const isAssignee = existingTask.assigned_to === userUUID;
+        if (!isAssigner && !isAssignee) {
+             return NextResponse.json({ error: 'You do not have permission to update this task.' }, { status: 403 });
         }
 
-        // Perform the update
+        // 5. Perform the update
         const { data: updatedTask, error: updateError } = await supabaseAdmin
             .from('tasks')
             .update({ steps: steps })
