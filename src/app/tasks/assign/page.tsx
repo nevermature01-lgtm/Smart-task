@@ -48,30 +48,52 @@ export default function AssignTaskPage() {
         }
 
         setIsCreating(true);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            toast({ variant: 'destructive', title: 'Authentication error', description: 'You are not logged in.' });
+            setIsCreating(false);
+            return;
+        }
+
         const teamId = activeTeam === 'personal' ? null : activeTeam;
 
         let priorityString = 'medium';
         if (priority <= 3) priorityString = 'low';
         if (priority >= 8) priorityString = 'high';
 
-        const { error } = await supabase.from('tasks').insert({
+        const taskData = {
             title: title.trim(),
             description: description.trim(),
             priority: priorityString,
-            assignee_id: assignee.id,
-            creator_id: user.id,
-            team_id: teamId,
-            status: 'todo'
-        });
+            assigneeId: assignee.id,
+            teamId: teamId,
+            steps: [],
+            checklist: [],
+        };
 
-        setIsCreating(false);
+        try {
+            const response = await fetch('/api/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify(taskData),
+            });
 
-        if (error) {
-            console.error("Error creating task:", error);
-            toast({ variant: 'destructive', title: 'Failed to create task', description: error.message });
-        } else {
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create task');
+            }
+    
             toast({ title: 'Task Created!', description: `"${title.trim()}" has been assigned.` });
             router.push('/home');
+        } catch (error: any) {
+            console.error("Error creating task:", error);
+            toast({ variant: 'destructive', title: 'Failed to create task', description: error.message });
+        } finally {
+            setIsCreating(false);
         }
     };
 
