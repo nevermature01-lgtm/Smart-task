@@ -490,9 +490,13 @@ export default function TaskDetailsPage() {
                         )}
                     </div>
                 )}
-                 <button className="w-full flex items-center justify-center gap-2 px-6 py-4 glass-panel rounded-2xl border-white/20 active:scale-95 transition-transform fab-glow text-white font-bold">
-                    <span className="material-symbols-outlined">add_comment</span>
-                    <span>Add Comment</span>
+                 <button 
+                    onClick={handleCompleteTask}
+                    disabled={isCompleted || checklist.length === 0}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-4 glass-panel rounded-2xl border-white/20 active:scale-95 transition-transform fab-glow text-white font-bold disabled:opacity-50"
+                 >
+                    <span className="material-symbols-outlined">{isCompleted ? 'check_circle' : 'check'}</span>
+                    <span>{isCompleted ? 'Completed' : 'Swipe To Complete'}</span>
                 </button>
             </div>
         </>
