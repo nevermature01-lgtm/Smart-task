@@ -57,64 +57,84 @@ export default function CreateTaskPage() {
                 return;
             }
 
-            // Case 2: Team workspace. Fetch team members and filter out the current user and the owner.
+            // Case 2: Team workspace. Fetch assignable members.
             try {
-                // Step 1: Get the team's owner ID.
+                // Step 1: Fetch all member IDs from the active team.
+                const { data: teamMembersData, error: teamMembersError } = await supabase
+                    .from('team_members')
+                    .select('user_id')
+                    .eq('team_id', activeTeam);
+
+                if (teamMembersError) {
+                    console.error("Error fetching team members:", teamMembersError);
+                    setIsLoading(false);
+                    return; // Do not clear members on error
+                }
+                
+                if (!teamMembersData || teamMembersData.length === 0) {
+                    setMembers([]);
+                    setIsLoading(false);
+                    return;
+                }
+                
+                const userIds = teamMembersData.map(m => m.user_id);
+
+                // Step 2: Fetch user details for all members.
+                const { data: usersData, error: usersError } = await supabase
+                    .from('users')
+                    .select('id, full_name')
+                    .in('id', userIds);
+
+                if (usersError) {
+                    console.error("Error fetching user details:", usersError);
+                    setIsLoading(false);
+                    return; // Do not clear members on error
+                }
+
+                if (!usersData) {
+                    setMembers([]);
+                    setIsLoading(false);
+                    return;
+                }
+
+                // Step 3: Get the team's owner ID to exclude them.
                 const { data: teamData, error: teamError } = await supabase
                     .from('teams')
                     .select('owner_id')
                     .eq('id', activeTeam)
                     .single();
-
+                
                 if (teamError) {
                     console.error("Error fetching team owner:", teamError.message);
-                    // Do not clear members on error to prevent flicker.
-                    setIsLoading(false);
-                    return;
-                }
-                const ownerId = teamData.owner_id;
-
-                // Step 2: Fetch all members of the team with their user details.
-                const { data: membersData, error: membersError } = await supabase
-                    .from('team_members')
-                    .select('users(id, full_name)') // This performs a join
-                    .eq('team_id', activeTeam);
-
-                if (membersError) {
-                    console.error("Error fetching team members:", membersError.message);
-                    // Do not clear members on error.
-                    setIsLoading(false);
-                    return;
+                    // Proceed without owner exclusion if this fails, but log it.
                 }
 
-                if (membersData) {
-                    const finalProfiles = membersData
-                        .map(m => m.users)
-                        .filter((u): u is { id: string; full_name: string | null } => !!u)
-                        // Per requirements, exclude the logged-in user and the team owner.
-                        .filter(member => member.id !== user.id && member.id !== ownerId)
-                        .map(member => ({
-                            id: member.id,
-                            full_name: member.full_name || "Team Member",
-                            avatar_url: `https://i.pravatar.cc/150?u=${member.id}`,
-                        }));
-                    
-                    setMembers(finalProfiles);
+                const ownerId = teamData?.owner_id;
 
-                    // Update selection logic
-                    setSelectedAssigneeId(prevId => {
-                        const isSelectionStillValid = prevId && finalProfiles.some(p => p.id === prevId);
-                        if (isSelectionStillValid) {
-                            return prevId;
-                        }
-                        if (finalProfiles.length === 1) {
-                            return finalProfiles[0].id;
-                        }
-                        return null;
-                    });
-                } else {
-                    setMembers([]);
-                }
+                // Step 4: Merge data and filter out the current user and the owner.
+                const finalProfiles = usersData
+                    .filter(member => member.id !== user.id && member.id !== ownerId)
+                    .map(member => ({
+                        id: member.id,
+                        full_name: member.full_name || "Team Member",
+                        avatar_url: `https://i.pravatar.cc/150?u=${member.id}`,
+                    }));
+                
+                setMembers(finalProfiles);
+
+                // Update selection logic
+                setSelectedAssigneeId(prevId => {
+                    const isSelectionStillValid = prevId && finalProfiles.some(p => p.id === prevId);
+                    if (isSelectionStillValid) {
+                        return prevId;
+                    }
+                    // Auto-select if only one member is available
+                    if (finalProfiles.length === 1) {
+                        return finalProfiles[0].id;
+                    }
+                    return null;
+                });
+
             } catch (e) {
                 console.error("An unexpected error occurred in fetchMembers:", e);
             } finally {
