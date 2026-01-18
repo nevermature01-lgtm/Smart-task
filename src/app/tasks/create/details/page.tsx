@@ -23,8 +23,8 @@ function CreateTaskDetailsComponent() {
     const [assignee, setAssignee] = useState<Profile | null>(null);
     const [isLoadingAssignee, setIsLoadingAssignee] = useState(true);
 
-    const [title, setTitle] = useState('Redesign Mobile App');
-    const [description, setDescription] = useState('Establish a new visual language for the task creation flow using glassmorphism effects.');
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
     const [priority, setPriority] = useState(1);
     const [steps] = useState(['Sketch Layout', 'Color Palette']);
     const [checklist] = useState([{ text: 'Review Assets', checked: false }]);
