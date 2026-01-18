@@ -134,7 +134,7 @@ export default function TaskDetailsPage() {
         const originalSteps = task.steps;
 
         const newSteps = originalSteps.map(step =>
-            step === itemToToggle ? { ...step, checked: !step.checked } : step
+            step.id === itemToToggle.id ? { ...step, checked: !step.checked } : step
         );
 
         const newTask = { ...task, steps: newSteps };
@@ -215,17 +215,21 @@ export default function TaskDetailsPage() {
             setDragOffset(Math.max(0, Math.min(offsetX, maxDrag)));
         };
 
-        const handleDragEnd = () => {
+        const handleDragEnd = (endEvent: MouseEvent | TouchEvent) => {
             window.removeEventListener('mousemove', handleDragMove);
             window.removeEventListener('touchmove', handleDragMove);
             window.removeEventListener('mouseup', handleDragEnd);
             window.removeEventListener('touchend', handleDragEnd);
 
             setIsDragging(false);
+            
+            // Recalculate final offset from the event to avoid state lag.
+            const finalX = 'changedTouches' in endEvent ? endEvent.changedTouches[0].clientX : endEvent.clientX;
+            const finalOffset = finalX - startX + dragOffsetAtStart;
+            const clampedFinalOffset = Math.max(0, Math.min(finalOffset, maxDrag));
 
-            if (dragOffset > maxDrag * 0.6) {
+            if (clampedFinalOffset > maxDrag * 0.6) {
                 handleCompleteTask();
-                setDragOffset(maxDrag);
             } else {
                 setDragOffset(0);
             }
@@ -398,7 +402,7 @@ export default function TaskDetailsPage() {
                                     onTouchStart={handleDragStart}
                                     style={{ transform: `translateX(${finalDragOffset}px)` }}
                                     className={cn(
-                                        "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10",
+                                        "h-14 w-14 aspect-square glass-panel rounded-full flex items-center justify-center shadow-lg absolute z-10 will-change-transform",
                                         !isDragging && "transition-transform duration-300 ease-out",
                                         isTaskComplete || isCompleting ? "cursor-default" : "cursor-grab active:cursor-grabbing",
                                         isCompleting && "animate-spin",
