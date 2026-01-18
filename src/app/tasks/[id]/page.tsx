@@ -262,7 +262,7 @@ export default function TaskDetailsPage() {
             if (usersError) throw usersError;
 
             if (usersData) {
-                setTeamMembers(usersData.filter(member => member.id !== currentAssignee?.id));
+                setTeamMembers(usersData.filter(member => member.id !== currentAssignee?.id && member.id !== task.assigned_by));
             } else {
                 setTeamMembers([]);
             }
@@ -367,30 +367,11 @@ export default function TaskDetailsPage() {
                         <section className="space-y-5">
                              <h2 className="text-2xl font-bold tracking-tight">{task.title}</h2>
                             {task.description && <p className="text-lavender-muted text-sm leading-relaxed">{task.description}</p>}
-                            <div className="flex items-center gap-3">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {(task.reassignmentChain || []).map((assignee, index, arr) => (
-                                        <React.Fragment key={`${assignee.id}-${index}`}>
-                                            {index > 0 && <span className="material-symbols-outlined text-white/50">arrow_forward</span>}
-                                            <div
-                                                className={cn(
-                                                    "inline-flex items-center gap-2 px-3 py-1.5 glass-panel rounded-full border-white/20",
-                                                    index < arr.length - 1 && "opacity-60"
-                                                )}
-                                            >
-                                                <div className="w-6 h-6 rounded-full overflow-hidden border border-white/40">
-                                                    <div style={{ width: 24, height: 24 }} dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(assignee.id) }} />
-                                                </div>
-                                                <span className={cn(
-                                                    "text-sm font-medium",
-                                                    index < arr.length - 1 && "line-through"
-                                                )}>
-                                                    {assignee.full_name}
-                                                </span>
-                                            </div>
-                                        </React.Fragment>
-                                    ))}
-                                </div>
+                        </section>
+                        
+                        <section className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xs font-bold uppercase tracking-widest text-lavender-muted px-1">Assignment History</h3>
                                 {user?.id === task.assigned_by && !isTaskCompleted && (
                                     <button onClick={handleOpenReassignModal} className="flex items-center gap-1.5 px-3 py-1.5 glass-panel rounded-full border-white/20 active:scale-95 transition-transform hover:bg-white/10">
                                         <span className="material-symbols-outlined text-[16px]">person_add</span>
@@ -398,7 +379,35 @@ export default function TaskDetailsPage() {
                                     </button>
                                 )}
                             </div>
+                            <div className="space-y-3">
+                                {(task.reassignmentChain || []).map((assignee, index, arr) => (
+                                    <React.Fragment key={`${assignee.id}-${index}`}>
+                                        <div
+                                            className={cn(
+                                                "flex items-center gap-3 p-3 glass-panel rounded-2xl border-white/20",
+                                                index < arr.length - 1 && "opacity-60"
+                                            )}
+                                        >
+                                            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/40 shrink-0">
+                                                <div style={{ width: 32, height: 32 }} dangerouslySetInnerHTML={{ __html: getHumanAvatarSvg(assignee.id) }} />
+                                            </div>
+                                            <span className={cn(
+                                                "text-sm font-medium",
+                                                index < arr.length - 1 && "line-through"
+                                            )}>
+                                                {assignee.full_name}
+                                            </span>
+                                        </div>
+                                        {index < arr.length - 1 && (
+                                            <div className="flex justify-center py-1">
+                                                <span className="material-symbols-outlined text-white/30">arrow_downward</span>
+                                            </div>
+                                        )}
+                                    </React.Fragment>
+                                ))}
+                            </div>
                         </section>
+
                         <section className="flex items-center gap-4">
                             {task.due_date && (
                                 <div className="flex items-center gap-2 glass-panel px-4 py-2 rounded-2xl border-white/10">
