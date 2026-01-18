@@ -48,6 +48,7 @@ export default function TaskDetailsPage() {
             const { data: { session } } = await supabase.auth.getSession();
 
             if (!session) {
+                // Not using toast here to avoid potential issues with rendering context
                 setError("You are not authenticated.");
                 setIsLoading(false);
                 return;
@@ -77,9 +78,8 @@ export default function TaskDetailsPage() {
         fetchTask();
     }, [taskId]);
 
-    const handleToggleChecklist = async (itemId: string) => {
-        if (!task || itemId === undefined) {
-            console.warn("Attempted to toggle a checklist item without a valid ID.");
+    const handleToggleChecklist = async (itemToToggle: Step) => {
+        if (!task) {
             return;
         }
 
@@ -87,7 +87,9 @@ export default function TaskDetailsPage() {
 
         // Optimistic UI update
         const newSteps = originalSteps.map(step =>
-            step.id === itemId ? { ...step, checked: !step.checked } : step
+            // Use referential equality to find the exact item to update.
+            // This is safer than using an ID that might be undefined or duplicated.
+            step === itemToToggle ? { ...step, checked: !step.checked } : step
         );
 
         const newTask = { ...task, steps: newSteps };
@@ -97,6 +99,7 @@ export default function TaskDetailsPage() {
         try {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) {
+                // Revert on auth error
                 setTask({ ...task, steps: originalSteps });
                 setError("You are not authenticated.");
                 return;
@@ -252,7 +255,7 @@ export default function TaskDetailsPage() {
                                         <div 
                                             key={item.id || `checklist-${index}`} 
                                             className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center gap-3 cursor-pointer"
-                                            onClick={() => handleToggleChecklist(item.id)}
+                                            onClick={() => handleToggleChecklist(item)}
                                         >
                                             <div className="w-5 h-5 border-2 border-white/30 rounded-md flex items-center justify-center">
                                                 {item.checked && <span className="material-symbols-outlined text-sm">check</span>}
