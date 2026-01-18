@@ -244,7 +244,7 @@ export default function HomePage() {
                             <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                         </div>
                     ) : tasks.length > 0 ? (
-                        <div className="space-y-2">
+                        <div className="space-y-5">
                             {tasks.map((task) => (
                                 <Link href={`/tasks/${task.id}`} key={task.id}>
                                     <div className="glass-panel p-4 rounded-2xl flex items-center gap-4 active:scale-[0.98] transition-transform">
