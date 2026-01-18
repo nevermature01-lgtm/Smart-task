@@ -370,7 +370,7 @@ export default function TaskDetailsPage() {
                             <div className="flex items-center gap-3">
                                 <div className="flex flex-wrap items-center gap-2">
                                     {(task.reassignmentChain || []).map((assignee, index, arr) => (
-                                        <React.Fragment key={assignee.id}>
+                                        <React.Fragment key={`${assignee.id}-${index}`}>
                                             {index > 0 && <span className="material-symbols-outlined text-white/50">arrow_forward</span>}
                                             <div
                                                 className={cn(
