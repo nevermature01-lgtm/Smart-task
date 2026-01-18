@@ -71,50 +71,42 @@ export default function HomePage() {
         }
 
         setIsLoadingMembers(true);
-        const { data: teamMembersData, error } = await supabase
+        // Use a single query with a join as requested
+        const { data: membersData, error } = await supabase
             .from('team_members')
-            .select('user_id, role')
+            .select(`
+                role,
+                users ( id, full_name, avatar_url )
+            `)
             .eq('team_id', activeTeam);
 
         if (error) {
-            console.error('Error fetching team members:', error);
+            // Silently set to empty array on error as instructed
             setMembers([]);
-            setIsLoadingMembers(false);
-            return;
-        } 
-        
-        if (teamMembersData && teamMembersData.length > 0) {
-            const memberIds = teamMembersData.map(m => m.user_id);
-            const { data: usersData, error: usersError } = await supabase
-                .from('users')
-                .select('id, full_name, avatar_url')
-                .in('id', memberIds);
-
-            if (usersError) {
-                console.error('Error fetching member profiles:', usersError);
-                setMembers([]);
-            } else if (usersData) {
-                const usersMap = new Map(usersData.map(p => [p.id, p]));
-                const processedMembers = teamMembersData.map(member => {
-                    const userProfile = usersMap.get(member.user_id);
+        } else if (membersData) {
+            const processedMembers = membersData
+                .map(member => {
+                    // member.users should be an object from the join
+                    if (!member.users) {
+                        return null;
+                    }
                     return {
-                        id: member.user_id,
+                        id: member.users.id,
                         role: member.role.charAt(0).toUpperCase() + member.role.slice(1),
-                        full_name: userProfile?.full_name || 'Team Member',
-                        avatar_url: userProfile?.avatar_url || `https://i.pravatar.cc/150?u=${member.user_id}`
+                        full_name: member.users.full_name || 'Team Member',
+                        avatar_url: member.users.avatar_url || `https://i.pravatar.cc/150?u=${member.users.id}`
                     };
-                });
-                setMembers(processedMembers);
-            } else {
-                 setMembers([]);
-            }
+                })
+                .filter((member): member is TeamMember => member !== null);
+            setMembers(processedMembers);
         } else {
+            // Also set to empty if data is null/empty
             setMembers([]);
         }
         setIsLoadingMembers(false);
     };
 
-    if (!isTeamLoading && activeTeam !== 'personal') {
+    if (!isTeamLoading) {
         fetchMembers();
     }
   }, [activeTeam, isTeamLoading]);
