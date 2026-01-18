@@ -235,9 +235,15 @@ export default function TaskDetailsPage() {
                                 </div>
                                 <div className="space-y-3">
                                     {steps.map((step, index) => (
-                                        <div key={step.id || `step-${index}`} className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
-                                            <p className="text-sm font-medium">{step.value}</p>
-                                             {step.checked && <span className="material-symbols-outlined text-success text-xl">check_circle</span>}
+                                        <div key={step.id || `step-${index}`}>
+                                            <div className="glass-panel px-4 py-3 rounded-2xl border-white/10 flex items-center justify-between">
+                                                <p className="text-sm font-medium">{step.value}</p>
+                                            </div>
+                                            {index < steps.length - 1 && (
+                                                <div className="flex justify-center py-2">
+                                                    <span className="material-symbols-outlined text-white/30">arrow_downward</span>
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
