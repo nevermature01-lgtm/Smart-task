@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
+import { format, parseISO } from 'date-fns';
 
 // GET a single task by ID
 export async function GET(request: Request, { params }: { params: { id: string } }) {
@@ -36,7 +37,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
         
         const { data: task, error: taskError } = await supabaseAdmin
             .from('tasks')
-            .select(`*`)
+            .select(`
+                *,
+                assignee_profile:users!tasks_assigned_to_fkey(id, full_name),
+                team:teams(id, team_name, team_members(users(id, full_name)))
+            `)
             .eq('id', taskId)
             .maybeSingle();
 
@@ -54,8 +59,19 @@ export async function GET(request: Request, { params }: { params: { id: string }
         if (!isAssigner && !isAssignee) {
             return NextResponse.json({ error: 'You do not have permission to view this task.' }, { status: 403 });
         }
+        
+        // Add priority_string and format due_date
+        let priority_string = `P${task.priority}`;
+        if (task.priority <= 3) priority_string = 'Low';
+        if (task.priority >= 8) priority_string = 'High';
 
-        return NextResponse.json(task);
+        const formattedDueDate = task.due_date ? format(parseISO(task.due_date), 'dd-MM-yyyy') : null;
+
+        return NextResponse.json({
+            ...task,
+            priority_string,
+            due_date: formattedDueDate,
+        });
 
     } catch (error: any) {
         console.error('API Error:', error);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
@@ -39,7 +39,7 @@ type TaskDetails = {
 };
 
 
-export default function TaskDetailsPage() {
+function TaskDetailsComponent() {
     const router = useRouter();
     const { id: taskId } = useParams<{ id: string }>();
     const { session, isLoading: isAuthLoading } = useSupabaseAuth();
@@ -50,15 +50,9 @@ export default function TaskDetailsPage() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (isAuthLoading) return;
-        if (!taskId) {
-            setError("Task ID is missing.");
-            setIsLoading(false);
-            return;
-        };
+        if (isAuthLoading || !taskId) return;
 
         if (!session) {
-            // This should be handled by the AuthProvider, but as a fallback:
             router.replace('/login');
             return;
         }
@@ -80,7 +74,6 @@ export default function TaskDetailsPage() {
                 }
 
                 const data = await response.json();
-                // Ensure steps is always an array
                 if (data && !Array.isArray(data.steps)) {
                     data.steps = [];
                 }
@@ -108,7 +101,6 @@ export default function TaskDetailsPage() {
             item.id === itemId ? { ...item, checked: !item.checked } : item
         );
         
-        // Optimistically update the UI
         const originalTask = task;
         setTask({ ...task, steps: updatedSteps });
 
@@ -129,13 +121,41 @@ export default function TaskDetailsPage() {
             
         } catch (e: any) {
             console.error("Failed to update task:", e);
-            // Revert optimistic update on failure
             setTask(originalTask); 
             toast({
                 variant: 'destructive',
                 title: 'Update Failed',
                 description: e.message,
             });
+        }
+    };
+    
+    const handleSwipeComplete = async () => {
+        if (!task || !session || !isSwipeEnabled) return;
+    
+        const updatedSteps = task.steps.map(item => ({ ...item, checked: true }));
+    
+        const originalTask = task;
+        setTask({ ...task, steps: updatedSteps });
+    
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({ steps: updatedSteps }),
+            });
+    
+            if (!response.ok) {
+                throw new Error((await response.json()).error || 'Failed to complete task');
+            }
+            toast({ title: "Task Completed!", description: "All steps and checklist items have been marked as complete." });
+        } catch (e: any) {
+            console.error("Failed to complete task:", e);
+            setTask(originalTask);
+            toast({ variant: 'destructive', title: 'Update Failed', description: e.message });
         }
     };
 
@@ -150,9 +170,9 @@ export default function TaskDetailsPage() {
     const completedChecklistCount = useMemo(() => checklist.filter(c => c.checked).length, [checklist]);
     
     const isSwipeEnabled = useMemo(() => {
-        if (!task || !task.steps || task.steps.length === 0) return false;
-        return task.steps.every(item => item.checked);
-    }, [task]);
+        if (!steps || steps.length === 0) return true; // Enable if there are no steps
+        return steps.every(item => item.checked);
+    }, [steps]);
 
     if (isLoading || isAuthLoading) {
         return (
@@ -287,11 +307,11 @@ export default function TaskDetailsPage() {
                             <div className="relative w-full h-16 swipe-track rounded-full p-1.5 flex items-center">
                                 <div className="absolute inset-0 flex items-center justify-center">
                                     <span className={`text-sm font-bold uppercase tracking-widest ${isSwipeEnabled ? 'text-success/80' : 'text-white/30'} pointer-events-none transition-colors`}>
-                                        {isSwipeEnabled ? 'Swipe to Complete' : 'Complete all items'}
+                                        {isSwipeEnabled ? 'Swipe to Complete' : 'Complete all steps'}
                                     </span>
                                 </div>
                                 {isSwipeEnabled && (
-                                    <div className="h-14 w-14 aspect-square glass-panel bg-success/30 border-success/40 rounded-full flex items-center justify-center shadow-lg shadow-success/20 cursor-pointer">
+                                    <div onClick={handleSwipeComplete} className="h-14 w-14 aspect-square glass-panel bg-success/30 border-success/40 rounded-full flex items-center justify-center shadow-lg shadow-success/20 cursor-pointer">
                                         <span className="material-symbols-outlined text-white text-2xl">keyboard_double_arrow_right</span>
                                     </div>
                                 )}
@@ -326,4 +346,16 @@ export default function TaskDetailsPage() {
             </div>
         </div>
     );
+}
+
+export default function TaskDetailsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center mesh-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        }>
+            <TaskDetailsComponent />
+        </Suspense>
+    )
 }
