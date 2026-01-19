@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
         <div className="mt-12 flex flex-col gap-4">
           <button
             onClick={() => router.push('/login')}
-            className="glass-card flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
+            className="glass-panel flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2 text-white">
@@ -46,7 +46,7 @@ export default function WelcomeScreen() {
           </button>
           <button
             onClick={() => router.push('/signup')}
-            className="glass-card flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
+            className="glass-panel flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">
               <div className="flex items-center gap-2 text-white">
