@@ -44,73 +44,40 @@ export default function CreateTaskPage() {
                 return;
             }
 
-            // Check user role before fetching members
-            const { data: membership, error: roleError } = await supabase
-                .from('team_members')
-                .select('role')
-                .eq('team_id', activeTeamId)
-                .eq('user_id', user.id)
-                .single();
-
-            const authorizedRoles = ['owner', 'admin'];
-            if (roleError || !membership || !authorizedRoles.includes(membership.role)) {
-                toast({
-                    variant: 'destructive',
-                    title: 'Permission Denied',
-                    description: 'You do not have permission to assign tasks in this team.'
-                });
-                router.push('/home');
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                toast({ variant: 'destructive', title: 'Authentication Error' });
                 setIsLoading(false);
                 return;
             }
 
             try {
-                const { data: teamMembersData, error: teamMembersError } = await supabase
-                    .from('team_members')
-                    .select('user_id')
-                    .eq('team_id', activeTeamId);
+                const response = await fetch(`/api/team/members?teamId=${activeTeamId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`,
+                    },
+                });
 
-                if (teamMembersError) {
-                    console.error("Error fetching team members:", teamMembersError);
-                    setIsLoading(false);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    toast({
+                        variant: 'destructive',
+                        title: 'Permission Denied',
+                        description: errorData.error || 'You do not have permission to view members.'
+                    });
+                    router.push('/home');
                     return;
                 }
+
+                const data: Profile[] = await response.json();
                 
-                if (!teamMembersData || teamMembersData.length === 0) {
-                    setMembers([]);
-                    setIsLoading(false);
-                    return;
-                }
-                
-                const userIds = teamMembersData.map(m => m.user_id);
+                // Filter out the logged-in user from the list of assignable members
+                const finalProfiles = data.filter(member => member.id !== user.id);
+                setMembers(finalProfiles);
 
-                const { data: usersData, error: usersError } = await supabase
-                    .from('users')
-                    .select('id, full_name')
-                    .in('id', userIds);
-
-                if (usersError) {
-                    console.error("Error fetching user details:", usersError);
-                    setMembers([]);
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (usersData) {
-                    // Filter out the logged-in user from the list of assignable members
-                    const finalProfiles: Profile[] = usersData
-                        .map(member => ({
-                            id: member.id,
-                            full_name: member.full_name || "Team Member",
-                        }))
-                        .filter(member => member.id !== user.id);
-                    
-                    setMembers(finalProfiles);
-                } else {
-                    setMembers([]);
-                }
             } catch (e) {
-                console.error("An unexpected error occurred in fetchMembers:", e);
+                 console.error("An unexpected error occurred in fetchMembers:", e);
+                 toast({ variant: 'destructive', title: 'Error', description: 'Could not load team members.' });
             } finally {
                 setIsLoading(false);
             }

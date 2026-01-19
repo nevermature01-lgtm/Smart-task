@@ -30,75 +30,46 @@ export default function ManageMembersPage() {
 
     const fetchTeamData = useCallback(async () => {
         if (!activeTeamId || activeTeamId === 'personal' || !user) return;
-
         setIsLoading(true);
 
-        const { data: teamData, error: teamError } = await supabase
-            .from('teams')
-            .select('owner_id')
-            .eq('id', activeTeamId)
-            .single();
-
-        if (teamError) {
-            console.error('Error fetching team data:', teamError);
-            toast({ variant: 'destructive', title: 'Failed to load team.' });
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            toast({ variant: 'destructive', title: 'Authentication Error' });
             setIsLoading(false);
             return;
         }
 
-        const { data: teamMembersData, error: membersError } = await supabase
-            .from('team_members')
-            .select('user_id, role')
-            .eq('team_id', activeTeamId);
-
-        if (membersError) {
-            console.error('Error fetching team members:', membersError.message || membersError);
-            toast({ variant: 'destructive', title: 'Failed to load members.' });
-            setIsLoading(false);
-            return;
-        }
-
-        if (!teamMembersData || teamMembersData.length === 0) {
-            setMembers([]);
-            setIsLoading(false);
-            return;
-        }
-
-        if (user.id === teamData.owner_id) {
-            setCurrentUserIsAdmin(true);
-        } else {
-            const currentUserMembership = teamMembersData.find(m => m.user_id === user.id);
-            setCurrentUserIsAdmin(currentUserMembership?.role === 'admin');
-        }
-        
-        const memberUserIds = teamMembersData.map(m => m.user_id);
-        const { data: usersData, error: usersError } = await supabase
-            .from('users')
-            .select('id, full_name')
-            .in('id', memberUserIds);
-
-        if (usersError) {
-            console.error('Error fetching user details:', usersError);
-            toast({ variant: 'destructive', title: 'Failed to load member details.' });
-            setIsLoading(false);
-            return;
-        }
-
-        if (usersData) {
-            const processedMembers: Member[] = teamMembersData.map((membership) => {
-                const userProfile = usersData.find((u) => u.id === membership.user_id);
-                return {
-                    id: membership.user_id,
-                    full_name: userProfile?.full_name || 'Team Member',
-                    role: membership.user_id === teamData.owner_id ? 'owner' : membership.role,
-                };
+        try {
+            const response = await fetch(`/api/team/members?teamId=${activeTeamId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`,
+                },
             });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                toast({
+                    variant: 'destructive',
+                    title: 'Error Loading Members',
+                    description: errorData.error || 'Could not fetch team members.'
+                });
+                setMembers([]);
+                setCurrentUserIsAdmin(false);
+                return;
+            }
+
+            const data: Member[] = await response.json();
+            setMembers(data);
             
-            setMembers(processedMembers);
-        } else {
-            setMembers([]);
+            const currentUserMembership = data.find(m => m.id === user.id);
+            setCurrentUserIsAdmin(currentUserMembership?.role === 'admin' || currentUserMembership?.role === 'owner');
+
+        } catch (e: any) {
+            console.error("Error fetching team data:", e);
+            toast({ variant: 'destructive', title: 'Failed to load team.' });
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     }, [activeTeamId, user, toast]);
 
     useEffect(() => {
