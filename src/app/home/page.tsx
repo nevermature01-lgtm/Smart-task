@@ -218,14 +218,7 @@ export default function HomePage() {
                     <h1 className="text-lg font-bold tracking-tight">Smart Task</h1>
                   )}
                 </div>
-                <Link href="/notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
-                    <span className="material-symbols-outlined text-xl">notifications</span>
-                    {unreadCount > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white ring-2 ring-[#1a0b2e]">
-                            {unreadCount > 9 ? '9+' : unreadCount}
-                        </span>
-                    )}
-                </Link>
+                <div className="w-10 h-10" />
             </header>
             <main className="px-6 pt-8 space-y-8 flex-1 pb-28">
                 <section className="glass-panel p-6 rounded-3xl relative overflow-hidden">
