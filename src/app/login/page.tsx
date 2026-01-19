@@ -100,7 +100,6 @@ export default function LoginPage() {
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-white/70 text-sm font-medium">Password</label>
-                <a href="/forgot-password" onClick={(e) => {e.preventDefault(); handleRouteChange('/forgot-password')}} className="text-lavender-muted text-[12px] hover:text-white transition-colors">Forgot?</a>
               </div>
               <div className="relative">
                 <input 
