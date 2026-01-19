@@ -33,7 +33,7 @@ export default function HomePage() {
   const [tasksLoading, setTasksLoading] = useState(true);
   const [assignedByCount, setAssignedByCount] = useState(0);
   const [assignedToCount, setAssignedToCount] = useState(0);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const unreadCount = 0;
   
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -41,41 +41,6 @@ export default function HomePage() {
   };
   
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-
-  useEffect(() => {
-    if (!user) return;
-
-    const fetchUnreadCount = async () => {
-        const { count, error } = await supabase
-            .from('notifications')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('is_read', false);
-
-        if (error) {
-            console.error("Error fetching unread count:", error);
-        } else {
-            setUnreadCount(count || 0);
-        }
-    };
-
-    fetchUnreadCount();
-
-    const channel = supabase.channel('realtime notifications')
-        .on('postgres_changes', {
-            event: '*',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${user.id}`
-        }, () => {
-            fetchUnreadCount();
-        })
-        .subscribe();
-    
-    return () => {
-        supabase.removeChannel(channel);
-    };
-  }, [user]);
 
   useEffect(() => {
     if (isTeamLoading || isLoading) {

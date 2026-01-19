@@ -24,42 +24,7 @@ export default function SwitchAccountPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
     const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
-    const [unreadCount, setUnreadCount] = useState(0);
-
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchUnreadCount = async () => {
-            const { count, error } = await supabase
-                .from('notifications')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('is_read', false);
-
-            if (error) {
-                console.error("Error fetching unread count:", error);
-            } else {
-                setUnreadCount(count || 0);
-            }
-        };
-
-        fetchUnreadCount();
-
-        const channel = supabase.channel('realtime notifications switch-account')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'notifications',
-                filter: `user_id=eq.${user.id}`
-            }, () => {
-                fetchUnreadCount();
-            })
-            .subscribe();
-        
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [user]);
+    const unreadCount = 0;
 
     useEffect(() => {
         const fetchTeams = async () => {

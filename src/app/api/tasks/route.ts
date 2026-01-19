@@ -3,19 +3,6 @@ import { supabaseAdmin } from '@/lib/supabase/admin';
 import { parse, format } from 'date-fns';
 import { randomUUID } from 'crypto';
 
-// Helper function to create a notification
-async function createNotification(payload: Record<string, any>) {
-    try {
-        const { error } = await supabaseAdmin.from('notifications').insert(payload);
-        if (error) {
-            console.error('Error creating notification:', error.message);
-        }
-    } catch (e: any) {
-        console.error('Failed to create notification:', e.message);
-    }
-}
-
-
 export async function POST(request: Request) {
     try {
         const token = request.headers.get('authorization')?.split(' ')[1];
@@ -111,20 +98,6 @@ export async function POST(request: Request) {
             console.error('Supabase insert error:', insertError);
             return NextResponse.json({ error: insertError.message }, { status: 500 });
         }
-
-        // Create notification for assignee
-        if (newTask && assigneeId !== user.id) { // Don't notify if assigning to self
-            const creatorName = user.user_metadata?.full_name || 'Someone';
-            await createNotification({
-                user_id: assigneeId,
-                message: `${creatorName} assigned you a new task: "${newTask.title}"`,
-                link: `/tasks/${newTask.id}`,
-                type: 'task_assigned',
-                title: 'New Task Assigned',
-                task_id: newTask.id,
-            });
-        }
-
 
         return NextResponse.json(newTask, { status: 201 });
 

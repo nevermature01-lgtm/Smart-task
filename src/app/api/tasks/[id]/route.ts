@@ -2,19 +2,6 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase/admin';
 import { randomUUID } from 'crypto';
 
-// Helper function to create a notification
-async function createNotification(payload: Record<string, any>) {
-    try {
-        const { error } = await supabaseAdmin.from('notifications').insert(payload);
-        if (error) {
-            console.error('Error creating notification:', error.message);
-        }
-    } catch (e: any) {
-        console.error('Failed to create notification:', e.message);
-    }
-}
-
-
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
@@ -187,15 +174,6 @@ export async function PATCH(
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
 
-        await createNotification({
-            user_id: updatedTask.assigned_to,
-            message: `The task "${updatedTask.title}" has been reopened by the assigner.`,
-            link: `/tasks/${updatedTask.id}`,
-            type: 'task_reopened',
-            title: 'Task Reopened',
-            task_id: updatedTask.id,
-        });
-
         return await returnFullTask(updatedTask);
     }
     
@@ -248,28 +226,6 @@ export async function PATCH(
             return NextResponse.json({ error: updateError.message }, { status: 500 });
         }
         
-        const assignerName = user.user_metadata?.full_name || 'Someone';
-        // Notify new assignee
-        await createNotification({
-            user_id: assigneeId,
-            message: `${assignerName} reassigned the task "${updatedTask.title}" to you`,
-            link: `/tasks/${updatedTask.id}`,
-            type: 'task_assigned',
-            title: 'New Task Assigned',
-            task_id: updatedTask.id,
-        });
-        // Notify old assignee
-        if (existingTask.assigned_to !== user.id) { // Avoid notifying self
-            await createNotification({
-                user_id: existingTask.assigned_to,
-                message: `${assignerName} reassigned your task "${updatedTask.title}"`,
-                link: `/tasks/${updatedTask.id}`,
-                type: 'task_reassigned',
-                title: 'Task Reassigned',
-                task_id: updatedTask.id,
-            });
-        }
-
         return await returnFullTask(updatedTask);
     }
 
@@ -288,19 +244,6 @@ export async function PATCH(
       if (updateError) {
         console.error('Supabase completion update error:', updateError);
         return NextResponse.json({ error: updateError.message }, { status: 500 });
-      }
-
-      // Notify task assigner
-      if (updatedTask.assigned_by !== user.id) { // Don't notify self
-        const completerName = user.user_metadata?.full_name || 'Someone';
-        await createNotification({
-            user_id: updatedTask.assigned_by,
-            message: `${completerName} completed the task: "${updatedTask.title}"`,
-            link: `/tasks/${updatedTask.id}`,
-            type: 'task_completed',
-            title: 'Task Completed',
-            task_id: updatedTask.id,
-        });
       }
 
       return await returnFullTask(updatedTask);
@@ -375,19 +318,6 @@ export async function DELETE(
     
     // Deleting a completed task should be allowed by the assigner.
     
-    // Notify the assignee that the task was deleted
-    if (task.assigned_to && task.assigned_to !== user.id) {
-        const assignerName = user.user_metadata?.full_name || 'Someone';
-        await createNotification({
-            user_id: task.assigned_to,
-            message: `${assignerName} deleted the task: "${task.title}"`,
-            link: '/home',
-            type: 'task_deleted',
-            title: 'Task Deleted',
-        });
-    }
-
-
     // Delete the task
     const { error: deleteError } = await supabaseAdmin
       .from('tasks')
