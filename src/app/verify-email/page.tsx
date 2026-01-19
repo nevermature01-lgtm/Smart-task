@@ -1,14 +1,20 @@
 'use client';
 
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
-import { useRouter } from 'next/navigation';
-import { useEffect, useRef } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import gsap from 'gsap';
+import { supabase } from '@/lib/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-export default function VerifyEmailPage() {
+function VerifyEmailComponent() {
   const { session, isLoading } = useSupabaseAuth();
   const router = useRouter();
   const containerRef = useRef(null);
+  const searchParams = useSearchParams();
+  const email = searchParams.get('email');
+  const { toast } = useToast();
+  const [isResending, setIsResending] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -27,14 +33,57 @@ export default function VerifyEmailPage() {
     }, containerRef);
     return () => ctx.revert();
   }, []);
+  
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.15,
+      ease: 'power1.inOut',
+      onComplete: () => {
+        router.push(path);
+      },
+    });
+  };
 
   useEffect(() => {
-    // The main auth provider will redirect the user to /home once the session is active.
-    // This page just provides information to the user.
     if (!isLoading && session) {
       router.replace('/home');
     }
   }, [session, isLoading, router]);
+
+  const handleResendLink = async () => {
+    if (!email) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Email address not found. Please try signing up again.',
+      });
+      return;
+    }
+    setIsResending(true);
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    });
+    if (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error Resending Link',
+        description: error.message,
+      });
+    } else {
+      toast({
+        title: 'Verification Link Resent',
+        description: 'A new verification link has been sent to your email.',
+      });
+    }
+    setIsResending(false);
+  };
 
   return (
     <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
@@ -54,13 +103,41 @@ export default function VerifyEmailPage() {
               Verify your Email
             </h2>
             <p className="text-lavender-muted/80 leading-relaxed text-sm">
-              We've sent a verification link to your email address. Please check
+              We've sent a verification link to{' '}
+              <span className="font-bold text-white">{email}</span>. Please check
               your inbox (and spam folder) and click the link to continue.
             </p>
+          </div>
+           <div className="w-full flex flex-col gap-4">
+             <button
+                onClick={() => handleRouteChange('/login')}
+                className="w-full bg-white text-primary font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(255,255,255,0.2)] active:scale-[0.98] transition-all hover:bg-lavender-muted"
+            >
+                Login after Verification
+            </button>
+            <button
+              onClick={handleResendLink}
+              disabled={isResending}
+              className="text-lavender-muted text-sm font-medium hover:text-white transition-colors disabled:opacity-50"
+            >
+              {isResending ? 'Resending...' : "Didn't receive a link? Resend"}
+            </button>
           </div>
         </div>
       </div>
       <div className="h-4 w-full shrink-0"></div>
     </div>
   );
+}
+
+export default function VerifyEmailPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full items-center justify-center mesh-background">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+        }>
+            <VerifyEmailComponent />
+        </Suspense>
+    )
 }

@@ -104,7 +104,7 @@ export default function SignUpPage() {
             title: 'Verification Link Sent',
             description: 'Please check your email to verify your account.',
         });
-        handleRouteChange('/verify-email');
+        handleRouteChange(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     }
     
     setIsLoading(false);
