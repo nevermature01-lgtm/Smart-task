@@ -52,7 +52,8 @@ export default function CreateTaskPage() {
                 .eq('user_id', user.id)
                 .single();
 
-            if (roleError || !membership || (membership.role !== 'owner' && membership.role !== 'admin')) {
+            const authorizedRoles = ['owner', 'admin'];
+            if (roleError || !membership || !authorizedRoles.includes(membership.role)) {
                 toast({
                     variant: 'destructive',
                     title: 'Permission Denied',

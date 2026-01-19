@@ -152,8 +152,9 @@ export async function PATCH(
                 .eq('user_id', user.id)
                 .eq('team_id', existingTask.team_id)
                 .single();
-
-            if (memberData && (memberData.role === 'owner' || memberData.role === 'admin')) {
+            
+            const authorizedRoles = ['owner', 'admin'];
+            if (memberData && authorizedRoles.includes(memberData.role)) {
                 isAuthorizedToReopen = true;
             }
         }
@@ -197,7 +198,8 @@ export async function PATCH(
             return NextResponse.json({ error: 'Forbidden: You are not a member of this team.' }, { status: 403 });
         }
 
-        if (member.role !== 'owner' && member.role !== 'admin' && user.id !== existingTask.assigned_by) {
+        const authorizedRoles = ['owner', 'admin'];
+        if (!authorizedRoles.includes(member.role) && user.id !== existingTask.assigned_by) {
             return NextResponse.json({ error: 'Forbidden: You do not have permission to reassign tasks.' }, { status: 403 });
         }
 

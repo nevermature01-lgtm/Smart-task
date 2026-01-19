@@ -32,7 +32,8 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'You are not a member of this team.' }, { status: 403 });
             }
 
-            if (membership.role !== 'owner' && membership.role !== 'admin') {
+            const authorizedRoles = ['owner', 'admin'];
+            if (!authorizedRoles.includes(membership.role)) {
                 return NextResponse.json({ error: 'You do not have permission to assign tasks in this team.' }, { status: 403 });
             }
         }
