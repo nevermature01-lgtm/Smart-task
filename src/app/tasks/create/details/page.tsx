@@ -71,7 +71,7 @@ function CreateTaskDetailsComponent() {
       gsap.to(containerRef.current, {
         opacity: 0,
         y: -8,
-        duration: 0.25,
+        duration: 0.15,
         ease: 'power1.inOut',
         onComplete: () => router.push(path),
       });
@@ -85,7 +85,7 @@ function CreateTaskDetailsComponent() {
         gsap.to(containerRef.current, {
             opacity: 0,
             y: -8,
-            duration: 0.25,
+            duration: 0.15,
             ease: 'power1.inOut',
             onComplete: () => router.back(),
         });
@@ -99,7 +99,7 @@ function CreateTaskDetailsComponent() {
         gsap.to(containerRef.current, {
             opacity: 0,
             y: -8,
-            duration: 0.25,
+            duration: 0.15,
             ease: 'power1.inOut',
             onComplete: () => router.replace(path),
         });
