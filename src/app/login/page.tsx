@@ -27,8 +27,8 @@ export default function LoginPage() {
         {
           opacity: 1,
           y: 0,
-          duration: 0.35,
-          ease: 'power2.out',
+          duration: 0.25,
+          ease: 'power1.out',
           clearProps: 'transform,opacity',
         }
       );
@@ -45,7 +45,7 @@ export default function LoginPage() {
       opacity: 0,
       y: -8,
       duration: 0.15,
-      ease: 'power1.inOut',
+      ease: 'power1.out',
       onComplete: () => router.push(path),
     });
   };
