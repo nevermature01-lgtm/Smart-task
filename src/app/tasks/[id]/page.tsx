@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
@@ -8,6 +8,7 @@ import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import gsap from 'gsap';
 
 type Profile = {
     id: string;
@@ -40,6 +41,7 @@ export default function TaskDetailsPage() {
     const params = useParams();
     const taskId = params.id as string;
     const { user } = useSupabaseAuth();
+    const containerRef = useRef(null);
 
     const [task, setTask] = useState<Task | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -61,6 +63,51 @@ export default function TaskDetailsPage() {
     const [isReopening, setIsReopening] = useState(false);
     const [userRole, setUserRole] = useState<string | null>(null);
 
+    useEffect(() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const ctx = gsap.context(() => {
+        gsap.fromTo(
+          containerRef.current,
+          { opacity: 0, y: 12 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.35,
+            ease: 'power2.out',
+            clearProps: 'transform,opacity',
+          }
+        );
+      }, containerRef);
+      return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
 
     const currentAssignee = useMemo(() => {
         if (!task?.reassignmentChain || task.reassignmentChain.length === 0) return null;
@@ -202,7 +249,7 @@ export default function TaskDetailsPage() {
             }
 
             toast({ title: 'Task Deleted' });
-            router.push('/home');
+            handleRouteChange('/home');
 
         } catch (e: any) {
             toast({
@@ -375,7 +422,7 @@ export default function TaskDetailsPage() {
                 <div className="glass-panel p-8 rounded-3xl">
                      <h2 className="text-xl font-bold text-red-400 mb-2">Error</h2>
                      <p className="text-lavender-muted">{error}</p>
-                     <button onClick={() => router.back()} className="mt-6 bg-white text-primary font-bold py-3 px-6 rounded-xl">Go Back</button>
+                     <button onClick={handleRouteBack} className="mt-6 bg-white text-primary font-bold py-3 px-6 rounded-xl">Go Back</button>
                 </div>
             </div>
         );
@@ -387,7 +434,7 @@ export default function TaskDetailsPage() {
                 <div className="glass-panel p-8 rounded-3xl">
                      <h2 className="text-xl font-bold text-red-400 mb-2">Task Not Found</h2>
                      <p className="text-lavender-muted">The requested task could not be found.</p>
-                     <button onClick={() => router.back()} className="mt-6 bg-white text-primary font-bold py-3 px-6 rounded-xl">Go Back</button>
+                     <button onClick={handleRouteBack} className="mt-6 bg-white text-primary font-bold py-3 px-6 rounded-xl">Go Back</button>
                 </div>
             </div>
         );
@@ -397,9 +444,9 @@ export default function TaskDetailsPage() {
     const canManageTask = userRole === 'owner' || userRole === 'admin' || (task?.assigned_by === user?.id);
 
     return (
-        <>
+        <div ref={containerRef}>
             <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30 transparent">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Task Details</h1>
@@ -685,6 +732,6 @@ export default function TaskDetailsPage() {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }

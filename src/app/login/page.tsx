@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
+import gsap from 'gsap';
 
 export default function LoginPage() {
   const { toast } = useToast();
@@ -15,6 +16,39 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => router.push(path),
+    });
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,11 +73,11 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+    <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
-        <Link href="/" className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+        <a href="/" onClick={(e) => { e.preventDefault(); handleRouteChange('/'); }} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
           <span className="material-symbols-outlined text-[20px]">arrow_back_ios_new</span>
-        </Link>
+        </a>
         <h1 className="text-white text-xl font-bold">Login</h1>
         <div className="w-10"></div>
       </header>
@@ -66,7 +100,7 @@ export default function LoginPage() {
             <div className="flex flex-col gap-2">
               <div className="flex justify-between items-center px-1">
                 <label className="text-white/70 text-sm font-medium">Password</label>
-                <Link href="/forgot-password" className="text-lavender-muted text-[12px] hover:text-white transition-colors">Forgot?</Link>
+                <a href="/forgot-password" onClick={(e) => {e.preventDefault(); handleRouteChange('/forgot-password')}} className="text-lavender-muted text-[12px] hover:text-white transition-colors">Forgot?</a>
               </div>
               <div className="relative">
                 <input 
@@ -99,9 +133,9 @@ export default function LoginPage() {
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
-        <Link className="text-lavender-muted text-sm font-medium hover:text-white transition-colors" href="/signup">
+        <a className="text-lavender-muted text-sm font-medium hover:text-white transition-colors" href="/signup" onClick={(e) => { e.preventDefault(); handleRouteChange('/signup'); }}>
           Don't have an account? <span className="font-bold underline underline-offset-4">Sign Up</span>
-        </Link>
+        </a>
       </div>
       <div className="h-4 w-full shrink-0"></div>
     </div>

@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import gsap from 'gsap';
 
 type FormData = {
   firstName: string;
@@ -17,6 +18,7 @@ type FormData = {
 export default function SignUpPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const containerRef = useRef(null);
 
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
@@ -27,6 +29,38 @@ export default function SignUpPage() {
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => router.push(path),
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -70,21 +104,25 @@ export default function SignUpPage() {
             title: 'Verification Link Sent',
             description: 'Please check your email to verify your account.',
         });
-        router.push('/verify-email');
+        handleRouteChange('/verify-email');
     }
     
     setIsLoading(false);
   };
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+    <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
-        <Link
+        <a
           href="/"
+          onClick={(e) => {
+            e.preventDefault();
+            handleRouteChange('/');
+          }}
           className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform"
         >
           <span className="material-symbols-outlined">arrow_back_ios_new</span>
-        </Link>
+        </a>
         <h1 className="text-white text-xl font-bold">Create Account</h1>
         <div className="w-10"></div>
       </header>
@@ -170,15 +208,19 @@ export default function SignUpPage() {
         </div>
       </div>
       <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
-        <Link
+        <a
           className="text-lavender-muted text-sm font-medium hover:text-white transition-colors"
           href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            handleRouteChange('/login');
+          }}
         >
           Already have an account?{' '}
           <span className="font-bold underline underline-offset-4">
             Log In
           </span>
-        </Link>
+        </a>
       </div>
       <div className="h-4 w-full shrink-0"></div>
     </div>

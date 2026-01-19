@@ -2,11 +2,31 @@
 
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import gsap from 'gsap';
 
 export default function VerifyEmailPage() {
   const { session, isLoading } = useSupabaseAuth();
   const router = useRouter();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
 
   useEffect(() => {
     // The main auth provider will redirect the user to /home once the session is active.
@@ -17,7 +37,7 @@ export default function VerifyEmailPage() {
   }, [session, isLoading, router]);
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+    <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <div className="flex-1 px-6 pt-8 pb-4 flex flex-col justify-center">
         <div className="glass-panel w-full rounded-3xl p-8 flex flex-col items-center gap-8 relative overflow-hidden">
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-primary/20 blur-[60px] rounded-full pointer-events-none"></div>

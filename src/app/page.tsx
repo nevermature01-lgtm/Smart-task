@@ -1,11 +1,51 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useRef, useEffect } from 'react';
+import gsap from 'gsap';
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => {
+        router.push(path);
+      },
+    });
+  };
+
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+    <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <div className="flex-1 flex flex-col justify-center px-8">
         <div className="flex flex-col gap-3 text-left">
           <div className="w-12 h-12 glass-panel rounded-xl flex items-center justify-center mb-4">
@@ -24,7 +64,7 @@ export default function WelcomeScreen() {
         </div>
         <div className="mt-12 flex flex-col gap-4">
           <button
-            onClick={() => router.push('/login')}
+            onClick={() => handleRouteChange('/login')}
             className="glass-panel flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">
@@ -45,7 +85,7 @@ export default function WelcomeScreen() {
             </div>
           </button>
           <button
-            onClick={() => router.push('/signup')}
+            onClick={() => handleRouteChange('/signup')}
             className="glass-panel flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">

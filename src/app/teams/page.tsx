@@ -2,10 +2,11 @@
 import Link from 'next/link';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { useTeam } from '@/context/TeamProvider';
+import gsap from 'gsap';
 
 type Team = {
   id: string;
@@ -25,6 +26,53 @@ export default function TeamsPage() {
     const [isLoadingTeams, setIsLoadingTeams] = useState(true);
     const { activeTeam, setActiveTeam, isLoading: isTeamLoading } = useTeam();
     const unreadCount = 0;
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = gsap.context(() => {
+          gsap.fromTo(
+            containerRef.current,
+            { opacity: 0, y: 12 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.35,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+            }
+          );
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -72,49 +120,49 @@ export default function TeamsPage() {
 
     const handleSwitchTeam = (teamId: string | null) => {
         setActiveTeam(teamId);
-        router.push('/home');
+        handleRouteChange('/home');
     }
 
     const displayName = user?.user_metadata?.full_name || 'Personal Account';
     const isLoading = isLoadingTeams || isTeamLoading;
 
     return (
-        <div className="relative flex flex-col pb-28 min-h-screen">
+        <div ref={containerRef} className="relative flex flex-col pb-28 min-h-screen">
             <header className="pt-14 px-6 flex items-center justify-between shrink-0 sticky top-0 z-20">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                    <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                         <span className="material-symbols-outlined text-2xl">chevron_left</span>
                     </button>
                     <h1 className="text-2xl font-bold tracking-tight">Smart Task</h1>
                 </div>
-                 <Link href="/notifications" className="relative w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
+                 <a href="/notifications" onClick={(e) => {e.preventDefault(); handleRouteChange('/notifications')}} className="relative w-10 h-10 flex items-center justify-center rounded-xl glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-xl">notifications</span>
                     {unreadCount > 0 && (
                         <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white ring-2 ring-[#1a0b2e]">
                             {unreadCount > 9 ? '9+' : unreadCount}
                         </span>
                     )}
-                </Link>
+                </a>
             </header>
             <main className="px-6 pt-8 space-y-8">
                 <section className="grid grid-cols-2 gap-4">
-                    <Link href="/teams/create" className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
+                    <a href="/teams/create" onClick={(e) => {e.preventDefault(); handleRouteChange('/teams/create')}} className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform border-primary/20">
                         <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-white text-3xl">group_add</span>
                         </div>
                         <span className="font-bold text-sm text-white">Create Team</span>
-                    </Link>
-                    <Link href="/teams/join" className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
+                    </a>
+                    <a href="/teams/join" onClick={(e) => {e.preventDefault(); handleRouteChange('/teams/join')}} className="glass-panel p-6 rounded-3xl flex flex-col items-center justify-center gap-3 active:scale-95 transition-transform">
                         <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
                             <span className="material-symbols-outlined text-white text-3xl">login</span>
                         </div>
                         <span className="font-bold text-sm text-white">Join Team</span>
-                    </Link>
+                    </a>
                 </section>
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold text-lg">Your Teams</h3>
-                        <button onClick={() => router.push('/teams/manage')} className="text-sm text-lavender-muted font-medium">Manage</button>
+                        <button onClick={() => handleRouteChange('/teams/manage')} className="text-sm text-lavender-muted font-medium">Manage</button>
                     </div>
                     <div className="space-y-3">
                          {isLoading ? (
@@ -181,9 +229,9 @@ export default function TeamsPage() {
                 </section>
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-30">
-                <Link href="/teams/manage" className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
+                <a href="/teams/manage" onClick={(e) => {e.preventDefault(); handleRouteChange('/teams/manage')}} className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
                     Manage team
-                </Link>
+                </a>
             </div>
         </div>
     );

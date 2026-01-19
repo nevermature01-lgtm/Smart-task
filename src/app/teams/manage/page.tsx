@@ -2,11 +2,12 @@
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useTeam } from '@/context/TeamProvider';
+import gsap from 'gsap';
 
 
 type Team = {
@@ -30,6 +31,53 @@ export default function ManageTeamsPage() {
     const [teams, setTeams] = useState<Team[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [teamToDelete, setTeamToDelete] = useState<Team | null>(null);
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = gsap.context(() => {
+          gsap.fromTo(
+            containerRef.current,
+            { opacity: 0, y: 12 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.35,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+            }
+          );
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
 
     useEffect(() => {
         const fetchTeams = async () => {
@@ -97,14 +145,14 @@ export default function ManageTeamsPage() {
 
     const handleManageMembers = (teamId: string) => {
         setActiveTeam(teamId);
-        router.push('/teams/members');
+        handleRouteChange('/teams/members');
     };
 
     return (
-        <div className="mesh-background min-h-screen text-white font-display relative overflow-hidden">
+        <div ref={containerRef} className="mesh-background min-h-screen text-white font-display relative overflow-hidden">
             <div className={cn("min-h-screen transition-all", { "deep-blur opacity-50 pointer-events-none": teamToDelete })}>
                  <header className="pt-14 px-6 pb-8 flex items-center sticky top-0 z-30 bg-gradient-to-b from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent">
-                    <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
+                    <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform absolute left-6">
                         <span className="material-symbols-outlined text-2xl">chevron_left</span>
                     </button>
                     <div className="w-full flex justify-center">

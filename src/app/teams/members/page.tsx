@@ -2,11 +2,12 @@
 
 import { useRouter } from 'next/navigation';
 import { getHumanAvatarSvg } from '@/lib/avatar';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTeam } from '@/context/TeamProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import gsap from 'gsap';
 
 type Member = {
     id: string;
@@ -19,6 +20,7 @@ export default function ManageMembersPage() {
     const { user } = useSupabaseAuth();
     const { activeTeam: activeTeamId, isLoading: isTeamLoading } = useTeam();
     const { toast } = useToast();
+    const containerRef = useRef(null);
     
     const [members, setMembers] = useState<Member[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -27,6 +29,52 @@ export default function ManageMembersPage() {
     const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
     const [currentUserIsAdmin, setCurrentUserIsAdmin] = useState(false);
     const [isUpdatingRole, setIsUpdatingRole] = useState(false);
+
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = gsap.context(() => {
+          gsap.fromTo(
+            containerRef.current,
+            { opacity: 0, y: 12 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.35,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+            }
+          );
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+    
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
 
     const fetchTeamData = useCallback(async () => {
         if (!activeTeamId || activeTeamId === 'personal' || !user) return;
@@ -81,7 +129,7 @@ export default function ManageMembersPage() {
                 title: 'No Team Selected',
                 description: 'You must select a team to manage its members.',
             });
-            router.push('/teams');
+            handleRouteChange('/teams');
             return;
         }
 
@@ -197,9 +245,9 @@ export default function ManageMembersPage() {
 
 
     return (
-        <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
+        <div ref={containerRef} className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
             <header className="pt-14 px-6 pb-6 flex items-center justify-between sticky top-0 z-30">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl leading-none">chevron_left</span>
                 </button>
                 

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useRef, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import gsap from 'gsap';
 
 function ResetPasswordComponent() {
   const router = useRouter();
@@ -15,6 +16,39 @@ function ResetPasswordComponent() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
   const { toast } = useToast();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => router.push(path),
+    });
+  };
 
   const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,14 +88,14 @@ function ResetPasswordComponent() {
       });
       // Sign out to ensure the old session is cleared
       await supabase.auth.signOut();
-      router.push('/login');
+      handleRouteChange('/login');
     } 
     
     setIsLoading(false);
   };
 
   return (
-    <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
+    <div ref={containerRef} className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <header className="pt-14 px-6 flex items-center justify-between shrink-0">
          <div className="w-10"></div>
         <h1 className="text-white text-xl font-bold">Reset Password</h1>
@@ -125,12 +159,16 @@ function ResetPasswordComponent() {
         </div>
       </div>
        <div className="pb-10 px-6 flex flex-col items-center gap-6 shrink-0">
-        <Link
+        <a
           className="text-lavender-muted text-sm font-medium hover:text-white transition-colors"
           href="/login"
+          onClick={(e) => {
+            e.preventDefault();
+            handleRouteChange('/login');
+          }}
         >
           Back to Login
-        </Link>
+        </a>
       </div>
       <div className="h-4 w-full shrink-0"></div>
     </div>

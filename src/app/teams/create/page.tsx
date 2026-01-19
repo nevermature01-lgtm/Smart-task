@@ -1,18 +1,66 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
+import gsap from 'gsap';
 
 export default function CreateTeamPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { user, isLoading: isAuthLoading } = useSupabaseAuth();
+  const containerRef = useRef(null);
   
   const [teamName, setTeamName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => router.push(path),
+    });
+  };
+
+  const handleRouteBack = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.back();
+        return;
+    }
+    gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.back(),
+    });
+  };
 
   // Function to generate a unique 6-digit numeric code for the team
   async function generateUniqueTeamCode(): Promise<string> {
@@ -102,7 +150,7 @@ export default function CreateTeamPage() {
         description: `Your new team code is: ${teamCode}`,
       });
 
-      router.push('/teams');
+      handleRouteChange('/teams');
 
     } catch (error: any) {
       console.error('Team creation failed:', error);
@@ -120,9 +168,9 @@ export default function CreateTeamPage() {
   const buttonText = isAuthLoading ? 'Authenticating...' : (isCreating ? 'Creating...' : 'Create');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
+    <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay">
       <button 
-        onClick={() => router.back()}
+        onClick={handleRouteBack}
         className="absolute top-14 left-6 w-12 h-12 flex items-center justify-center rounded-full glass-panel text-white active:scale-90 transition-all z-[60] shadow-lg border-white/20 disabled:opacity-50"
         disabled={isLoading}>
         <span className="material-symbols-outlined text-2xl">chevron_left</span>
@@ -159,7 +207,7 @@ export default function CreateTeamPage() {
               {buttonText}
             </button>
             <button 
-              onClick={() => router.back()}
+              onClick={handleRouteBack}
               className="w-full py-2 text-white/60 font-bold text-sm active:opacity-70 transition-opacity disabled:opacity-50"
               disabled={isLoading}>
               Cancel

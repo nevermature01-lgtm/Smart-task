@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useRef, ChangeEvent, KeyboardEvent } from 'react';
+import { useState, useRef, ChangeEvent, KeyboardEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase/client';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
+import gsap from 'gsap';
 
 export default function JoinTeamPage() {
   const router = useRouter();
@@ -13,6 +14,53 @@ export default function JoinTeamPage() {
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
   const [isLoading, setIsLoading] = useState(false);
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        containerRef.current,
+        { opacity: 0, y: 12 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.35,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        }
+      );
+    }, containerRef);
+    return () => ctx.revert();
+  }, []);
+
+  const handleRouteChange = (path: string) => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      router.push(path);
+      return;
+    }
+    gsap.to(containerRef.current, {
+      opacity: 0,
+      y: -8,
+      duration: 0.25,
+      ease: 'power1.inOut',
+      onComplete: () => router.push(path),
+    });
+  };
+  
+  const handleRouteBack = () => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.back();
+        return;
+    }
+    gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.back(),
+    });
+  };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>, index: number) => {
     const { value } = e.target;
@@ -119,7 +167,7 @@ export default function JoinTeamPage() {
           title: 'Joined Team!',
           description: `You have successfully joined the team.`,
       });
-      router.push('/teams');
+      handleRouteChange('/teams');
       router.refresh();
 
     } catch (error: any) {
@@ -143,9 +191,9 @@ export default function JoinTeamPage() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay overflow-hidden">
+    <div ref={containerRef} className="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay overflow-hidden">
         <button 
-            onClick={() => router.back()}
+            onClick={handleRouteBack}
             className="absolute top-14 left-6 w-12 h-12 rounded-full glass-panel flex items-center justify-center text-white active:scale-90 transition-transform z-[60] shadow-lg disabled:opacity-50"
             disabled={isLoading}>
             <span className="material-symbols-outlined text-2xl ml-[-2px]">chevron_left</span>
@@ -189,7 +237,7 @@ export default function JoinTeamPage() {
                        {isLoading ? 'Joining...' : 'Join'}
                     </button>
                     <button 
-                        onClick={() => router.back()}
+                        onClick={handleRouteBack}
                         className="text-white/60 font-bold text-sm active:opacity-70 transition-opacity hover:text-white px-6 py-2 disabled:opacity-50"
                         disabled={isLoading}
                     >

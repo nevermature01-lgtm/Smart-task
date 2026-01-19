@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
@@ -15,6 +15,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from '@/components/ui/popover';
+import gsap from 'gsap';
 
 
 type Profile = {
@@ -28,6 +29,7 @@ function CreateTaskDetailsComponent() {
     const { toast } = useToast();
     const { user: currentUser, isLoading: isAuthLoading } = useSupabaseAuth();
     const { activeTeam, isLoading: isTeamLoading } = useTeam();
+    const containerRef = useRef(null);
 
     const [assignee, setAssignee] = useState<Profile | null>(null);
     const [isLoadingAssignee, setIsLoadingAssignee] = useState(true);
@@ -42,6 +44,66 @@ function CreateTaskDetailsComponent() {
 
     const [isCreating, setIsCreating] = useState(false);
     const assigneeId = searchParams.get('assigneeId');
+
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = gsap.context(() => {
+          gsap.fromTo(
+            containerRef.current,
+            { opacity: 0, y: 12 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.35,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+            }
+          );
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
+    
+    const handleRouteReplace = (path: string) => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.replace(path);
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.replace(path),
+        });
+    };
 
     const handleAddStep = () => setSteps([...steps, '']);
     const handleStepChange = (index: number, value: string) => {
@@ -77,7 +139,7 @@ function CreateTaskDetailsComponent() {
         if (!assigneeId) {
             setIsLoadingAssignee(false);
             toast({ variant: 'destructive', title: 'No assignee selected. Redirecting...' });
-            router.replace('/tasks/create');
+            handleRouteReplace('/tasks/create');
             return;
         }
 
@@ -113,7 +175,7 @@ function CreateTaskDetailsComponent() {
         };
 
         fetchAssignee();
-    }, [assigneeId, router, toast, currentUser, isAuthLoading]);
+    }, [assigneeId, toast, currentUser, isAuthLoading]);
 
     const handleCreateTask = async () => {
         if (!title.trim()) {
@@ -165,7 +227,7 @@ function CreateTaskDetailsComponent() {
             }
 
             toast({ title: 'Task Created!', description: `"${taskData.title}" has been assigned.` });
-            router.push('/home');
+            handleRouteChange('/home');
 
         } catch (error: any) {
             console.error("Error creating task:", error);
@@ -178,9 +240,9 @@ function CreateTaskDetailsComponent() {
     const isLoading = isAuthLoading || isTeamLoading || isLoadingAssignee || isCreating;
 
     return (
-        <div className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
+        <div ref={containerRef} className="font-display antialiased m-0 p-0 text-white mesh-background min-h-screen flex flex-col">
             <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">arrow_back</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Create Task</h1>
@@ -202,7 +264,7 @@ function CreateTaskDetailsComponent() {
                                         />
                                     </div>
                                     <span className="text-sm font-medium">{assignee.full_name}</span>
-                                    <button onClick={() => router.back()}>
+                                    <button onClick={handleRouteBack}>
                                         <span className="material-symbols-outlined text-xs text-white/60">close</span>
                                     </button>
                                 </div>

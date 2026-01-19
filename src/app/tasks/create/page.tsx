@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSupabaseAuth } from '@/context/SupabaseAuthProvider';
 import { supabase } from '@/lib/supabase/client';
 import { useTeam } from '@/context/TeamProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
-import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import gsap from 'gsap';
 
 type Profile = {
     id: string;
@@ -22,6 +22,67 @@ export default function CreateTaskPage() {
     const [members, setMembers] = useState<Profile[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const { toast } = useToast();
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const ctx = gsap.context(() => {
+          gsap.fromTo(
+            containerRef.current,
+            { opacity: 0, y: 12 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.35,
+              ease: 'power2.out',
+              clearProps: 'transform,opacity',
+            }
+          );
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const handleRouteChange = (path: string) => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        router.push(path);
+        return;
+      }
+      gsap.to(containerRef.current, {
+        opacity: 0,
+        y: -8,
+        duration: 0.25,
+        ease: 'power1.inOut',
+        onComplete: () => router.push(path),
+      });
+    };
+    
+    const handleRouteReplace = (path: string) => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.replace(path);
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.replace(path),
+        });
+    };
+
+    const handleRouteBack = () => {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            router.back();
+            return;
+        }
+        gsap.to(containerRef.current, {
+            opacity: 0,
+            y: -8,
+            duration: 0.25,
+            ease: 'power1.inOut',
+            onComplete: () => router.back(),
+        });
+    };
 
     useEffect(() => {
         if (isAuthLoading || isTeamLoading) {
@@ -40,7 +101,7 @@ export default function CreateTaskPage() {
             if (activeTeamId === 'personal' || !activeTeamId) {
                 // For personal workspace, automatically assign to self and move to the next step.
                 setIsLoading(false);
-                router.push(`/tasks/create/details?assigneeId=${user.id}`);
+                handleRouteReplace(`/tasks/create/details?assigneeId=${user.id}`);
                 return;
             }
 
@@ -65,7 +126,7 @@ export default function CreateTaskPage() {
                         title: 'Permission Denied',
                         description: errorData.error || 'You do not have permission to view members.'
                     });
-                    router.push('/home');
+                    handleRouteChange('/home');
                     return;
                 }
 
@@ -87,15 +148,15 @@ export default function CreateTaskPage() {
     }, [user, activeTeamId, isTeamLoading, isAuthLoading, router, toast]);
     
     const handleSelectAssignee = (id: string) => {
-        router.push(`/tasks/create/details?assigneeId=${id}`);
+        handleRouteChange(`/tasks/create/details?assigneeId=${id}`);
     };
     
     const pageLoading = isLoading || isAuthLoading || isTeamLoading;
 
     return (
-        <div className="mesh-background min-h-screen flex flex-col">
+        <div ref={containerRef} className="mesh-background min-h-screen flex flex-col">
             <header className="pt-14 px-6 pb-4 flex items-center justify-between sticky top-0 z-30">
-                <button onClick={() => router.back()} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
+                <button onClick={handleRouteBack} className="w-10 h-10 flex items-center justify-center rounded-full glass-panel text-white active:scale-95 transition-transform">
                     <span className="material-symbols-outlined text-2xl">chevron_left</span>
                 </button>
                 <h1 className="text-xl font-bold tracking-tight">Assign Task</h1>
@@ -139,9 +200,9 @@ export default function CreateTaskPage() {
                 </div>
             </main>
             <div className="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#1a0b2e] via-[#1a0b2e]/90 to-transparent z-30">
-                <Link href="/teams/members" className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
+                <a href="/teams/members" onClick={(e) => { e.preventDefault(); handleRouteChange('/teams/members')}} className="w-full h-14 glass-panel text-white rounded-2xl font-bold text-lg active:scale-[0.98] transition-all flex items-center justify-center">
                     Manage team
-                </Link>
+                </a>
             </div>
         </div>
     );
