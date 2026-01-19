@@ -1,6 +1,9 @@
-import Link from 'next/link';
+'use client';
+
+import { useRouter } from 'next/navigation';
 
 export default function WelcomeScreen() {
+  const router = useRouter();
   return (
     <div className="relative flex h-[100dvh] w-full flex-col mesh-background">
       <div className="flex-1 flex flex-col justify-center px-8">
@@ -20,8 +23,8 @@ export default function WelcomeScreen() {
           </p>
         </div>
         <div className="mt-12 flex flex-col gap-4">
-          <Link
-            href="/login"
+          <button
+            onClick={() => router.push('/login')}
             className="glass-card flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">
@@ -40,9 +43,9 @@ export default function WelcomeScreen() {
                 chevron_right
               </span>
             </div>
-          </Link>
-          <Link
-            href="/signup"
+          </button>
+          <button
+            onClick={() => router.push('/signup')}
             className="glass-card flex items-center justify-between gap-4 rounded-2xl p-6 text-left active:scale-[0.98] transition-all duration-200"
           >
             <div className="flex flex-col gap-0.5">
@@ -61,7 +64,7 @@ export default function WelcomeScreen() {
                 arrow_outward
               </span>
             </div>
-          </Link>
+          </button>
         </div>
       </div>
       <div className="h-10 w-full shrink-0"></div>
