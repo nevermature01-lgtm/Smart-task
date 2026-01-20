@@ -124,17 +124,21 @@ export default function HomePage() {
       const tasksPromise = supabase
         .from('tasks')
         .select('id, title, priority, due_date')
+        .eq('is_completed', false)
         .or(`assigned_by.eq.${user.id},assigned_to.eq.${user.id}`)
-        .order('priority', { ascending: true });
+        .order('priority', { ascending: true })
+        .limit(5);
 
       const assignedByPromise = supabase
         .from('tasks')
         .select('*', { count: 'exact', head: true })
+        .eq('is_completed', false)
         .eq('assigned_by', user.id);
         
       const assignedToPromise = supabase
         .from('tasks')
         .select('*', { count: 'exact', head: true })
+        .eq('is_completed', false)
         .eq('assigned_to', user.id);
         
       const [tasksResult, assignedByResult, assignedToResult] = await Promise.all([tasksPromise, assignedByPromise, assignedToPromise]);
@@ -265,7 +269,7 @@ export default function HomePage() {
                 <section className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h3 className="font-bold text-lg">Ongoing Tasks</h3>
-                        <button className="text-sm text-lavender-muted font-medium">View All</button>
+                        <a href="/tasks/completed" onClick={(e) => { e.preventDefault(); handleRouteChange('/tasks/completed'); }} className="text-sm text-lavender-muted font-medium">View All</a>
                     </div>
                     {tasksLoading ? (
                         <div className="flex justify-center items-center p-8">
