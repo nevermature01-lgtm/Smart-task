@@ -218,10 +218,6 @@ export default function HomePage() {
                             <span className="material-symbols-outlined text-white/70">cached</span>
                             <span className="font-medium text-white/70 text-[15px]">Switch Account</span>
                         </a>
-                        <a href="#" className="sidebar-item flex items-center gap-4 px-4 py-4 rounded-2xl transition-all hover:bg-white/5">
-                            <span className="material-symbols-outlined text-white/70">contact_support</span>
-                            <span className="font-medium text-white/70 text-[15px]">Support</span>
-                        </a>
                     </nav>
                     <div className="p-8">
                         <button onClick={handleLogout} className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl logout-glass active:scale-95 transition-transform shadow-lg">
