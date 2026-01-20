@@ -9,6 +9,9 @@ import { useTeam } from '@/context/TeamProvider';
 import { getHumanAvatarSvg } from '@/lib/avatar';
 import { format, parse } from 'date-fns';
 import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 type TeamDetails = {
   team_name: string;
@@ -36,6 +39,7 @@ export default function HomePage() {
   const [assignedToCount, setAssignedToCount] = useState(0);
   const unreadCount = 0;
   const containerRef = useRef(null);
+  const tasksListRef = useRef(null);
 
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -54,6 +58,29 @@ export default function HomePage() {
     }, containerRef);
     return () => ctx.revert();
   }, []);
+
+  useEffect(() => {
+    if (tasksLoading || tasks.length === 0 || !tasksListRef.current) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = gsap.context(() => {
+      gsap.from(gsap.utils.toArray((tasksListRef.current as any).children), {
+        opacity: 0,
+        y: 20,
+        stagger: 0.1,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: tasksListRef.current,
+          start: 'top 95%',
+          toggleActions: 'play none none none',
+          once: true,
+        },
+      });
+    }, tasksListRef);
+
+    return () => ctx.revert();
+  }, [tasksLoading, tasks.length]);
 
   const handleRouteChange = (path: string) => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -76,8 +103,9 @@ export default function HomePage() {
       duration: 0.15,
       ease: 'power1.out',
       onComplete: () => {
-        router.push('/login');
-        supabase.auth.signOut();
+        supabase.auth.signOut().then(() => {
+            router.push('/login');
+        });
       }
     });
   };
@@ -276,7 +304,7 @@ export default function HomePage() {
                             <div className="h-6 w-6 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                         </div>
                     ) : tasks.length > 0 ? (
-                        <div>
+                        <div ref={tasksListRef}>
                             {tasks.map((task) => (
                                 <a key={task.id} href={`/tasks/${task.id}`} onClick={(e) => {e.preventDefault(); handleRouteChange(`/tasks/${task.id}`)}} className="block mb-8">
                                     <div className="glass-panel p-4 rounded-2xl flex items-center gap-4">
